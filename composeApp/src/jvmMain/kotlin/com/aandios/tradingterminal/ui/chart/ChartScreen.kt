@@ -115,7 +115,7 @@ private fun TimeframeSelector(
             TerminalButton(
                 onClick = { onTimeframeSelected(tf) },
                 isActive = tf == selectedTimeframe,
-                modifier = Modifier.width(40.dp).height(32.dp)
+                modifier = Modifier.height(32.dp)
             ) {
                 Text(
                     text = tf, style = MaterialTheme.typography.labelMedium
