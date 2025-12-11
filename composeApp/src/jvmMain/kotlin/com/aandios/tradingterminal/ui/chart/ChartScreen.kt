@@ -7,15 +7,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.aandios.tradingterminal.ui.components.TerminalBadge
+import com.aandios.tradingterminal.ui.components.TerminalButton
+import com.aandios.tradingterminal.ui.components.TerminalCard
+import com.aandios.tradingterminal.ui.components.TerminalDivider
 import com.aandios.tradingterminal.ui.components.TerminalStatusBar
+import com.aandios.tradingterminal.ui.components.TerminalToolbar
 import com.aandios.tradingterminal.ui.theme.*
-import com.aandios.tradingterminal.ui.theme.TerminalBadge
-import com.aandios.tradingterminal.ui.theme.TerminalButton
-import com.aandios.tradingterminal.ui.theme.TerminalCard
-import com.aandios.tradingterminal.ui.theme.TerminalDivider
-import com.aandios.tradingterminal.ui.theme.TerminalToolbar
 
 @Composable
 fun ChartScreen(
