@@ -2,9 +2,14 @@ package com.aandios.tradingterminal.ui.chart
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
@@ -14,15 +19,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aandios.tradingterminal.domain.entities.Candle
+import java.text.SimpleDateFormat
+import java.util.Date
 import kotlin.math.abs
 
 
@@ -58,9 +70,14 @@ fun CandleStickChart(
     modifier: Modifier = Modifier,
     config: ChartConfig = DefaultChartConfig,
     showPriceScale: Boolean = true,
-    priceScaleWidth: Dp = 60.dp
+    priceScaleWidth: Dp = 60.dp,
+    showCrosshair: Boolean = true,
 ) {
     if (candles.isEmpty()) return
+
+    var mousePosition by remember { mutableStateOf<Offset?>(null) }
+
+    var isCrosshairVisible by remember { mutableStateOf(false) }
 
     // Расчет минимальной и максимальной цены
     val priceRange = remember(candles, currentPrice) {
@@ -75,6 +92,34 @@ fun CandleStickChart(
         modifier = modifier
             .fillMaxSize()
             .background(config.backgroundColor)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = {
+                        isCrosshairVisible = false
+                        mousePosition = null
+                    }
+                )
+            }
+            .pointerInput(Unit) {
+                detectDragGestures(
+                    onDragStart = { offset ->
+                        if (showCrosshair) {
+                            isCrosshairVisible = true
+                            mousePosition = offset
+                        }
+                    },
+                    onDrag = { change, _ ->
+                        if (showCrosshair) {
+                            isCrosshairVisible = true
+                            mousePosition = change.position
+                        }
+                    },
+                    onDragEnd = {
+                        // Не скрываем после перетаскивания
+                    }
+                )
+            }
+
     ) {
         // Рассчитываем layout графика
         val layout = remember(priceScaleWidth) {
@@ -170,10 +215,329 @@ fun CandleStickChart(
                     strokeWidth = 1f
                 )
             }
+            // Рисуем перекрестие если оно видимо и есть позиция курсора
+            if (showCrosshair && isCrosshairVisible && mousePosition != null) {
+                drawCrosshair(
+                    mousePosition = mousePosition!!,
+                    candles = candles,
+                    priceRange = priceRange,
+                    config = config,
+                    chartLayout = layout,
+                    textMeasurer = textMeasurer
+                )
+            }
         }
     }
 }
 
+// Функция для отрисовки перекрестия
+private fun DrawScope.drawCrosshair(
+    mousePosition: Offset,
+    candles: List<Candle>,
+    priceRange: PriceRange,
+    config: ChartConfig,
+    chartLayout: ChartLayout,
+    textMeasurer: TextMeasurer
+) {
+    // Проверяем находится ли курсор в области графика (без шкалы времени)
+    if (mousePosition.x < 0f || mousePosition.x > chartLayout.chartMainArea.right ||
+        mousePosition.y < 0f || mousePosition.y > chartLayout.chartMainArea.bottom) {
+        return // Курсор вне области графика
+    }
+
+    // 1. Вертикальная линия через весь график
+    drawLine(
+        color = Color.White.copy(alpha = 0.3f),
+        start = Offset(mousePosition.x, 0f),
+        end = Offset(mousePosition.x, chartLayout.chartMainArea.bottom),
+        strokeWidth = 1f
+    )
+
+    // 2. Горизонтальная линия через весь график
+    drawLine(
+        color = Color.White.copy(alpha = 0.3f),
+        start = Offset(0f, mousePosition.y),
+        end = Offset(chartLayout.chartMainArea.right, mousePosition.y),
+        strokeWidth = 1f
+    )
+
+    // 3. Находим ближайшую свечу к позиции курсора по X
+    val candleIndex = findNearestCandleIndex(
+        mouseX = mousePosition.x,
+        candles = candles,
+        chartWidth = chartLayout.chartMainArea.width
+    )
+
+    // 4. Если нашли свечу, показываем информацию о ней
+    if (candleIndex in candles.indices) {
+        val candle = candles[candleIndex]
+
+        // Рассчитываем Y для цен свечи
+        fun getYForPrice(price: Float): Float {
+            return chartLayout.chartMainArea.height -
+                    ((price - priceRange.visibleMin) / priceRange.range) *
+                    chartLayout.chartMainArea.height
+        }
+
+        // 5. Маленькие маркеры на уровнях цен свечи
+        val highY = getYForPrice(candle.high)
+        val lowY = getYForPrice(candle.low)
+        val openY = getYForPrice(candle.open)
+        val closeY = getYForPrice(candle.close)
+
+        // Маркер на high
+        drawCircle(
+            color = Color.Red.copy(alpha = 0.7f),
+            center = Offset(mousePosition.x, highY),
+            radius = 3f
+        )
+
+        // Маркер на low
+        drawCircle(
+            color = Color.Green.copy(alpha = 0.7f),
+            center = Offset(mousePosition.x, lowY),
+            radius = 3f
+        )
+
+        // 6. Информационная панель в углу
+        drawInfoPanel(
+            candle = candle,
+            mousePosition = mousePosition,
+            chartLayout = chartLayout,
+            textMeasurer = textMeasurer,
+            config = config
+        )
+
+        // 7. Метка цены на оси Y
+        val currentPriceAtCursor = priceFromY(
+            y = mousePosition.y,
+            priceRange = priceRange,
+            chartHeight = chartLayout.chartMainArea.height
+        )
+
+        drawPriceLabelOnAxis(
+            price = currentPriceAtCursor,
+            mouseY = mousePosition.y,
+            chartLayout = chartLayout,
+            textMeasurer = textMeasurer,
+            config = config
+        )
+
+        // 8. Метка времени на оси X
+        drawTimeLabelOnAxis(
+            candle = candle,
+            mouseX = mousePosition.x,
+            chartLayout = chartLayout,
+            textMeasurer = textMeasurer,
+            config = config
+        )
+    }
+}
+// Функция для поиска индекса ближайшей свечи по X координате
+private fun findNearestCandleIndex(
+    mouseX: Float,
+    candles: List<Candle>,
+    chartWidth: Float
+): Int {
+    if (candles.isEmpty()) return -1
+
+    val candleMetrics = calculateCandleMetrics(candles.size, chartWidth)
+    val totalWidthPerCandle = candleMetrics.width + candleMetrics.spacing
+
+    val index = (mouseX / totalWidthPerCandle).toInt()
+    return index.coerceIn(0, candles.size - 1)
+}
+
+// Функция для получения цены из Y координаты
+private fun priceFromY(
+    y: Float,
+    priceRange: PriceRange,
+    chartHeight: Float
+): Float {
+    return priceRange.visibleMax - (y / chartHeight) * priceRange.range
+}
+
+// Функция для рисования информационной панели
+private fun DrawScope.drawInfoPanel(
+    candle: Candle,
+    mousePosition: Offset,
+    chartLayout: ChartLayout,
+    textMeasurer: TextMeasurer,
+    config: ChartConfig
+) {
+    val panelWidth = 120f
+    val panelHeight = 80f
+
+    // Позиция панели (правый верхний угол)
+    val panelLeft = mousePosition.x + 10f
+    val panelTop = mousePosition.y + 10f
+
+    // Проверяем чтобы панель не выходила за границы
+    val adjustedLeft = if (panelLeft + panelWidth > chartLayout.chartMainArea.right) {
+        mousePosition.x - panelWidth - 10f
+    } else {
+        panelLeft
+    }
+
+    val adjustedTop = if (panelTop + panelHeight > chartLayout.chartMainArea.bottom) {
+        mousePosition.y - panelHeight - 10f
+    } else {
+        panelTop
+    }
+
+    // Фон панели
+    drawRect(
+        color = Color.Black.copy(alpha = 0.8f),
+        topLeft = Offset(adjustedLeft, adjustedTop),
+        size = Size(panelWidth, panelHeight)
+    )
+
+    // Время свечи
+    val timeText = "Time: ${formatTime(candle.timestamp)}"
+    drawTextLine(
+        text = timeText,
+        x = adjustedLeft + 4f,
+        y = adjustedTop + 15f,
+        textMeasurer = textMeasurer,
+        color = Color.White
+    )
+
+    // Цены
+    drawTextLine(
+        text = String.format("O: %.4f", candle.open),
+        x = adjustedLeft + 4f,
+        y = adjustedTop + 30f,
+        textMeasurer = textMeasurer,
+        color = Color.White
+    )
+
+    drawTextLine(
+        text = String.format("H: %.4f", candle.high),
+        x = adjustedLeft + 4f,
+        y = adjustedTop + 45f,
+        textMeasurer = textMeasurer,
+        color = if (candle.high >= candle.open) Color.Green else Color.Red
+    )
+
+    drawTextLine(
+        text = String.format("L: %.4f", candle.low),
+        x = adjustedLeft + 4f,
+        y = adjustedTop + 60f,
+        textMeasurer = textMeasurer,
+        color = if (candle.low <= candle.open) Color.Red else Color.Green
+    )
+}
+
+// Функция для рисования метки цены на оси Y
+private fun DrawScope.drawPriceLabelOnAxis(
+    price: Float,
+    mouseY: Float,
+    chartLayout: ChartLayout,
+    textMeasurer: TextMeasurer,
+    config: ChartConfig
+) {
+    val priceText = String.format("%.4f", price)
+
+    val textStyle = TextStyle(
+        color = Color.White,
+        fontSize = 10.sp,
+        fontFamily = FontFamily.Monospace,
+    )
+
+    val textLayoutResult = textMeasurer.measure(
+        text = androidx.compose.ui.text.AnnotatedString(priceText),
+        style = textStyle
+    )
+
+    // Позиция на правой стороне графика
+    val labelX = chartLayout.chartMainArea.right - textLayoutResult.size.width - 4f
+    val labelY = mouseY - textLayoutResult.size.height / 2
+
+    drawRect(
+        color = Color.Black.copy(alpha = 0.7f),
+        topLeft = Offset(labelX, labelY),
+        size = Size(
+            textLayoutResult.size.width.toFloat(),
+            textLayoutResult.size.height.toFloat()
+        )
+    )
+
+    drawText(
+        textLayoutResult = textLayoutResult,
+        topLeft = Offset(labelX, labelY)
+    )
+}
+
+// Функция для рисования метки времени на оси X
+private fun DrawScope.drawTimeLabelOnAxis(
+    candle: Candle,
+    mouseX: Float,
+    chartLayout: ChartLayout,
+    textMeasurer: TextMeasurer,
+    config: ChartConfig
+) {
+    val timeText = formatTime(candle.timestamp)
+
+    val textStyle = TextStyle(
+        color = Color.White,
+        fontSize = 10.sp,
+        fontFamily = FontFamily.Monospace,
+    )
+
+    val textLayoutResult = textMeasurer.measure(
+        text = AnnotatedString(timeText),
+        style = textStyle
+    )
+
+    // Позиция внизу графика
+    val labelX = mouseX - textLayoutResult.size.width / 2
+    val labelY = chartLayout.chartMainArea.bottom + 4f
+
+    // Проверяем границы
+    val adjustedX = labelX.coerceIn(
+        0f,
+        chartLayout.chartMainArea.right - textLayoutResult.size.width
+    )
+
+    drawRect(
+        color = Color.Black.copy(alpha = 0.7f),
+        topLeft = Offset(adjustedX, labelY),
+        size = Size(
+            textLayoutResult.size.width.toFloat(),
+            textLayoutResult.size.height.toFloat()
+        )
+    )
+
+    drawText(
+        textLayoutResult = textLayoutResult,
+        topLeft = Offset(adjustedX, labelY)
+    )
+}
+
+// Вспомогательная функция для рисования текста
+private fun DrawScope.drawTextLine(
+    text: String,
+    x: Float,
+    y: Float,
+    textMeasurer: TextMeasurer,
+    color: Color
+) {
+    val textStyle = TextStyle(
+        color = color,
+        fontSize = 10.sp,
+        fontFamily = FontFamily.Monospace
+    )
+
+    val textLayoutResult = textMeasurer.measure(
+        text = AnnotatedString(text),
+        style = textStyle
+    )
+
+    drawText(
+        textLayoutResult = textLayoutResult,
+        topLeft = Offset(x, y)
+    )
+}
 // Функция для отрисовки всего графика
 private fun DrawScope.drawChart(
     candles: List<Candle>,
@@ -282,15 +646,15 @@ private fun DrawScope.drawCurrentPriceBadge(
     val priceText = formatPrice(price)
 
     // Создаем стиль текста для badge
-    val textStyle = androidx.compose.ui.text.TextStyle(
+    val textStyle = TextStyle(
         color = Color.Green,
         fontSize = 10.sp,
-        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+        fontWeight = FontWeight.Bold,
+        fontFamily = FontFamily.Monospace
     )
 
     val textLayoutResult = textMeasurer.measure(
-        text = androidx.compose.ui.text.AnnotatedString(priceText),
+        text = AnnotatedString(priceText),
         style = textStyle
     )
 
@@ -325,14 +689,8 @@ private fun DrawScope.drawCurrentPriceBadge(
         textLayoutResult = textLayoutResult,
         topLeft = Offset(badgeLeft + padding, adjustedBadgeTop + padding)
     )
-
-//    // Маленький зеленый кружок слева от badge
-//    drawCircle(
-//        color = Color.Green,
-//        center = Offset(badgeLeft - 4f, adjustedBadgeTop + badgeHeight / 2),
-//        radius = 2.5f
-//    )
 }
+
 private fun DrawScope.drawTimeScale(
     candles: List<Candle>,
     config: ChartConfig,
@@ -375,10 +733,10 @@ private fun DrawScope.drawTimeScale(
                 val timeText = formatTime(candle.timestamp)
 
                 // Стиль текста для шкалы времени
-                val textStyle = androidx.compose.ui.text.TextStyle(
+                val textStyle = TextStyle(
                     color = config.axisTextColor,
                     fontSize = 9.sp,
-                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                    fontFamily = FontFamily.Monospace
                 )
 
                 val textLayoutResult = textMeasurer.measure(
@@ -418,11 +776,11 @@ private fun DrawScope.drawCurrentPriceLabel(
     val priceText = formatPrice(price)
 
     // Создаем стиль текста
-    val textStyle = androidx.compose.ui.text.TextStyle(
+    val textStyle = TextStyle(
         color = Color.Green,
         fontSize = 10.sp,
-        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+        fontWeight = FontWeight.Bold,
+        fontFamily = FontFamily.Monospace
     )
 
     val textLayoutResult = textMeasurer.measure(
@@ -470,10 +828,10 @@ private fun DrawScope.drawPriceLevel(
     textMeasurer: TextMeasurer
 ) {
     val priceText = formatPrice(price)
-    val textStyle = androidx.compose.ui.text.TextStyle(
+    val textStyle = TextStyle(
         color = config.axisTextColor,
         fontSize = 10.sp,
-        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+        fontFamily = FontFamily.Monospace,
         textAlign = TextAlign.Right
     )
 
@@ -643,7 +1001,7 @@ private fun DrawScope.drawCandle(
     // 3. Рисуем тело свечи
     val bodyTop = if (isBullish) closeY else openY
     val bodyBottom = if (isBullish) openY else closeY
-    val bodyHeight = kotlin.math.abs(bodyBottom - bodyTop)
+    val bodyHeight = abs(bodyBottom - bodyTop)
 
     if (bodyHeight > 0) {
         drawRect(
@@ -688,7 +1046,7 @@ private fun formatPrice(price: Float): String {
 private fun formatTime(timestamp: Long): String {
     // Можно использовать разные форматы в зависимости от таймфрейма
     // Пока используем простое преобразование
-    val date = java.util.Date(timestamp)
-    val formatter = java.text.SimpleDateFormat("HH:mm")
+    val date = Date(timestamp)
+    val formatter = SimpleDateFormat("HH:mm")
     return formatter.format(date)
 }
