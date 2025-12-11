@@ -1,6 +1,8 @@
 package com.aandios.tradingterminal.ui.chart
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.aandios.tradingterminal.ui.theme.ChartColors
 
 // Конфигурация для отрисовки свечей
@@ -21,6 +23,8 @@ data class ChartConfig(
     val axisTextColor: Color = ChartColors.axisText,
     val showGrid: Boolean = true,
     val showVolume: Boolean = true,
+    val showPriceScale: Boolean = true,
+    val priceScaleWidth: Dp = 60.dp,
     val candleStyle: CandleStyle = CandleStyle()
 )
 
