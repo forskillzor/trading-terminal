@@ -1,34 +1,113 @@
 package com.aandios.tradingterminal.data.repository
 
-import com.aandios.tradingterminal.data.api.BinanceApi
+import com.aandios.tradingterminal.data.api.binance.BinanceApi
 import com.aandios.tradingterminal.data.api.BybitApi
 import com.aandios.tradingterminal.domain.entities.Candle
 import com.aandios.tradingterminal.domain.repository.ChartRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 
 class ChartRepositoryImpl(
     private val bybitApi: BybitApi,
     private val binanceApi: BinanceApi
 ): ChartRepository {
+
+    private val realTimeUpdates = MutableStateFlow<Map<String, Flow<Candle>>>(emptyMap())
+
     override fun getChart(
         ticker: String,
         timeframe: String
-    ): Flow<List<Candle>> = flow {
+    ): Flow<List<Candle>> = channelFlow {
         try {
-            // Пока используем только Binance
-            val binanceCandles = binanceApi.getCandles(
-                symbol = ticker.replace("/", ""), // BTC/USDT -> BTCUSDT
-                interval = mapTimeframe(timeframe),
-                limit = 100
-            )
+            // Загружаем исторические данные
+            val symbol = ticker.replace("/", "")
+            val historicalCandles = loadHistoricalCandles(symbol, timeframe)
 
-            val domainCandles = binanceCandles.map { it.toDomain() }
-            emit(domainCandles)
+            // Отправляем исторические данные
+            send(historicalCandles)
+
+            // Подключаемся к real-time данным
+            val realTimeFlow = getRealTimeUpdates(symbol, timeframe)
+
+            // Объединяем потоки
+
+            var currentCandles = historicalCandles
+
+            realTimeFlow.collect { realTimeCandle ->
+                currentCandles = updateCandleWithRealTime(
+                    currentCandles = currentCandles,
+                    newCandle = realTimeCandle,
+                    timeframe = timeframe
+                )
+                send(currentCandles)
+            }
         } catch (e: Exception) {
-            // В случае ошибки пробуем Bybit
-            // TODO: реализовать Bybit
+            close(e)
             throw e
+        }
+    }
+    private suspend fun loadHistoricalCandles(symbol: String, timeframe: String): List<Candle> {
+        val binanceCandles = binanceApi.getCandles(
+            symbol = symbol,
+            interval = mapTimeframe(timeframe),
+            limit = 200
+        )
+        return binanceCandles.map { it.toDomain() }
+    }
+    private fun getRealTimeUpdates(symbol: String, interval: String): Flow<Candle> {
+        val key = "$symbol-$interval"
+
+        return realTimeUpdates.flatMapLatest { flows ->
+            flows[key] ?: createRealTimeFlow(symbol, interval).also {flow ->
+                realTimeUpdates.value += (key to flow)
+            }
+        }
+    }
+
+    private fun createRealTimeFlow(symbol: String, interval: String): Flow<Candle>  =  flow {
+        binanceApi.subscribeToCandles(symbol, interval).collect { wsCandle ->
+            emit(wsCandle.toDomain())
+        }
+    }
+
+    private fun updateCandleWithRealTime(
+        currentCandles: List<Candle>,
+        newCandle: Candle,
+        timeframe: String
+    ): List<Candle> {
+        if (currentCandles.isEmpty()) return listOf(newCandle)
+
+        val lastCandle = currentCandles.last()
+        val timeframeMs = getTimeframeMillis(timeframe)
+
+        val isSameCandle = newCandle.timestamp / timeframeMs == lastCandle.timestamp / timeframeMs
+
+        return if( isSameCandle) {
+            currentCandles.dropLast(1) + newCandle.copy(
+                high = maxOf(lastCandle.high, newCandle.high),
+                low = minOf(lastCandle.low, newCandle.low),
+                close = newCandle.close,
+                volume = lastCandle.volume + newCandle.volume
+            )
+        } else {
+            currentCandles + newCandle
+        }
+    }
+
+    private fun getTimeframeMillis(timeframe: String): Long {
+        return when (timeframe) {
+            "1m" -> 60_000L
+            "5m" -> 300_000L
+            "15m" -> 900_000L
+            "30m" -> 1_800_000L
+            "1h" -> 3_600_000L
+            "4h" -> 14_400_000L
+            "1d" -> 86_400_000L
+            "1w" -> 604_800_000L
+            else -> 3_600_000L
         }
     }
 

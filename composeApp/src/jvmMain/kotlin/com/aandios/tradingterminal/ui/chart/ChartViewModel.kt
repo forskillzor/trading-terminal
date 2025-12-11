@@ -5,42 +5,84 @@ import com.aandios.tradingterminal.domain.usecases.GetChartByTickerUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 
-// ПРОСТАЯ ViewModel для десктопа
+// ПРОСТАЯ ViewModel для desktop
 class ChartViewModel(
     private val getChartUseCase: GetChartByTickerUseCase
 ) {
-    private val viewModelScope = CoroutineScope(Dispatchers.IO + Job())
+    private val viewModelScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private var currentJob: Job? = null
 
     private val _chartState = MutableStateFlow<ChartState>(ChartState.Loading)
     val chartState: StateFlow<ChartState> = _chartState.asStateFlow()
 
     fun loadChart(ticker: String = "BTCUSDT", timeframe: String = "1h") {
+        // Отменяем предыдущую подписку НЕМНОГО ПОЗЖЕ
+        // Даем WebSocket время инициализироваться
         viewModelScope.launch {
             _chartState.value = ChartState.Loading
-            try {
-                getChartUseCase(ticker, timeframe).collect { candles ->
-                    _chartState.value = ChartState.Success(candles)
+
+            // Небольшая задержка перед отменой старого job
+            delay(100) // Даем 100ms для корректного завершения
+            currentJob?.cancel()
+
+            // Сбрасываем состояние на Loading только один раз
+            if (_chartState.value !is ChartState.Loading) {
+                _chartState.value = ChartState.Loading
+            }
+
+            currentJob = launch {
+                try {
+                    getChartUseCase(ticker, timeframe)
+                        .catch { e ->
+                            println("ViewModel catch error: ${e.message}")
+                            _chartState.value = ChartState.Error(e.message ?: "Unknown error")
+                        }
+                        .collect { candles ->
+                            // Только если это не пустой список (WebSocket еще не дал данные)
+                            if (candles.isNotEmpty()) {
+                                val lastPrice = candles.last().close
+                                _chartState.value = ChartState.Success(
+                                    candles = candles,
+                                    currentPrice = lastPrice
+                                )
+                            }
+                        }
+                } catch (e: CancellationException) {
+                    // Это нормально - просто отмена
+                    println("Job cancelled: ${e.message}")
+                } catch (e: Exception) {
+                    println("Job error: ${e.message}")
+                    _chartState.value = ChartState.Error(e.message ?: "Unknown error")
                 }
-            } catch (e: Exception) {
-                _chartState.value = ChartState.Error(e.message ?: "Unknown error")
             }
         }
     }
 
     fun clear() {
         viewModelScope.coroutineContext.cancelChildren()
+        viewModelScope.cancel()
     }
 }
 
 // Состояния
 sealed interface ChartState {
     object Loading : ChartState
-    data class Success(val candles: List<Candle>) : ChartState
+    data class Success(
+        val candles: List<Candle>,
+        val currentPrice: Float? = null
+    ) : ChartState
     data class Error(val message: String) : ChartState
 }

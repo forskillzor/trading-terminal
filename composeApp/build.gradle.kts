@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeHotReload)
     alias(libs.plugins.compose.compiler)
+    kotlin("plugin.serialization") version "1.9.22"
 }
 
 kotlin {
@@ -29,6 +30,9 @@ kotlin {
             // Для удобства работы с временем
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
 
+            // Сериализация
+            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
@@ -42,6 +46,7 @@ kotlin {
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
+            implementation(libs.kotlinx.coroutines.core)
             implementation(libs.androidx.ui.geometry.desktop)
         }
     }

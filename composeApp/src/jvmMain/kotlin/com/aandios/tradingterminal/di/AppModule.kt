@@ -1,6 +1,6 @@
 package com.aandios.tradingterminal.di
 
-import com.aandios.tradingterminal.data.api.BinanceApi
+import com.aandios.tradingterminal.data.api.binance.BinanceApi
 import com.aandios.tradingterminal.data.api.BybitApi
 import com.aandios.tradingterminal.data.repository.ChartRepositoryImpl
 import com.aandios.tradingterminal.domain.repository.ChartRepository
@@ -19,9 +19,15 @@ import org.koin.dsl.module
 val appModule = module {
 
     // 1. HTTP clients
+
     single {
         HttpClient {
-            install(WebSockets)
+            // ОБА плагина должны быть установлены
+            install(WebSockets) {
+                // Опциональные настройки
+                maxFrameSize = Long.MAX_VALUE
+            }
+
             install(ContentNegotiation) {
                 json(Json {
                     ignoreUnknownKeys = true
@@ -33,7 +39,9 @@ val appModule = module {
 
     // 2. API clients
     single<BinanceApi> {
-        BinanceApi(client = get())
+        BinanceApi(
+            client = get()
+        )
     }
 
     single<BybitApi> {

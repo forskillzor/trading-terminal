@@ -7,6 +7,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.aandios.tradingterminal.ui.components.TerminalBadge
 import com.aandios.tradingterminal.ui.components.TerminalButton
@@ -149,14 +150,17 @@ private fun ChartContent(
             }
 
             is ChartState.Success -> {
-                val candles = (chartState as ChartState.Success).candles
+                val candles = chartState.candles
+                val lastPrice = candles.lastOrNull()?.close  // Получаем последнюю цену
 
                 Column(
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    // Заголовок графика
+                    // Заголовок графика - ОБНОВИЛ
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -166,6 +170,17 @@ private fun ChartContent(
                                 color = MaterialTheme.colorScheme.onSurface,
                                 style = MaterialTheme.typography.titleMedium
                             )
+
+                            // ДОБАВИЛ: Показываем текущую цену большим шрифтом
+                            if (lastPrice != null) {
+                                Text(
+                                    text = formatPrice(lastPrice),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
                             Text(
                                 text = "${candles.size} candles • Binance",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -174,13 +189,14 @@ private fun ChartContent(
                         }
 
                         // Статистика
-                        if (candles.isNotEmpty()) {
+                        if (candles.size >= 2) {
                             val lastCandle = candles.last()
-                            val change = ((lastCandle.close - lastCandle.open) / lastCandle.open * 100)
+                            val prevCandle = candles[candles.size - 2]
+                            val change = ((lastCandle.close - prevCandle.close) / prevCandle.close * 100)
                             val isBullish = change >= 0
 
                             TerminalBadge(
-                                text = "${String.format("%.2f", lastCandle.close)} (${String.format("%.2f", change)}%)",
+                                text = "${String.format("%.2f", lastCandle.close)} (${String.format("%+.2f", change)}%)",
                                 isBullish = isBullish
                             )
                         }
@@ -188,12 +204,18 @@ private fun ChartContent(
 
                     TerminalDivider()
 
-                    // График
+                    // График - ПЕРЕДАЕМ текущую цену
                     CandleStickChart(
-                        candles = candles, modifier = Modifier.fillMaxSize().padding(16.dp), config = chartConfig
+                        candles = candles,
+                        currentPrice = lastPrice,  // ДОБАВИЛ
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        config = chartConfig
                     )
                 }
             }
+
 
             is ChartState.Error -> {
                 Column(
@@ -222,5 +244,14 @@ private fun ChartContent(
                 }
             }
         }
+    }
+}
+private fun formatPrice(price: Float): String {
+    return when {
+        price >= 1000 -> String.format("%.1f", price)
+        price >= 100 -> String.format("%.2f", price)
+        price >= 10 -> String.format("%.3f", price)
+        price >= 1 -> String.format("%.4f", price)
+        else -> String.format("%.6f", price)
     }
 }

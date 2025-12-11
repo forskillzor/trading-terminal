@@ -10,6 +10,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -34,20 +36,19 @@ data class CandleMetrics(
 @Composable
 fun CandleStickChart(
     candles: List<Candle>,
+    currentPrice: Float? = null,
     modifier: Modifier = Modifier,
     config: ChartConfig = DefaultChartConfig,
     showPriceScale: Boolean = true,
-    priceScaleWidth: Dp = 60.dp
+    priceScaleWidth: Dp = 60.dp,
+    showCurrentPriceLine: Boolean = true
 ) {
     if (candles.isEmpty()) return
 
+
     // Расчет минимальной и максимальной цены
-    val priceRange = remember(candles) {
-        if (candles.isEmpty()) {
-            PriceRange(0f, 0f, 0f, 0f, 0f)
-        } else {
-            calculatePriceRange(candles)
-        }
+    val priceRange = remember(candles, currentPrice) {
+        calculatePriceRangeWithCurrentPrice(candles,currentPrice)
     }
 
     // Если нужна шкала цен
@@ -65,7 +66,7 @@ fun CandleStickChart(
                     .background(config.backgroundColor)
                     .clipToBounds()
             ) {
-                drawChart(candles, priceRange, config)
+                drawChart(candles, priceRange, config, currentPrice, showCurrentPriceLine)
             }
             // Вертикальная разделительная линия
             Box(
@@ -77,6 +78,7 @@ fun CandleStickChart(
             // Шкала цен справа
             SimplePriceScale(
                 priceRange = priceRange,
+                currentPrice = currentPrice,
                 modifier = Modifier
                     .width(priceScaleWidth)
                     .fillMaxHeight(),
@@ -93,6 +95,39 @@ fun CandleStickChart(
             drawChart(candles, priceRange, config)
         }
     }
+}
+
+private fun calculatePriceRangeWithCurrentPrice(
+    candles: List<Candle>,
+    currentPrice: Float?
+): PriceRange {
+    if (candles.isEmpty() && currentPrice == null) {
+        return PriceRange(0f, 0f, 0f, 0f, 0f)
+    }
+
+    val priceList = mutableListOf<Float>().apply {
+        addAll(candles.map { it.high })
+        addAll(candles.map { it.low })
+        currentPrice?.let { add(it) }
+    }
+
+    val maxPrice = priceList.maxOrNull() ?: 0f
+    val minPrice = priceList.minOrNull() ?: 0f
+    val priceRange = maxPrice - minPrice
+
+    // Добавляем 5% padding сверху и снизу (меньше чем раньше)
+    val padding = priceRange * 0.05f
+    val visibleMax = maxPrice + padding
+    val visibleMin = minPrice - padding
+    val visibleRange = visibleMax - visibleMin
+
+    return PriceRange(
+        max = maxPrice,
+        min = minPrice,
+        visibleMax = visibleMax,
+        visibleMin = visibleMin,
+        range = visibleRange
+    )
 }
 
 // Функция расчета диапазона цен
@@ -124,18 +159,17 @@ private fun calculatePriceRange(candles: List<Candle>): PriceRange {
 private fun DrawScope.drawChart(
     candles: List<Candle>,
     priceRange: PriceRange,
-    config: ChartConfig
+    config: ChartConfig,
+    currentPrice: Float? = null,
+    showCurrentPriceLine: Boolean = true
 ) {
-    // Рисуем сетку если нужно
+    // Сначала сетка
     drawGrid(config)
 
-    // Рассчитываем ширину свечи
+    // Потом свечи
     val candleMetrics = calculateCandleMetrics(candles.size)
-
-    // Рисуем каждую свечу
     candles.forEachIndexed { index, candle ->
         val x = index * (candleMetrics.width + candleMetrics.spacing) + candleMetrics.width / 2
-
         drawCandle(
             candle = candle,
             centerX = x,
@@ -143,6 +177,45 @@ private fun DrawScope.drawChart(
             metrics = candleMetrics,
             config = config
         )
+    }
+
+    // И В САМОМ КОНЦЕ - линия текущей цены (чтобы была поверх свечей)
+    if (showCurrentPriceLine && currentPrice != null) {
+        drawCurrentPriceLine(currentPrice, priceRange, config)
+    }
+}
+
+private fun DrawScope.drawCurrentPriceLine(
+    currentPrice: Float,
+    priceRange: PriceRange,
+    config: ChartConfig
+) {
+    val y = priceToY(currentPrice, priceRange)
+
+    // Пунктирная линия
+    drawLine(
+        color = Color.Green.copy(alpha = 0.7f),
+        start = Offset(0f, y),
+        end = Offset(size.width, y),
+        strokeWidth = 1f,
+        pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 5f), 0f)
+    )
+
+    // Точка на линии
+    drawCircle(
+        color = Color.Green,
+        center = Offset(size.width - 15f, y),
+        radius = 4f
+    )
+}
+
+private fun formatPriceCompact(price: Float): String {
+    return when {
+        price >= 1000 -> String.format("%.0f", price)
+        price >= 100 -> String.format("%.1f", price)
+        price >= 10 -> String.format("%.2f", price)
+        price >= 1 -> String.format("%.3f", price)
+        else -> String.format("%.5f", price)
     }
 }
 
@@ -267,6 +340,7 @@ private fun DrawScope.drawCandle(
 @Composable
 private fun SimplePriceScale(
     priceRange: PriceRange,
+    currentPrice: Float? = null,
     modifier: Modifier = Modifier,
     config: ChartConfig,
     numberOfLevels: Int = 8
@@ -290,6 +364,14 @@ private fun SimplePriceScale(
                 )
             }
 
+            // Показываем текущую цену сверху
+            if (currentPrice != null) {
+                CurrentPriceBadge(
+                    price = currentPrice,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+
             // Отображаем цены
             priceLevels.forEach { price ->
                 Text(
@@ -304,6 +386,54 @@ private fun SimplePriceScale(
     }
 }
 
+@Composable
+private fun CurrentPriceBadge(
+    price: Float,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .background(Color.Green.copy(alpha = 0.2f))
+            .padding(horizontal = 4.dp, vertical = 2.dp),
+        contentAlignment = Alignment.CenterEnd
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .background(Color.Green, androidx.compose.foundation.shape.CircleShape)
+            )
+
+            Spacer(modifier = Modifier.width(4.dp))
+
+            Text(
+                text = formatPrice(price),
+                color = Color.Green,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+            )
+        }
+    }
+}
+
+@Composable
+private fun PriceLevelText(
+    price: Float,
+    isHighlighted: Boolean,
+    config: ChartConfig
+) {
+    Text(
+        text = formatPrice(price),
+        color = if (isHighlighted) Color.Green else config.axisTextColor,
+        fontSize = 10.sp,
+        fontWeight = if (isHighlighted) FontWeight.Bold else FontWeight.Normal,
+        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+        modifier = Modifier.padding(vertical = 2.dp)
+    )
+}
 // Функция для генерации уровней цен
 private fun generatePriceLevels(min: Float, max: Float, count: Int): List<Float> {
     if (count <= 0) return emptyList()
