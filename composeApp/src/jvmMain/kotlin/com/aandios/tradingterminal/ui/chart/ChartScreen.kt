@@ -7,6 +7,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.aandios.tradingterminal.ui.components.TerminalBadge
@@ -15,13 +16,23 @@ import com.aandios.tradingterminal.ui.components.TerminalCard
 import com.aandios.tradingterminal.ui.components.TerminalDivider
 import com.aandios.tradingterminal.ui.components.TerminalStatusBar
 import com.aandios.tradingterminal.ui.components.TerminalToolbar
+import com.aandios.tradingterminal.ui.dom.DomViewModel
+import com.aandios.tradingterminal.ui.dom.DomWidget
 import com.aandios.tradingterminal.ui.theme.*
+import com.aandios.tradingterminal.ui.trades.TradesViewModel
+import com.aandios.tradingterminal.ui.trades.TradesWidget
 
 @Composable
 fun ChartScreen(
-    viewModel: ChartViewModel, modifier: Modifier = Modifier
+    chartViewModel: ChartViewModel,
+    domViewModel: DomViewModel,
+    tradesViewModel: TradesViewModel,
+    modifier: Modifier = Modifier,
 ) {
-    val chartState by viewModel.chartState.collectAsState()
+    val chartState by chartViewModel.chartState.collectAsState()
+    val orderBook by domViewModel.orderBook.collectAsState()
+    val selectedPrice by domViewModel.selectedPrice.collectAsState()
+    val orderQuantity by domViewModel.orderQuantity.collectAsState()
 
     // Состояние для выбранного инструмента и таймфрейма
     var selectedSymbol by remember { mutableStateOf("BTCUSDT") }
@@ -39,11 +50,14 @@ fun ChartScreen(
     }
 
     LaunchedEffect(selectedSymbol, selectedTimeframe) {
-        viewModel.loadChart(selectedSymbol, selectedTimeframe)
+        chartViewModel.loadChart(selectedSymbol, selectedTimeframe)
+        domViewModel.subscribeToOrderBook(selectedSymbol)
+        tradesViewModel.subscribeToTrades(selectedSymbol)
     }
 
     Column(
-        modifier = modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(1.dp) // Минимальные промежутки
+        modifier = modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(1.dp) // Минимальные промежутки
     ) {
         // Верхняя панель инструментов
         TerminalToolbar {
@@ -66,12 +80,48 @@ fun ChartScreen(
         TerminalCard(
             modifier = Modifier.fillMaxSize()
         ) {
-            ChartContent(
-                chartState = chartState,
-                chartConfig = chartConfig,
-                symbol = selectedSymbol,
-                timeframe = selectedTimeframe
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(0.dp)
+            ) {
+                // График - основное пространство
+                ChartContent(
+                    chartState = chartState,
+                    chartConfig = chartConfig,
+                    symbol = selectedSymbol,
+                    timeframe = selectedTimeframe,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .weight(1f) // Растягивается на всё доступное
+                )
+
+                // DOM
+                DomWidget(
+                    orderBook = orderBook,
+                    selectedPrice = selectedPrice,
+                    onPriceSelected = { price ->
+                        domViewModel.selectPrice(price)
+                    },
+                    orderQuantity = orderQuantity,
+                    onQuantityChanged = { quantity ->
+                        domViewModel.updateOrderQuantity(quantity)
+                    },
+                    onPlaceOrder = { side ->
+                        domViewModel.placeOrder(side)
+                    },
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(300.dp)
+                )
+
+                // Trades
+                TradesWidget(
+                    viewModel = tradesViewModel,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(250.dp)
+                )
+            }
         }
         TerminalStatusBar(
             modifier = Modifier.fillMaxWidth()
@@ -83,7 +133,7 @@ fun ChartScreen(
 private fun SymbolSelector(
     selectedSymbol: String, onSymbolSelected: (String) -> Unit
 ) {
-    val symbols = listOf("BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT")
+    val symbols = listOf("BTCUSDT", "ETHUSDT","LTCUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT")
 
     Row(
         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -127,10 +177,14 @@ private fun TimeframeSelector(
 
 @Composable
 private fun ChartContent(
-    chartState: ChartState, chartConfig: ChartConfig, symbol: String, timeframe: String
+    chartState: ChartState,
+    chartConfig: ChartConfig,
+    symbol: String,
+    timeframe: String,
+    modifier: Modifier,
 ) {
     Box(
-        modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
+        modifier = modifier, contentAlignment = Alignment.Center
     ) {
         when (chartState) {
             is ChartState.Loading -> {
@@ -196,7 +250,12 @@ private fun ChartContent(
                             val isBullish = change >= 0
 
                             TerminalBadge(
-                                text = "${String.format("%.2f", lastCandle.close)} (${String.format("%+.2f", change)}%)",
+                                text = "${String.format("%.2f", lastCandle.close)} (${
+                                    String.format(
+                                        "%+.2f",
+                                        change
+                                    )
+                                }%)",
                                 isBullish = isBullish
                             )
                         }
@@ -246,6 +305,7 @@ private fun ChartContent(
         }
     }
 }
+
 private fun formatPrice(price: Float): String {
     return when {
         price >= 1000 -> String.format("%.1f", price)

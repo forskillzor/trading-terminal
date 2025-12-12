@@ -9,8 +9,11 @@ import androidx.compose.ui.window.rememberWindowState
 import com.aandios.tradingterminal.di.initKoin
 import com.aandios.tradingterminal.ui.chart.ChartScreen
 import com.aandios.tradingterminal.ui.chart.ChartViewModel
+import com.aandios.tradingterminal.ui.dom.DomViewModel
 import com.aandios.tradingterminal.ui.theme.TradingTerminalTheme
+import com.aandios.tradingterminal.ui.trades.TradesViewModel
 import org.koin.compose.koinInject
+import org.koin.dsl.koinApplication
 
 fun main() = application {
     initKoin()
@@ -18,16 +21,20 @@ fun main() = application {
     Window(
         onCloseRequest = ::exitApplication,
         title = "Crypto Terminal • v0.1",
-        state = rememberWindowState(width = 1600.dp, height = 900.dp)
+        state = rememberWindowState(width = 1600.dp, height = 1100.dp)
     ) {
         TradingTerminalTheme(
             darkTheme = true, // Всегда темная тема
             nightMode = false // Можно добавить переключатель
         ) {
             val chartViewModel: ChartViewModel = koinInject()
+            val domViewModel: DomViewModel = koinInject()
+            val tradesViewModel: TradesViewModel = koinInject()
 
             ChartScreen(
-                viewModel = chartViewModel,
+                chartViewModel = chartViewModel,
+                domViewModel = domViewModel,
+                tradesViewModel = tradesViewModel,
                 modifier = Modifier.fillMaxSize()
             )
         }

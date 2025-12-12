@@ -122,11 +122,19 @@ fun CandleStickChart(
 
     ) {
         // Рассчитываем layout графика
-        val layout = remember(priceScaleWidth) {
-            val canvasWidth = constraints.maxWidth.toFloat()
-            val canvasHeight = constraints.maxHeight.toFloat()
-            val chartPadding = 8f // Отступ графика от шкалы
-            val timeScaleHeight = 20f
+        val canvasWidth = maxWidth
+        val canvasHeight = maxHeight
+
+        val density = LocalDensity.current
+
+        // Рассчитываем layout графика - теперь без constraints в remember
+        val layout = remember(priceScaleWidth, canvasWidth, canvasHeight) {
+            val widthPx = with(density){ canvasWidth.toPx()}
+            val heightPx = with(density){ canvasHeight.toPx()}
+            val chartPadding = 8f
+
+            // Динамическая высота шкалы времени
+            val timeScaleHeight = (heightPx * 0.04f).coerceAtLeast(20f).coerceAtMost(40f)
 
             val priceScaleWidthPx = with(density) {
                 priceScaleWidth.toPx()
@@ -134,46 +142,48 @@ fun CandleStickChart(
 
             // Область для шкалы цен
             val priceScaleArea = Rect(
-                left = canvasWidth - priceScaleWidthPx,
+                left = widthPx - priceScaleWidthPx,
                 top = 0f,
-                right = canvasWidth,
-                bottom = canvasHeight
+                right = widthPx,
+                bottom = heightPx
             )
 
+            // Область для шкалы времени (внизу)
             val timeScaleArea = Rect(
                 left = 0f,
-                top = canvasHeight - timeScaleHeight,
-                right = canvasWidth - priceScaleWidthPx - chartPadding,
-                bottom = canvasHeight
+                top = heightPx - timeScaleHeight,
+                right = widthPx - priceScaleWidthPx - chartPadding,
+                bottom = heightPx
             )
+
+            // Основная область графика (без шкалы времени)
             val chartMainArea = Rect(
                 left = 0f,
                 top = 0f,
-                right = canvasWidth - priceScaleWidthPx - chartPadding,
-                bottom = canvasHeight - timeScaleHeight
+                right = widthPx - priceScaleWidthPx - chartPadding,
+                bottom = heightPx - timeScaleHeight
             )
 
-            // Область для графика с отступом от шкалы
+            // Вся область графика (включая шкалу времени)
             val chartArea = Rect(
                 left = 0f,
                 top = 0f,
-                right = canvasWidth - priceScaleWidthPx - chartPadding,
-                bottom = canvasHeight
+                right = widthPx - priceScaleWidthPx - chartPadding,
+                bottom = heightPx
             )
 
             ChartLayout(
-                canvasWidth = canvasWidth,
-                canvasHeight = canvasHeight,
+                canvasWidth = widthPx,
+                canvasHeight = heightPx,
                 priceScaleWidth = priceScaleWidthPx,
                 chartArea = chartArea,
                 priceScaleArea = priceScaleArea,
                 chartPadding = chartPadding,
                 timeScaleHeight = timeScaleHeight,
                 chartMainArea = chartMainArea,
-                timeScaleArea = timeScaleArea,
+                timeScaleArea = timeScaleArea
             )
         }
-
         // Основной Canvas для графика
         Canvas(
             modifier = Modifier
@@ -240,23 +250,24 @@ private fun DrawScope.drawCrosshair(
     textMeasurer: TextMeasurer
 ) {
     // Проверяем находится ли курсор в области графика (без шкалы времени)
-    if (mousePosition.x < 0f || mousePosition.x > chartLayout.chartMainArea.right ||
-        mousePosition.y < 0f || mousePosition.y > chartLayout.chartMainArea.bottom) {
+    if (mousePosition.x < chartLayout.chartMainArea.left ||
+        mousePosition.x > chartLayout.chartMainArea.right ||
+        mousePosition.y < chartLayout.chartMainArea.top ||
+        mousePosition.y > chartLayout.chartMainArea.bottom) {
         return // Курсор вне области графика
     }
 
     // 1. Вертикальная линия через весь график
     drawLine(
         color = Color.White.copy(alpha = 0.3f),
-        start = Offset(mousePosition.x, 0f),
+        start = Offset(mousePosition.x, chartLayout.chartMainArea.top),
         end = Offset(mousePosition.x, chartLayout.chartMainArea.bottom),
         strokeWidth = 1f
     )
 
-    // 2. Горизонтальная линия через весь график
     drawLine(
         color = Color.White.copy(alpha = 0.3f),
-        start = Offset(0f, mousePosition.y),
+        start = Offset(chartLayout.chartMainArea.left, mousePosition.y),
         end = Offset(chartLayout.chartMainArea.right, mousePosition.y),
         strokeWidth = 1f
     )
