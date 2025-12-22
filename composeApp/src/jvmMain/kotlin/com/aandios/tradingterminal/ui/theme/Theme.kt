@@ -10,39 +10,40 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.platform.Font
 
 // Глубокая темная цветовая схема в стиле Bloomberg/TradingView
 private val DarkTerminalColorScheme = darkColorScheme(
     // Основные цвета
-    primary = Color(0xFF00C853),      // Ярко-зеленый (бычий)
-    secondary = Color(0xFFD32F2F),    // Ярко-красный (медвежий)
-    tertiary = Color(0xFF2196F3),     // Синий (инфо)
+    primary = Color(0xFF00C853),
+    secondary = Color(0xFFD32F2F),
+    tertiary = Color(0xFF2196F3),
 
     // Фоны
-    background = Color(0xFF0A0A0A),   // Черный фон всего приложения
-    surface = Color(0xFF121212),      // Поверхности карточек/панелей
-    surfaceVariant = Color(0xFF1E1E1E), // Вариант поверхности
+    background = Color(0xFF0A0A0A),
+    surface = Color(0xFF121212),
+    surfaceVariant = Color(0xFF1E1E1E),
 
     // Текст
     onPrimary = Color.Black,
     onSecondary = Color.Black,
     onTertiary = Color.White,
-    onBackground = Color(0xFFE0E0E0), // Светло-серый текст на черном
-    onSurface = Color(0xFFCCCCCC),    // Серый текст на поверхностях
-    onSurfaceVariant = Color(0xFF888888), // Приглушенный текст
+    onBackground = Color(0xFFE0E0E0),
+    onSurface = Color(0xFFCCCCCC),
+    onSurfaceVariant = Color(0xFF888888),
 
     // Состояния
     error = Color(0xFFCF6679),
-    outline = Color(0xFF333333),      // Границы
-    outlineVariant = Color(0xFF444444), // Слабые границы
+    outline = Color(0xFF333333),
+    outlineVariant = Color(0xFF444444),
 )
 
 // Еще более темная схема для ночного режима
 private val NightTerminalColorScheme = darkColorScheme(
-    primary = Color(0xFF4CAF50),      // Приглушенный зеленый
-    secondary = Color(0xFFF44336),    // Приглушенный красный
+    primary = Color(0xFF4CAF50),
+    secondary = Color(0xFFF44336),
     tertiary = Color(0xFF64B5F6),
-    background = Color(0xFF000000),   // Полностью черный
+    background = Color(0xFF000000),
     surface = Color(0xFF080808),
     surfaceVariant = Color(0xFF111111),
     onBackground = Color(0xFFAAAAAA),
@@ -50,8 +51,17 @@ private val NightTerminalColorScheme = darkColorScheme(
     outline = Color(0xFF222222),
 )
 
+private val JetBrainsMono = FontFamily(
+    Font("fonts/JetBrains-Mono-Regular.ttf", FontWeight.Normal),
+    Font("fonts/JetBrains-Mono-Medium.ttf", FontWeight.Medium),
+)
+private val Menlo = FontFamily(
+    Font("fonts/Menlo-Regular.ttf", FontWeight.Normal),
+    Font("fonts/Menlo-Bold.ttf", FontWeight.Medium),
+)
+
 // Определяем моноширинный шрифт
-private val TerminalFontFamily = FontFamily.Monospace
+private val TerminalFontFamily = JetBrainsMono
 
 // Типографика для трейдингового терминала (исправленная)
 private val TerminalTypography = Typography(

@@ -7,7 +7,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.aandios.tradingterminal.ui.components.TerminalBadge
@@ -21,6 +20,7 @@ import com.aandios.tradingterminal.ui.dom.DomWidget
 import com.aandios.tradingterminal.ui.theme.*
 import com.aandios.tradingterminal.ui.trades.TradesViewModel
 import com.aandios.tradingterminal.ui.trades.TradesWidget
+import com.aandios.tradingterminal.utils.formatPrice
 
 @Composable
 fun ChartScreen(
@@ -303,15 +303,5 @@ private fun ChartContent(
                 }
             }
         }
-    }
-}
-
-private fun formatPrice(price: Float): String {
-    return when {
-        price >= 1000 -> String.format("%.1f", price)
-        price >= 100 -> String.format("%.2f", price)
-        price >= 10 -> String.format("%.3f", price)
-        price >= 1 -> String.format("%.4f", price)
-        else -> String.format("%.6f", price)
     }
 }

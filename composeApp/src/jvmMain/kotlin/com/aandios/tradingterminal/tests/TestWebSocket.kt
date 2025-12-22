@@ -1,4 +1,4 @@
-package com.aandios.tradingterminal.test
+package com.aandios.tradingterminal.tests
 
 import kotlinx.coroutines.runBlocking
 
