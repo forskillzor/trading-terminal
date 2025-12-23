@@ -1,7 +1,7 @@
 package com.aandios.tradingterminal.data.repository
 
 import com.aandios.tradingterminal.data.api.binance.BinanceApi
-import com.aandios.tradingterminal.data.api.BybitApi
+import com.aandios.tradingterminal.data.api.bybit.BybitApi
 import com.aandios.tradingterminal.domain.entities.Candle
 import com.aandios.tradingterminal.domain.repository.ChartRepository
 import kotlinx.coroutines.flow.Flow

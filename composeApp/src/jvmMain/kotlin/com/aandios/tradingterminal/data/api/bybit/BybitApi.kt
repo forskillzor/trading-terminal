@@ -1,4 +1,4 @@
-package com.aandios.tradingterminal.data.api
+package com.aandios.tradingterminal.data.api.bybit
 
 import com.aandios.tradingterminal.domain.entities.Candle
 import io.ktor.client.HttpClient

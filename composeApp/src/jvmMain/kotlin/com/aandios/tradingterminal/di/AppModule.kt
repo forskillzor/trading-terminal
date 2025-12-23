@@ -1,7 +1,7 @@
 package com.aandios.tradingterminal.di
 
 import com.aandios.tradingterminal.data.api.binance.BinanceApi
-import com.aandios.tradingterminal.data.api.BybitApi
+import com.aandios.tradingterminal.data.api.bybit.BybitApi
 import com.aandios.tradingterminal.data.api.binance.BinanceDomApi
 import com.aandios.tradingterminal.data.api.binance.BinanceTradesApi
 import com.aandios.tradingterminal.data.repository.ChartRepositoryImpl
