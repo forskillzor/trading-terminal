@@ -49,6 +49,9 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.androidx.ui.geometry.desktop)
         }
+        jvmTest.dependencies {
+            implementation("io.ktor:ktor-client-mock:2.3.5")
+        }
     }
 }
 
