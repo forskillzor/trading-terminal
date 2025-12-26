@@ -35,8 +35,6 @@ import androidx.compose.ui.unit.sp
 import com.aandios.tradingterminal.domain.entities.Candle
 import com.aandios.tradingterminal.utils.formatPrice
 import com.aandios.tradingterminal.utils.formatTime
-import java.text.SimpleDateFormat
-import java.util.Date
 import kotlin.math.abs
 
 

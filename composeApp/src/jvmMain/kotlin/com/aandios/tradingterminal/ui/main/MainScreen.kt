@@ -1,4 +1,4 @@
-package com.aandios.tradingterminal.ui.chart
+package com.aandios.tradingterminal.ui.main
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.CircularProgressIndicator
@@ -9,6 +9,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.aandios.tradingterminal.ui.chart.CandleStickChart
+import com.aandios.tradingterminal.ui.chart.CandleStyle
+import com.aandios.tradingterminal.ui.chart.ChartConfig
+import com.aandios.tradingterminal.ui.chart.ChartState
+import com.aandios.tradingterminal.ui.chart.ChartViewModel
 import com.aandios.tradingterminal.ui.components.TerminalBadge
 import com.aandios.tradingterminal.ui.components.TerminalButton
 import com.aandios.tradingterminal.ui.components.TerminalCard
@@ -23,7 +28,7 @@ import com.aandios.tradingterminal.ui.trades.TradesWidget
 import com.aandios.tradingterminal.utils.formatPrice
 
 @Composable
-fun ChartScreen(
+fun MainScreen(
     chartViewModel: ChartViewModel,
     domViewModel: DomViewModel,
     tradesViewModel: TradesViewModel,

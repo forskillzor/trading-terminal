@@ -7,13 +7,12 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.aandios.tradingterminal.di.initKoin
-import com.aandios.tradingterminal.ui.chart.ChartScreen
+import com.aandios.tradingterminal.ui.main.MainScreen
 import com.aandios.tradingterminal.ui.chart.ChartViewModel
 import com.aandios.tradingterminal.ui.dom.DomViewModel
 import com.aandios.tradingterminal.ui.theme.TradingTerminalTheme
 import com.aandios.tradingterminal.ui.trades.TradesViewModel
 import org.koin.compose.koinInject
-import org.koin.dsl.koinApplication
 
 fun main() = application {
     initKoin()
@@ -31,7 +30,7 @@ fun main() = application {
             val domViewModel: DomViewModel = koinInject()
             val tradesViewModel: TradesViewModel = koinInject()
 
-            ChartScreen(
+            MainScreen(
                 chartViewModel = chartViewModel,
                 domViewModel = domViewModel,
                 tradesViewModel = tradesViewModel,
