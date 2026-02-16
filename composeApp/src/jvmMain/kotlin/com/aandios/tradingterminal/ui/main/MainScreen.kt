@@ -3,33 +3,21 @@ package com.aandios.tradingterminal.ui.main
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.aandios.tradingterminal.ui.chart.CandleStickChart
-import com.aandios.tradingterminal.ui.chart.CandleStyle
-import com.aandios.tradingterminal.ui.chart.ChartConfig
-import com.aandios.tradingterminal.ui.chart.ChartState
-import com.aandios.tradingterminal.ui.chart.ChartViewModel
-import com.aandios.tradingterminal.ui.components.TerminalBadge
-import com.aandios.tradingterminal.ui.components.TerminalButton
-import com.aandios.tradingterminal.ui.components.TerminalCard
-import com.aandios.tradingterminal.ui.components.TerminalDivider
-import com.aandios.tradingterminal.ui.components.TerminalStatusBar
-import com.aandios.tradingterminal.ui.components.TerminalToolbar
+import com.aandios.tradingterminal.ui.chart.*
+import com.aandios.tradingterminal.ui.components.*
 import com.aandios.tradingterminal.ui.dom.DomViewModel
 import com.aandios.tradingterminal.ui.dom.DomWidget
-import com.aandios.tradingterminal.ui.theme.*
+import com.aandios.tradingterminal.ui.theme.ChartColors
 import com.aandios.tradingterminal.ui.trades.TradesViewModel
 import com.aandios.tradingterminal.ui.trades.TradesWidget
 import com.aandios.tradingterminal.utils.formatPrice
-import tradingterminal.composeapp.generated.resources.Res
 
 @Composable
 fun MainScreen(
@@ -69,6 +57,7 @@ fun MainScreen(
         verticalArrangement = Arrangement.spacedBy(1.dp) // Минимальные промежутки
     ) {
         // Верхняя панель инструментов
+
         TerminalToolbar {
             SymbolSelector(selectedSymbol) { symbol ->
                 selectedSymbol = symbol
@@ -93,8 +82,24 @@ fun MainScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(0.dp)
             ) {
+                LeftToolBar(
+                    selectedSymbol = selectedSymbol,
+                    onSymbolSelected = { symbol ->
+                        selectedSymbol = symbol
+                        // Перезагружаем данные
+                        chartViewModel.loadChart(symbol, selectedTimeframe)
+                        domViewModel.subscribeToOrderBook(symbol)
+                        tradesViewModel.subscribeToTrades(symbol)
+                    },
+                    selectedTimeframe = selectedTimeframe,
+                    onTimeframeSelected = { timeframe ->
+                        selectedTimeframe = timeframe
+                        chartViewModel.loadChart(selectedSymbol, timeframe)
+                    },
+                    modifier = Modifier.fillMaxHeight()
+                )
                 // График - основное пространство
-                LeftToolBar()
+
                 ChartWidget(
                     chartState = chartState,
                     chartConfig = chartConfig,
@@ -138,24 +143,34 @@ fun MainScreen(
         )
     }
 }
-@Composable
-private fun LeftToolBar() {
-    Column(
-        modifier = Modifier
-            .fillMaxHeight()
-            .width(32.dp)
-            .padding(4.dp),
-        verticalArrangement = Arrangement.SpaceAround,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Иконки Material3 (замени на свои)
-        Icon(
-            painter = painterResource(Res.drawable.candlestick.svg),
-            contentDescription = "Меню",
-            modifier = Modifier.size(20.dp)
-        )
-    }
-}
+//@Composable
+//private fun LeftToolBar() {
+//    Column(
+//        modifier = Modifier
+//            .fillMaxHeight()
+//            .width(32.dp)
+//            .padding(4.dp),
+//        verticalArrangement = Arrangement.SpaceAround,
+//        horizontalAlignment = Alignment.CenterHorizontally
+//    ) {
+//        // Иконки Material3 (замени на свои)
+//
+//        val interactionSource = remember { MutableInteractionSource() }
+//        val isHovered by interactionSource.collectIsHoveredAsState()
+//
+//        Icon(
+//            painter = painterResource(Res.drawable.candlestick),
+//            contentDescription = "Меню",
+//            modifier = Modifier.size(20.dp)
+//                .background(
+//                    color = if (isHovered) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
+//                    shape = CircleShape,
+//                )
+//                .hoverable(interactionSource)
+//        )
+//    }
+//}
+//
 
 @Composable
 private fun SymbolSelector(
