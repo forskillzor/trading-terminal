@@ -1,12 +1,15 @@
 package com.aandios.tradingterminal.ui.main
 
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.aandios.tradingterminal.ui.chart.CandleStickChart
@@ -26,6 +29,7 @@ import com.aandios.tradingterminal.ui.theme.*
 import com.aandios.tradingterminal.ui.trades.TradesViewModel
 import com.aandios.tradingterminal.ui.trades.TradesWidget
 import com.aandios.tradingterminal.utils.formatPrice
+import tradingterminal.composeapp.generated.resources.Res
 
 @Composable
 fun MainScreen(
@@ -90,7 +94,8 @@ fun MainScreen(
                 horizontalArrangement = Arrangement.spacedBy(0.dp)
             ) {
                 // График - основное пространство
-                ChartContent(
+                LeftToolBar()
+                ChartWidget(
                     chartState = chartState,
                     chartConfig = chartConfig,
                     symbol = selectedSymbol,
@@ -130,6 +135,24 @@ fun MainScreen(
         }
         TerminalStatusBar(
             modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+@Composable
+private fun LeftToolBar() {
+    Column(
+        modifier = Modifier
+            .fillMaxHeight()
+            .width(32.dp)
+            .padding(4.dp),
+        verticalArrangement = Arrangement.SpaceAround,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Иконки Material3 (замени на свои)
+        Icon(
+            painter = painterResource(Res.drawable.candlestick.svg),
+            contentDescription = "Меню",
+            modifier = Modifier.size(20.dp)
         )
     }
 }
@@ -181,7 +204,7 @@ private fun TimeframeSelector(
 }
 
 @Composable
-private fun ChartContent(
+private fun ChartWidget(
     chartState: ChartState,
     chartConfig: ChartConfig,
     symbol: String,

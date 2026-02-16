@@ -5,7 +5,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeHotReload)
     alias(libs.plugins.compose.compiler)
-    kotlin("plugin.serialization") version "1.9.22"
+    kotlin("plugin.serializa,,,tion") version "1.9.22"
 }
 
 kotlin {
