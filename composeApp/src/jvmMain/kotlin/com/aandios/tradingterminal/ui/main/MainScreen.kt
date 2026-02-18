@@ -333,7 +333,7 @@ private fun ChartWidget(
                         style = MaterialTheme.typography.titleMedium
                     )
                     Text(
-                        text = (chartState as ChartState.Error).message,
+                        text = chartState.message,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodyMedium
                     )
