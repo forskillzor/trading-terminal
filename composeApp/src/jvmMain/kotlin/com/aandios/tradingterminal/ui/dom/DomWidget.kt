@@ -27,29 +27,11 @@ fun DomWidget(
     width: Dp = 300.dp,
     showHeader: Boolean = true
 ) {
-    var mousePosition by remember { mutableStateOf<Offset?>(null) }
-
     Column(
         modifier = modifier
             .width(width)
             .fillMaxHeight()
             .background(MaterialTheme.colorScheme.surface)
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onTap = { offset ->
-                        mousePosition = offset
-                        // Определяем, на какую цену кликнули
-                        orderBook?.let { data ->
-                            val price = findPriceAtPosition(
-                                offset = offset,
-                                orderBook = data,
-                                containerHeight = size.height.toFloat()
-                            )
-                            onPriceSelected(price)
-                        }
-                    }
-                )
-            }
     ) {
         if (showHeader) {
             DomHeader(
@@ -62,7 +44,7 @@ fun DomWidget(
             DomContent(
                 orderBook = orderBook,
                 selectedPrice = selectedPrice,
-                mousePosition = mousePosition,
+                onPriceSelected = onPriceSelected,
                 orderQuantity = orderQuantity,
                 onQuantityChanged = onQuantityChanged,
                 onPlaceOrder = onPlaceOrder,
@@ -80,61 +62,4 @@ fun DomWidget(
             }
         }
     }
-}
-
-
-private fun findPriceAtPosition(
-    offset: Offset,
-    orderBook: OrderBookData,
-    containerHeight: Float
-): Double? {
-    val orderPanelHeight = 120f  // Высота панели ордеров
-    val spreadHeight = 32f        // Высота спреда
-
-    // Доступная высота для секций ASKS и BIDS (без панели ордеров)
-    val availableHeight = containerHeight - orderPanelHeight
-
-    // Высота каждой секции (ASKS и BIDS) - они равны
-    val sectionHeight = (availableHeight - spreadHeight) / 2
-
-    // Определяем границы секций
-    val asksStartY = 0f
-    val asksEndY = sectionHeight
-
-    val spreadStartY = asksEndY
-    val spreadEndY = spreadStartY + spreadHeight
-
-    val bidsStartY = spreadEndY
-    val bidsEndY = bidsStartY + sectionHeight
-
-    when (// Клик в секции ASKS
-        offset.y) {
-        in asksStartY..asksEndY -> {
-            val levelHeight = sectionHeight / orderBook.asks.size
-            val levelIndex = (offset.y / levelHeight).toInt()
-
-            return if (levelIndex in orderBook.asks.indices) {
-                orderBook.asks[levelIndex].price
-            } else null
-        }
-
-        // Клик в секции BIDS
-        in bidsStartY..bidsEndY -> {
-            val relativeY = offset.y - bidsStartY
-            val levelHeight = sectionHeight / orderBook.bids.size
-            val levelIndex = (relativeY / levelHeight).toInt()
-
-            return if (levelIndex in orderBook.bids.indices) {
-                orderBook.bids[levelIndex].price
-            } else null
-        }
-
-        // Клик в области спреда - игнорируем или выбираем ближайшую цену
-        in spreadStartY..spreadEndY -> {
-            // Можно вернуть null или выбрать ближайшую цену
-            return null
-        }
-    }
-
-    return null
 }

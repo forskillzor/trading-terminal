@@ -5,10 +5,7 @@ import com.aandios.tradingterminal.domain.entities.OrderBookData
 import com.aandios.tradingterminal.domain.entities.OrderSide
 import com.aandios.tradingterminal.domain.repository.DomRepository
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.*
 
 class DomViewModel(
     private val domRepository: DomRepository
@@ -16,8 +13,23 @@ class DomViewModel(
     private val viewModelScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var subscriptionJob: Job? = null
 
+    // Внутренний MutableStateFlow для хранения данных
     private val _orderBook = MutableStateFlow<OrderBookData?>(null)
-    val orderBook: StateFlow<OrderBookData?> = _orderBook.asStateFlow()
+
+    // Внешний StateFlow с фильтрацией дубликатов
+    val orderBook: StateFlow<OrderBookData?> = _orderBook
+        .asStateFlow()
+        .filterNotNull() // Добавляем фильтр, если нужно отсеять null
+        .distinctUntilChanged { old, new ->
+            // Сравниваем только если изменились цены или объемы
+            old.bids.firstOrNull()?.price == new.bids.firstOrNull()?.price &&
+                    old.asks.firstOrNull()?.price == new.asks.firstOrNull()?.price
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = null
+        )
 
     private val _selectedPrice = MutableStateFlow<Double?>(null)
     val selectedPrice: StateFlow<Double?> = _selectedPrice.asStateFlow()
@@ -34,17 +46,20 @@ class DomViewModel(
         subscriptionJob = viewModelScope.launch {
             domRepository.getOrderBook(symbol)
                 .catch { e ->
-                    println("DOM subscription error: ${e.message}")
+                    println("❌ DOM subscription error: ${e.message}")
                 }
                 .collect { data ->
+                    // Обновляем внутренний MutableStateFlow
                     _orderBook.value = data
                 }
         }
     }
 
     fun selectPrice(price: Double?) {
-        _selectedPrice.value = price
-        println("Selected price: $price")
+        if (_selectedPrice.value != price) {
+            println("💰 Price selected: $price")
+            _selectedPrice.value = price
+        }
     }
 
     fun updateMousePosition(position: Offset?) {
@@ -62,7 +77,6 @@ class DomViewModel(
         if (price != null && quantity != null && quantity > 0) {
             println("📝 Placing $side order: $quantity @ $price")
             // Здесь будет логика размещения ордера
-            // Пока просто логируем
         }
     }
 

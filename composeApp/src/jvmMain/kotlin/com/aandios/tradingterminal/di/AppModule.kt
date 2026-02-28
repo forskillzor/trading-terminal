@@ -17,6 +17,8 @@ import com.aandios.tradingterminal.ui.dom.DomViewModel
 import com.aandios.tradingterminal.ui.terminalLayout.TerminalStateViewModel
 import com.aandios.tradingterminal.ui.trades.TradesViewModel
 import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.serialization.kotlinx.json.json
@@ -30,34 +32,41 @@ val appModule = module {
     // 1. HTTP clients
 
     single {
-        HttpClient {
-            // ОБА плагина должны быть установлены
+        HttpClient(CIO) {  // Явно указываем движок
+            // Таймауты для HTTP запросов
+            install(HttpTimeout) {
+                requestTimeoutMillis = 30000  // 30 секунд
+                connectTimeoutMillis = 15000  // 15 секунд
+                socketTimeoutMillis = 30000   // 30 секунд
+            }
+
+            // WebSocket плагин
             install(WebSockets) {
-                // Опциональные настройки
+                pingInterval = 30000  // Пинг каждые 30 секунд
                 maxFrameSize = Long.MAX_VALUE
             }
 
+            // Content negotiation
             install(ContentNegotiation) {
                 json(Json {
                     ignoreUnknownKeys = true
                     isLenient = true
+                    encodeDefaults = true
                 })
             }
         }
     }
 
-    // 2. API clients
+// 2. API clients
     single<BinanceApi> {
-        BinanceApi(
-            client = get()
-        )
+        BinanceApi(client = get())
     }
 
     single<BybitApi> {
         BybitApi(client = get())
     }
 
-    // 3. Repository
+// 3. Repository
     single<ChartRepository> {
         ChartRepositoryImpl(
             binanceApi = get(),
@@ -69,12 +78,12 @@ val appModule = module {
         BinanceDomApi(client = get())
     }
 
-    // DOM Repository
+// DOM Repository
     single<DomRepository> {
         DomRepositoryImpl(domApi = get())
     }
 
-    // DOM ViewModel
+// DOM ViewModel
     factory {
         DomViewModel(
             domRepository = get()
@@ -85,14 +94,14 @@ val appModule = module {
         TerminalStateViewModel()
     }
 
-    // 4. Use Cases
+// 4. Use Cases
     single<GetChartByTickerUseCase> {
         GetChartByTickerUseCaseImpl(
             repository = get()
         )
     }
 
-    // 5. ViewModels (factory - new instance for each screen)
+// 5. ViewModels (factory - new instance for each screen)
     factory {
         ChartViewModel(
             getChartUseCase = get()

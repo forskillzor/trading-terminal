@@ -34,16 +34,16 @@ class DomRepositoryImpl(
                     symbol = orderBook.symbol,
                     bids = orderBook.bids.map {
                         OrderBookLevel(
-                            price = it.price.toDouble(),
-                            quantity = it.quantity.toDouble(),
-                            total = it.total.toDouble()
+                            price = it.price,
+                            quantity = it.quantity,
+                            total = it.total
                         )
                     },
                     asks = orderBook.asks.map {
                         OrderBookLevel(
-                            price = it.price.toDouble(),
-                            quantity = it.quantity.toDouble(),
-                            total = it.total.toDouble()
+                            price = it.price,
+                            quantity = it.quantity,
+                            total = it.total
                         )
                     },
                     timestamp = orderBook.timestamp

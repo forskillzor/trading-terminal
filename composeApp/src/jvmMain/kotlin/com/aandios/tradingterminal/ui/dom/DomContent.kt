@@ -16,33 +16,30 @@ import com.aandios.tradingterminal.domain.entities.OrderSide
 fun DomContent(
     orderBook: OrderBookData,
     selectedPrice: Double?,
-    mousePosition: Offset?,
+    onPriceSelected: (Double?) -> Unit,
     orderQuantity: String,
     onQuantityChanged: (String) -> Unit,
     onPlaceOrder: (OrderSide) -> Unit,
-    modifier: Modifier = Modifier.Companion
+    modifier: Modifier = Modifier
 ) {
-    val textMeasurer = rememberTextMeasurer()
-
     Column(
         modifier = modifier.fillMaxSize()
     ) {
         // ASKS (продажи - красные)
         DomSection(
             title = "ASKS",
-            // todo fix performance price list sorting
-            levels = orderBook.asks.sortedByDescending{(price, quantity, total) -> price},
+            levels = orderBook.asks.sortedByDescending { it.price.toDouble() },
             isAsk = true,
             selectedPrice = selectedPrice,
-            textMeasurer = textMeasurer,
-            modifier = Modifier.Companion.weight(1f)
+            onPriceClick = { price -> onPriceSelected(price) },
+            modifier = Modifier.weight(1f)
         )
 
         // Spread (разница)
         DomSpread(
-            bestBid = orderBook.bids.firstOrNull()?.price,
-            bestAsk = orderBook.asks.firstOrNull()?.price,
-            modifier = Modifier.Companion
+            bestBid = orderBook.bids.firstOrNull()?.price?.toDouble(),
+            bestAsk = orderBook.asks.firstOrNull()?.price?.toDouble(),
+            modifier = Modifier
                 .fillMaxWidth()
                 .height(32.dp)
         )
@@ -53,8 +50,8 @@ fun DomContent(
             levels = orderBook.bids,
             isAsk = false,
             selectedPrice = selectedPrice,
-            textMeasurer = textMeasurer,
-            modifier = Modifier.Companion.weight(1f)
+            onPriceClick = { price -> onPriceSelected(price) },
+            modifier = Modifier.weight(1f)
         )
 
         // Панель размещения ордера
@@ -63,7 +60,7 @@ fun DomContent(
             orderQuantity = orderQuantity,
             onQuantityChanged = onQuantityChanged,
             onPlaceOrder = onPlaceOrder,
-            modifier = Modifier.Companion
+            modifier = Modifier
                 .fillMaxWidth()
                 .height(120.dp)
         )

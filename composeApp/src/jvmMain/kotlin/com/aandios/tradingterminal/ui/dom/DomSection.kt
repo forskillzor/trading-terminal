@@ -1,16 +1,30 @@
 package com.aandios.tradingterminal.ui.dom
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -30,34 +44,41 @@ fun DomSection(
     levels: List<OrderBookLevel>,
     isAsk: Boolean,
     selectedPrice: Double?,
-    textMeasurer: TextMeasurer,
-    modifier: Modifier = Modifier.Companion
+    onPriceClick: (Double) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    val primary = MaterialTheme.colorScheme.primary
-    val secondary = MaterialTheme.colorScheme.secondary
-    val onSurface = MaterialTheme.colorScheme.onSurface
-    val outlineVariant = MaterialTheme.colorScheme.outlineVariant
-    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
+    val maxTotal = remember(levels) {
+        levels.maxOfOrNull { it.total.toDouble() } ?: 0.0
+    }
+
+    // Стабилизируем цвета
+    val surfaceColor = if (isAsk)
+        MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
+    else
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+
+    val titleColor = if (isAsk)
+        MaterialTheme.colorScheme.secondary
+    else
+        MaterialTheme.colorScheme.primary
 
     Column(modifier = modifier.fillMaxSize()) {
         // Заголовок секции
         Surface(
-            color = if (isAsk) Color.Red.copy(alpha = 0.1f)
-            else Color.Green.copy(alpha = 0.1f),
+            color = surfaceColor,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
                 text = title,
-                color = if (isAsk) MaterialTheme.colorScheme.secondary
-                else MaterialTheme.colorScheme.primary,
+                color = titleColor,
                 style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.Companion.padding(horizontal = 8.dp, vertical = 4.dp)
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
             )
         }
 
         // Колонки заголовков
         Row(
-            modifier = Modifier.Companion
+            modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween
@@ -79,96 +100,135 @@ fun DomSection(
             )
         }
 
-        // Список уровней
-        Canvas(
-            modifier = Modifier.Companion
-                .fillMaxSize()
-                .padding(horizontal = 8.dp)
+        // Список уровней с оптимизациями
+        LazyColumn(
+            modifier = Modifier.fillMaxSize()
         ) {
-            if (levels.isNotEmpty()) {
-                val maxTotal = levels.maxOfOrNull { it.total } ?: 0.0
-                val levelHeight = size.height / (levels.size + 1)
+            items(
+                items = levels,
+                key = { it.price } // Ключ по цене - стабильный!
+            ) { level ->
+                val price = level.price.toDoubleOrNull() ?: return@items
+                val isSelected = selectedPrice?.let { abs(it - price) < 0.000001 } ?: false
 
-                levels.forEachIndexed { index, level ->
-                    val y = index * levelHeight
-
-                    // Фон для выделенной цены
-                    if (selectedPrice != null &&
-                        abs(level.price - selectedPrice) < 0.000001
-                    ) {
-                        drawRect(
-                            color = Color.Yellow.copy(alpha = 0.2f),
-                            topLeft = Offset(0f, y),
-                            size = Size(size.width, levelHeight)
-                        )
-                    }
-
-                    // Градиент объема
-                    val volumeWidth = (level.total / maxTotal) * size.width * 0.3f
-                    val volumeColor = if (isAsk)
-                        Color.Red.copy(alpha = 0.15f)
-                    else
-                        Color.Green.copy(alpha = 0.15f)
-
-                    drawRect(
-                        color = volumeColor,
-                        topLeft = Offset(0f, y),
-                        size = Size(volumeWidth.toFloat(), levelHeight)
-                    )
-
-                    // Текст: цена
-                    val priceText = formatDomPrice(level.price)
-                    val priceColor = if (isAsk)
-                        secondary
-                    else
-                        primary
-
-                    drawText(
-                        textMeasurer = textMeasurer,
-                        text = priceText,
-                        style = TextStyle(
-                            color = priceColor,
-                            fontSize = 11.sp,
-                            fontFamily = FontFamily.Monospace
-                        ),
-                        topLeft = Offset(0f, y + 4f)
-                    )
-
-                    // Текст: размер
-                    val sizeText = String.format("%.3f", level.quantity)
-                    drawText(
-                        textMeasurer = textMeasurer,
-                        text = sizeText,
-                        style = TextStyle(
-                            onSurface,
-                            fontSize = 11.sp,
-                            fontFamily = FontFamily.Monospace
-                        ),
-                        topLeft = Offset(size.width * 0.4f, y + 4f)
-                    )
-
-                    // Текст: тотал
-                    val totalText = String.format("%.1f", level.total)
-                    drawText(
-                        textMeasurer = textMeasurer,
-                        text = totalText,
-                        style = TextStyle(
-                            onSurfaceVariant,
-                            fontSize = 11.sp,
-                            fontFamily = FontFamily.Monospace
-                        ),
-                        topLeft = Offset(size.width * 0.7f, y + 4f)
-                    )
-
-                    // Разделительная линия
-                    drawLine(
-                        outlineVariant,
-                        start = Offset(0f, y + levelHeight),
-                        end = Offset(size.width, y + levelHeight),
-                        strokeWidth = 0.5f
-                    )
-                }
+                DomLevelRow(
+                    level = level,
+                    isAsk = isAsk,
+                    isSelected = isSelected,
+                    maxTotal = maxTotal,
+                    onPriceClick = { onPriceClick(price) }
+                )
             }
+        }
+    }
+}
+@Composable
+private fun DomLevelRow(
+    level: OrderBookLevel,
+    isAsk: Boolean,
+    isSelected: Boolean,
+    maxTotal: Double,
+    onPriceClick: () -> Unit
+) {
+    // Создаем InteractionSource для отслеживания hover
+    val interactionSource = remember { MutableInteractionSource() }
+
+    // Состояние hover
+    val isHovered by interactionSource.collectIsHoveredAsState()
+
+    // Стабилизируем цвета
+    val priceColor = if (isAsk)
+        MaterialTheme.colorScheme.secondary
+    else
+        MaterialTheme.colorScheme.primary
+
+    val backgroundColor = when {
+        isSelected -> Color.Yellow.copy(alpha = 0.3f)
+        isHovered -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        else -> Color.Transparent
+    }
+
+    // Форматируем значения один раз
+    val formattedPrice = remember(level.price) {
+        formatDomPrice(level.price.toDoubleOrNull() ?: 0.0)
+    }
+    val formattedQuantity = remember(level.quantity) {
+        String.format("%.3f", level.quantity.toDoubleOrNull() ?: 0.0)
+    }
+    val formattedTotal = remember(level.total) {
+        String.format("%.1f", level.total.toDoubleOrNull() ?: 0.0)
+    }
+    val volumeWidth = remember(level.total, maxTotal) {
+        val total = level.total.toDoubleOrNull() ?: 0.0
+        (total / maxTotal).coerceIn(0.0, 1.0).toFloat()
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            // Добавляем hoverable с interactionSource
+            .hoverable(interactionSource = interactionSource)
+            // Клик с interactionSource
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null // Убираем ripple для производительности
+            ) {
+                println("📊 Level clicked: ${level.price}")
+                onPriceClick()
+            }
+            .background(backgroundColor)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Price
+        Text(
+            text = formattedPrice,
+            color = priceColor,
+            style = MaterialTheme.typography.bodySmall.copy(
+                fontFamily = FontFamily.Monospace
+            ),
+            modifier = Modifier.weight(1f)
+        )
+
+        // Quantity
+        Text(
+            text = formattedQuantity,
+            color = MaterialTheme.colorScheme.onSurface,
+            style = MaterialTheme.typography.bodySmall.copy(
+                fontFamily = FontFamily.Monospace
+            ),
+            modifier = Modifier.weight(1f)
+        )
+
+        // Total с визуализацией
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(16.dp)
+        ) {
+            // Градиент объема
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                drawRect(
+                    color = if (isAsk)
+                        Color.Red.copy(alpha = 0.2f)
+                    else
+                        Color.Green.copy(alpha = 0.2f),
+                    size = Size(size.width * volumeWidth, size.height)
+                )
+            }
+
+            Text(
+                text = formattedTotal,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontFamily = FontFamily.Monospace
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 4.dp)
+                    .align(Alignment.CenterStart)
+            )
         }
     }
 }
