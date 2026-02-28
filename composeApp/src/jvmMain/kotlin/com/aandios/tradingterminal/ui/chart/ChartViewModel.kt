@@ -2,23 +2,14 @@ package com.aandios.tradingterminal.ui.chart
 
 import com.aandios.tradingterminal.domain.entities.Candle
 import com.aandios.tradingterminal.domain.usecases.GetChartByTickerUseCase
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.cancelChildren
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
 
-// ПРОСТАЯ ViewModel для desktop
+// ViewModel для desktop
 class ChartViewModel(
     private val getChartUseCase: GetChartByTickerUseCase
 ) {

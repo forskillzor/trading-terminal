@@ -14,6 +14,7 @@ import com.aandios.tradingterminal.domain.usecases.GetChartByTickerUseCase
 import com.aandios.tradingterminal.domain.usecases.GetChartByTickerUseCaseImpl
 import com.aandios.tradingterminal.ui.chart.ChartViewModel
 import com.aandios.tradingterminal.ui.dom.DomViewModel
+import com.aandios.tradingterminal.ui.terminalLayout.TerminalStateViewModel
 import com.aandios.tradingterminal.ui.trades.TradesViewModel
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -78,6 +79,10 @@ val appModule = module {
         DomViewModel(
             domRepository = get()
         )
+    }
+
+    factory {
+        TerminalStateViewModel()
     }
 
     // 4. Use Cases

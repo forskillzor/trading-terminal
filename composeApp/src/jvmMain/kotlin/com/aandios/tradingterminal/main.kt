@@ -1,6 +1,8 @@
 package com.aandios.tradingterminal
 
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
@@ -10,6 +12,8 @@ import com.aandios.tradingterminal.di.initKoin
 import com.aandios.tradingterminal.ui.main.MainScreen
 import com.aandios.tradingterminal.ui.chart.ChartViewModel
 import com.aandios.tradingterminal.ui.dom.DomViewModel
+import com.aandios.tradingterminal.ui.terminalLayout.TerminalLayout
+import com.aandios.tradingterminal.ui.terminalLayout.TerminalStateViewModel
 import com.aandios.tradingterminal.ui.theme.TradingTerminalTheme
 import com.aandios.tradingterminal.ui.trades.TradesViewModel
 import org.koin.compose.koinInject
@@ -19,7 +23,7 @@ fun main() = application {
 
     Window(
         onCloseRequest = ::exitApplication,
-        title = "Crypto Terminal • v0.1",
+        title = "Nous Platform • v 0.1",
         state = rememberWindowState(width = 1600.dp, height = 1100.dp)
     ) {
         TradingTerminalTheme(
@@ -29,12 +33,37 @@ fun main() = application {
             val chartViewModel: ChartViewModel = koinInject()
             val domViewModel: DomViewModel = koinInject()
             val tradesViewModel: TradesViewModel = koinInject()
+            val terminalStateViewModel: TerminalStateViewModel = koinInject()
 
-            MainScreen(
-                chartViewModel = chartViewModel,
-                domViewModel = domViewModel,
-                tradesViewModel = tradesViewModel,
-                modifier = Modifier.fillMaxSize()
+            // todo here should be TerminalLayout
+
+            TerminalLayout(
+
+                modifier = Modifier.fillMaxHeight(),
+                terminalState = terminalStateViewModel,
+                onSymbolSelected = { symbol ->
+                    terminalStateViewModel.changeSymbol(symbol)
+                    val timeframe = terminalStateViewModel.selectedTimeFrame.value
+                    // Перезагружаем данные
+                    chartViewModel.loadChart(symbol, timeframe)
+                    domViewModel.subscribeToOrderBook(symbol)
+                    tradesViewModel.subscribeToTrades(symbol)
+                },
+                onTimeframeSelected = { timeframe ->
+                    terminalStateViewModel.changeTimeFrame(timeframe)
+                    val symbol = terminalStateViewModel.selectedSymbol.value
+                    chartViewModel.loadChart(symbol, timeframe)
+                },
+                {
+                    MainScreen(
+                        chartViewModel = chartViewModel,
+                        domViewModel = domViewModel,
+                        tradesViewModel = tradesViewModel,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                    )
+                }
             )
         }
     }

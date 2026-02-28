@@ -31,11 +31,9 @@ fun MainScreen(
     val selectedPrice by domViewModel.selectedPrice.collectAsState()
     val orderQuantity by domViewModel.orderQuantity.collectAsState()
 
-    // Состояние для выбранного инструмента и таймфрейма
     var selectedSymbol by remember { mutableStateOf("BTCUSDT") }
     var selectedTimeframe by remember { mutableStateOf("1h") }
 
-    // Конфигурация графика
     val chartConfig = remember {
         ChartConfig(
             candleStyle = CandleStyle(
@@ -54,9 +52,8 @@ fun MainScreen(
 
     Column(
         modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(1.dp) // Минимальные промежутки
+        verticalArrangement = Arrangement.spacedBy(1.dp)
     ) {
-        // Верхняя панель инструментов
 
         TerminalToolbar {
             SymbolSelector(selectedSymbol) { symbol ->
@@ -74,32 +71,12 @@ fun MainScreen(
             )
         }
 
-        // Основное содержимое
         TerminalCard(
-            modifier = Modifier.fillMaxSize()
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(0.dp)
             ) {
-                LeftToolBar(
-                    selectedSymbol = selectedSymbol,
-                    onSymbolSelected = { symbol ->
-                        selectedSymbol = symbol
-                        // Перезагружаем данные
-                        chartViewModel.loadChart(symbol, selectedTimeframe)
-                        domViewModel.subscribeToOrderBook(symbol)
-                        tradesViewModel.subscribeToTrades(symbol)
-                    },
-                    selectedTimeframe = selectedTimeframe,
-                    onTimeframeSelected = { timeframe ->
-                        selectedTimeframe = timeframe
-                        chartViewModel.loadChart(selectedSymbol, timeframe)
-                    },
-                    modifier = Modifier.fillMaxHeight()
-                )
-                // График - основное пространство
-
                 ChartWidget(
                     chartState = chartState,
                     chartConfig = chartConfig,
@@ -107,7 +84,7 @@ fun MainScreen(
                     timeframe = selectedTimeframe,
                     modifier = Modifier
                         .fillMaxHeight()
-                        .weight(1f) // Растягивается на всё доступное
+                        .weight(1f)
                 )
 
                 // DOM
@@ -125,7 +102,6 @@ fun MainScreen(
                         domViewModel.placeOrder(side)
                     },
                     modifier = Modifier
-                        .fillMaxHeight()
                         .width(300.dp)
                 )
 
@@ -133,7 +109,6 @@ fun MainScreen(
                 TradesWidget(
                     viewModel = tradesViewModel,
                     modifier = Modifier
-                        .fillMaxHeight()
                         .width(250.dp)
                 )
             }
@@ -143,34 +118,6 @@ fun MainScreen(
         )
     }
 }
-//@Composable
-//private fun LeftToolBar() {
-//    Column(
-//        modifier = Modifier
-//            .fillMaxHeight()
-//            .width(32.dp)
-//            .padding(4.dp),
-//        verticalArrangement = Arrangement.SpaceAround,
-//        horizontalAlignment = Alignment.CenterHorizontally
-//    ) {
-//        // Иконки Material3 (замени на свои)
-//
-//        val interactionSource = remember { MutableInteractionSource() }
-//        val isHovered by interactionSource.collectIsHoveredAsState()
-//
-//        Icon(
-//            painter = painterResource(Res.drawable.candlestick),
-//            contentDescription = "Меню",
-//            modifier = Modifier.size(20.dp)
-//                .background(
-//                    color = if (isHovered) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
-//                    shape = CircleShape,
-//                )
-//                .hoverable(interactionSource)
-//        )
-//    }
-//}
-//
 
 @Composable
 private fun SymbolSelector(
@@ -248,12 +195,10 @@ private fun ChartWidget(
 
             is ChartState.Success -> {
                 val candles = chartState.candles
-                val lastPrice = candles.lastOrNull()?.close  // Получаем последнюю цену
+                val lastPrice = candles.lastOrNull()?.close
 
                 Column(
-                    modifier = Modifier.fillMaxSize()
                 ) {
-                    // Заголовок графика - ОБНОВИЛ
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -268,7 +213,6 @@ private fun ChartWidget(
                                 style = MaterialTheme.typography.titleMedium
                             )
 
-                            // ДОБАВИЛ: Показываем текущую цену большим шрифтом
                             if (lastPrice != null) {
                                 Text(
                                     text = formatPrice(lastPrice),
@@ -285,7 +229,6 @@ private fun ChartWidget(
                             )
                         }
 
-                        // Статистика
                         if (candles.size >= 2) {
                             val lastCandle = candles.last()
                             val prevCandle = candles[candles.size - 2]
@@ -306,12 +249,10 @@ private fun ChartWidget(
 
                     TerminalDivider()
 
-                    // График - ПЕРЕДАЕМ текущую цену
                     CandleStickChart(
                         candles = candles,
                         currentPrice = lastPrice,  // ДОБАВИЛ
                         modifier = Modifier
-                            .fillMaxSize()
                             .padding(16.dp),
                         config = chartConfig
                     )

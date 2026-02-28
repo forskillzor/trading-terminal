@@ -44,6 +44,7 @@ class DomViewModel(
 
     fun selectPrice(price: Double?) {
         _selectedPrice.value = price
+        println("Selected price: $price")
     }
 
     fun updateMousePosition(position: Offset?) {

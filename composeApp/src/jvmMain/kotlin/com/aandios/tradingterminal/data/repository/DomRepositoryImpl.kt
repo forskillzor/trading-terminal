@@ -4,6 +4,7 @@ import com.aandios.tradingterminal.data.api.binance.BinanceDomApi
 import com.aandios.tradingterminal.domain.entities.OrderBookData
 import com.aandios.tradingterminal.domain.entities.OrderBookLevel
 import com.aandios.tradingterminal.domain.repository.DomRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
@@ -15,6 +16,7 @@ class DomRepositoryImpl(
 
     private val activeSubscriptions = MutableStateFlow<Map<String, Flow<OrderBookData>>>(emptyMap())
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     override fun getOrderBook(symbol: String): Flow<OrderBookData> {
         val key = symbol
 
