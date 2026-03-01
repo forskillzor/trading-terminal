@@ -159,7 +159,7 @@ private fun DomLevelRow(
         String.format("%.1f", level.total.toDoubleOrNull() ?: 0.0)
     }
     val volumeWidth = remember(level.total, maxTotal) {
-        val total = level.total.toDoubleOrNull() ?: 0.0
+        val total = level.quantity.toDoubleOrNull() ?: 0.0
         (total / maxTotal).coerceIn(0.0, 1.0).toFloat()
     }
 
@@ -177,7 +177,7 @@ private fun DomLevelRow(
                 onPriceClick()
             }
             .background(backgroundColor)
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .padding(horizontal = 8.dp, vertical = 1.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {

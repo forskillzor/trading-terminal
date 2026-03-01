@@ -21,12 +21,14 @@ class BinanceApi(
         isLenient = true
         encodeDefaults = true
     }
+
     suspend fun getCandles(
         symbol: String,
         interval: String,
         limit: Int = 100
     ): List<BinanceCandle> {
-        val response: List<List<String>> = client.get("https://api.binance.com/api/v3/klines") {
+        // Меняем на фьючерсный endpoint
+        val response: List<List<String>> = client.get("https://fapi.binance.com/fapi/v1/klines") {
             url {
                 parameters.append("symbol", symbol)
                 parameters.append("interval", interval)
@@ -50,14 +52,16 @@ class BinanceApi(
             )
         }
     }
+
     suspend fun subscribeToCandles(
         symbol: String,
         interval: String
     ): Flow<BinanceWebSocketCandle> = callbackFlow {
         println("📡 WebSocket: Starting for $symbol $interval")
 
+        // Для фьючерсов используем fstream
         val streamName = "${symbol.lowercase()}@kline_${interval}"
-        val endpoint = "wss://stream.binance.com:9443/ws/$streamName"
+        val endpoint = "wss://fstream.binance.com/ws/$streamName"  // fstream для фьючерсов
 
         println("🔗 Connecting to: $endpoint")
 
@@ -70,14 +74,9 @@ class BinanceApi(
                         is Frame.Text -> {
                             val text = frame.readText()
 
-                            // Debug: print first message
-                            // println("📨 Raw: $text")
-
                             try {
-                                // Парсим JSON
                                 val wsResponse = json.decodeFromString<BinanceWebSocketResponse>(text)
 
-                                // Проверяем что это действительно kline событие
                                 if (wsResponse.eventType == "kline") {
                                     val kline = wsResponse.kline
 
@@ -93,25 +92,12 @@ class BinanceApi(
                                         isClosed = kline.isClosed
                                     )
 
-                                    // Отправляем только закрытые свечи или все?
-                                    // Если нужно только закрытые:
-                                    // if (kline.isClosed) {
-                                    //     trySend(webSocketCandle)
-                                    // }
-
-                                    // Или все свечи (включая обновления текущей):
                                     trySend(webSocketCandle)
-
-                                    // Debug output
-                                    val status = if (kline.isClosed) "CLOSED" else "UPDATE"
                                 }
-
                             } catch (e: Exception) {
-                                // Игнорируем ошибки парсинга не-kline сообщений
+                                // Игнорируем ошибки парсинга
                             }
                         }
-
-                        // ... остальная обработка фреймов ...
                         else -> {}
                     }
                 }

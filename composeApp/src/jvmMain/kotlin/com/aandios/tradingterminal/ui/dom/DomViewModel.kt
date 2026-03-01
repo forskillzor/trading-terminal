@@ -13,23 +13,9 @@ class DomViewModel(
     private val viewModelScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var subscriptionJob: Job? = null
 
-    // Внутренний MutableStateFlow для хранения данных
+    // Простой MutableStateFlow - никаких сложных трансформаций!
     private val _orderBook = MutableStateFlow<OrderBookData?>(null)
-
-    // Внешний StateFlow с фильтрацией дубликатов
-    val orderBook: StateFlow<OrderBookData?> = _orderBook
-        .asStateFlow()
-        .filterNotNull() // Добавляем фильтр, если нужно отсеять null
-        .distinctUntilChanged { old, new ->
-            // Сравниваем только если изменились цены или объемы
-            old.bids.firstOrNull()?.price == new.bids.firstOrNull()?.price &&
-                    old.asks.firstOrNull()?.price == new.asks.firstOrNull()?.price
-        }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.Eagerly,
-            initialValue = null
-        )
+    val orderBook: StateFlow<OrderBookData?> = _orderBook.asStateFlow()
 
     private val _selectedPrice = MutableStateFlow<Double?>(null)
     val selectedPrice: StateFlow<Double?> = _selectedPrice.asStateFlow()
@@ -41,15 +27,24 @@ class DomViewModel(
     val orderQuantity: StateFlow<String> = _orderQuantity.asStateFlow()
 
     fun subscribeToOrderBook(symbol: String) {
+        println("📊 DomViewModel: Subscribing to $symbol")
+
         subscriptionJob?.cancel()
 
         subscriptionJob = viewModelScope.launch {
             domRepository.getOrderBook(symbol)
                 .catch { e ->
-                    println("❌ DOM subscription error: ${e.message}")
+                    e.printStackTrace()
                 }
                 .collect { data ->
-                    // Обновляем внутренний MutableStateFlow
+                    if (data.bids.isNotEmpty()) {
+//                        println("   Best bid: ${data.bids.first().price}")
+                    }
+                    if (data.asks.isNotEmpty()) {
+//                        println("   Best ask: ${data.asks.first().price}")
+                    }
+
+                    // Просто обновляем значение
                     _orderBook.value = data
                 }
         }
@@ -77,10 +72,13 @@ class DomViewModel(
         if (price != null && quantity != null && quantity > 0) {
             println("📝 Placing $side order: $quantity @ $price")
             // Здесь будет логика размещения ордера
+        } else {
+            println("❌ Cannot place order: invalid price or quantity")
         }
     }
 
     fun clear() {
+        subscriptionJob?.cancel()
         viewModelScope.coroutineContext.cancelChildren()
         viewModelScope.cancel()
     }

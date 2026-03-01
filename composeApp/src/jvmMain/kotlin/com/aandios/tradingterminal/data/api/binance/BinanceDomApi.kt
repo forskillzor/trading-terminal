@@ -9,9 +9,11 @@ import io.ktor.client.call.*
 import io.ktor.client.plugins.websocket.*
 import io.ktor.client.request.*
 import io.ktor.websocket.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.serialization.json.Json
+
 
 class BinanceDomApi(
     private val client: HttpClient,
@@ -25,9 +27,7 @@ class BinanceDomApi(
 
     suspend fun getOrderBookSnapshot(symbol: String): OrderBook {
         try {
-            println("📊 DOM: Fetching snapshot for $symbol")
 
-            // Binance Futures API возвращает простой JSON
             val response: DepthResponse = client.get("https://fapi.binance.com/fapi/v1/depth") {
                 url {
                     parameters.append("symbol", symbol)
@@ -35,49 +35,49 @@ class BinanceDomApi(
                 }
             }.body()
 
-            println("📊 DOM: Snapshot received, lastUpdateId: ${response.lastUpdateId}")
-            println("📊 DOM: Bids: ${response.bids.size}, Asks: ${response.asks.size}")
+            // Создаем уровни
+            val bids = response.bids.map { bid ->
+                OrderBookLevel(
+                    price = bid[0],
+                    quantity = bid[1],
+                    total = "0"
+                )
+            }.sortedByDescending { it.price.toDouble() } // Bids: от высокой к низкой
 
-            // Суммируем объемы для построения DOM
-            var bidTotal = 0.0
-            val bidsWithTotal = response.bids.map { bid ->
-                val price = bid[0]
-                val quantity = bid[1]
-                val qty = quantity.toDouble()
-                bidTotal += qty
-                OrderBookLevel(price, quantity, bidTotal.toString())
-            }.sortedByDescending { it.price.toDouble() }
+            val asks = response.asks.map { ask ->
+                OrderBookLevel(
+                    price = ask[0],
+                    quantity = ask[1],
+                    total = "0"
+                )
+            }.sortedBy { it.price.toDouble() } // Asks: от низкой к высокой
 
-            var askTotal = 0.0
-            val asksWithTotal = response.asks.map { ask ->
-                val price = ask[0]
-                val quantity = ask[1]
-                val qty = quantity.toDouble()
-                askTotal += qty
-                OrderBookLevel(price, quantity, askTotal.toString())
-            }.sortedBy { it.price.toDouble() }
+            // Вычисляем тоталы
+            val bidsWithTotals = calculateTotals(bids, isAsk = false)
+            val asksWithTotals = calculateTotals(asks, isAsk = true)
 
             return OrderBook(
                 symbol = symbol,
-                bids = bidsWithTotal,
-                asks = asksWithTotal,
+                bids = bidsWithTotals,
+                asks = asksWithTotals,
                 lastUpdateId = response.lastUpdateId,
-                timestamp = response.T ?: System.currentTimeMillis()
+                timestamp = System.currentTimeMillis()
             )
         } catch (e: Exception) {
-            println("❌ DOM: Failed to fetch order book: ${e.message}")
-            e.printStackTrace()
+            println("❌ DOM: Snapshot failed: ${e.message}")
             throw e
         }
     }
 
-    fun subscribeToOrderBook(symbol: String, levels: Int = 20): Flow<OrderBook> = callbackFlow {
-        val streamName = "${symbol.lowercase()}@depth${levels}@100ms"
+    fun subscribeToOrderBook(symbol: String): Flow<OrderBook> = callbackFlow {
+        val streamName = "${symbol.lowercase()}@depth${limit}@100ms"
         val endpoint = "wss://fstream.binance.com/ws/$streamName"
 
         println("🔗 DOM WebSocket: Connecting to $endpoint")
 
         var localOrderBook: OrderBook? = null
+        var lastUpdateId = 0L
+        var isFirstUpdate = true
 
         try {
             client.webSocket(urlString = endpoint) {
@@ -91,18 +91,35 @@ class BinanceDomApi(
                             try {
                                 val update = json.decodeFromString<BinanceDepthUpdate>(text)
 
-                                // Если у нас еще нет локальной копии, получаем снапшот
-                                if (localOrderBook == null) {
-                                    localOrderBook = getOrderBookSnapshot(symbol)
-                                }
+                                // Отладка первых обновлений
 
-                                localOrderBook = updateOrderBook(localOrderBook!!, update)
+                                if (isFirstUpdate) {
+                                    localOrderBook = getOrderBookSnapshot(symbol)
+                                    lastUpdateId = localOrderBook!!.lastUpdateId
+                                    isFirstUpdate = false
+
+                                    // Проверяем синхронизацию
+                                    if (update.lastUpdateId <= lastUpdateId) {
+                                        println("⚠️ DOM: Skipping old update")
+                                        continue
+                                    }
+                                }
 
                                 if (localOrderBook != null) {
+                                    val newOrderBook = applyUpdate(localOrderBook!!, update)
+
+                                    // Проверяем, изменился ли best bid/ask
+                                    val oldBestBid = localOrderBook!!.bids.firstOrNull()?.price
+                                    val newBestBid = newOrderBook.bids.firstOrNull()?.price
+                                    val oldBestAsk = localOrderBook!!.asks.firstOrNull()?.price
+                                    val newBestAsk = newOrderBook.asks.firstOrNull()?.price
+
+                                    localOrderBook = newOrderBook
                                     trySend(localOrderBook!!)
                                 }
+
                             } catch (e: Exception) {
-                                println("❌ DOM parsing error: ${e.message}")
+                                println("❌ DOM parse error: ${e.message}")
                             }
                         }
                         else -> {}
@@ -111,33 +128,24 @@ class BinanceDomApi(
             }
         } catch (e: Exception) {
             println("❌ DOM WebSocket failed: ${e.message}")
+            delay(1000)
             throw e
         }
 
         close()
     }
 
-    private fun updateOrderBook(current: OrderBook, update: BinanceDepthUpdate): OrderBook {
-        // Обновляем bids
-        val updatedBids = updateBidsLevels(current.bids, update.bids)
-        val updatedAsks = updateAsksLevels(current.asks, update.asks)
+    private fun applyUpdate(current: OrderBook, update: BinanceDepthUpdate): OrderBook {
+        // Обновляем уровни
+        val newBids = updateLevels(current.bids, update.bids, isAsk = false)
+        val newAsks = updateLevels(current.asks, update.asks, isAsk = true)
 
         // Пересчитываем тоталы
-        var bidTotal = 0.0
-        val bidsWithTotals = updatedBids.map {
-            val qty = it.quantity.toDouble()
-            bidTotal += qty
-            it.copy(total = bidTotal.toString())
-        }
+        val bidsWithTotals = calculateTotals(newBids, isAsk = false)
+        val asksWithTotals = calculateTotals(newAsks, isAsk = true)
 
-        var askTotal = 0.0
-        val asksWithTotals = updatedAsks.map {
-            val qty = it.quantity.toDouble()
-            askTotal += qty
-            it.copy(total = askTotal.toString())
-        }
-
-        return current.copy(
+        return OrderBook(
+            symbol = current.symbol,
             bids = bidsWithTotals,
             asks = asksWithTotals,
             lastUpdateId = update.lastUpdateId,
@@ -145,71 +153,57 @@ class BinanceDomApi(
         )
     }
 
-    private fun updateBidsLevels(
-        currentBids: List<OrderBookLevel>,
-        updates: List<List<String>>
+    private fun updateLevels(
+        currentLevels: List<OrderBookLevel>,
+        updates: List<List<String>>,
+        isAsk: Boolean
     ): List<OrderBookLevel> {
-        val mutableBids = currentBids.toMutableList()
+        // Используем TreeMap для автоматической сортировки
+        val levelMap = java.util.TreeMap<String, OrderBookLevel>(
+            if (isAsk)
+                compareBy { it.toDouble() } // Asks: по возрастанию цены
+            else
+                compareByDescending { it.toDouble() } // Bids: по убыванию цены
+        )
 
+        // Добавляем текущие уровни
+        currentLevels.forEach { level ->
+            levelMap[level.price] = level
+        }
+
+        // Применяем обновления
         updates.forEach { update ->
             val price = update[0]
-            val quantity = update[1].toDouble()
+            val quantity = update[1]
+            val qtyDouble = quantity.toDouble()
 
-            val existingIndex = mutableBids.indexOfFirst { it.price == price }
-
-            if (quantity == 0.0) {
-                // Удалить уровень
-                if (existingIndex != -1) {
-                    mutableBids.removeAt(existingIndex)
-                }
+            if (qtyDouble == 0.0) {
+                levelMap.remove(price)
             } else {
-                // Обновить или добавить уровень
-                val newLevel = OrderBookLevel(price, update[1])
-                if (existingIndex != -1) {
-                    mutableBids[existingIndex] = newLevel
-                } else {
-                    mutableBids.add(newLevel)
-                }
+                levelMap[price] = OrderBookLevel(
+                    price = price,
+                    quantity = quantity,
+                    total = "0"
+                )
             }
         }
 
-        // Сортируем по убыванию цены и берем топ-N
-        return mutableBids
-            .sortedByDescending { it.price.toDouble() }
-            .take(limit)
+        // Берем только нужное количество уровней
+        return levelMap.values.take(limit)
     }
 
-    private fun updateAsksLevels(
-        currentAsks: List<OrderBookLevel>,
-        updates: List<List<String>>
-    ): List<OrderBookLevel> {
-        val mutableAsks = currentAsks.toMutableList()
-
-        updates.forEach { update ->
-            val price = update[0]
-            val quantity = update[1].toDouble()
-
-            val existingIndex = mutableAsks.indexOfFirst { it.price == price }
-
-            if (quantity == 0.0) {
-                // Удалить уровень
-                if (existingIndex != -1) {
-                    mutableAsks.removeAt(existingIndex)
-                }
-            } else {
-                // Обновить или добавить уровень
-                val newLevel = OrderBookLevel(price, update[1])
-                if (existingIndex != -1) {
-                    mutableAsks[existingIndex] = newLevel
-                } else {
-                    mutableAsks.add(newLevel)
-                }
-            }
+    private fun calculateTotals(levels: List<OrderBookLevel>, isAsk: Boolean): List<OrderBookLevel> {
+        var total = 0.0
+        val sortedLevels = if (isAsk) {
+            levels.sortedBy { it.price.toDouble() }
+        } else {
+            levels.sortedByDescending { it.price.toDouble() }
         }
 
-        // Сортируем по возрастанию цены и берем топ-N
-        return mutableAsks
-            .sortedBy { it.price.toDouble() }
-            .take(limit)
+        return sortedLevels.map { level ->
+            val qty = level.quantity.toDouble()
+            total += qty
+            level.copy(total = total.toString())
+        }
     }
 }

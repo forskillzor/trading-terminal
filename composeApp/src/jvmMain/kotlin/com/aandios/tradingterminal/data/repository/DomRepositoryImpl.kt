@@ -18,11 +18,10 @@ class DomRepositoryImpl(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun getOrderBook(symbol: String): Flow<OrderBookData> {
-        val key = symbol
 
         return activeSubscriptions.flatMapLatest { flows ->
-            flows[key] ?: createOrderBookFlow(symbol).also { flow ->
-                activeSubscriptions.value += (key to flow)
+            flows[symbol] ?: createOrderBookFlow(symbol).also { flow ->
+                activeSubscriptions.value += (symbol to flow)
             }
         }
     }
