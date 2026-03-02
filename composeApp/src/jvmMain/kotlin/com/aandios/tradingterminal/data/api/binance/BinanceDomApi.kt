@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.serialization.json.Json
 
-
 class BinanceDomApi(
     private val client: HttpClient,
     private val limit: Int = 20
@@ -27,7 +26,6 @@ class BinanceDomApi(
 
     suspend fun getOrderBookSnapshot(symbol: String): OrderBook {
         try {
-
             val response: DepthResponse = client.get("https://fapi.binance.com/fapi/v1/depth") {
                 url {
                     parameters.append("symbol", symbol)
@@ -35,14 +33,16 @@ class BinanceDomApi(
                 }
             }.body()
 
-            // Создаем уровни
+            // Binance уже возвращает отсортированные данные!
+            // Bids: от лучшей (максимальная цена) к худшей (минимальная)
+            // Asks: от лучшей (минимальная цена) к худшей (максимальная)
             val bids = response.bids.map { bid ->
                 OrderBookLevel(
                     price = bid[0],
                     quantity = bid[1],
                     total = "0"
                 )
-            }.sortedByDescending { it.price.toDouble() } // Bids: от высокой к низкой
+            } // НЕ СОРТИРУЕМ!
 
             val asks = response.asks.map { ask ->
                 OrderBookLevel(
@@ -50,9 +50,18 @@ class BinanceDomApi(
                     quantity = ask[1],
                     total = "0"
                 )
-            }.sortedBy { it.price.toDouble() } // Asks: от низкой к высокой
+            } // НЕ СОРТИРУЕМ!
 
-            // Вычисляем тоталы
+            // Проверка корректности
+            if (bids.isNotEmpty() && asks.isNotEmpty()) {
+                val bestBid = bids.first().price.toDouble()
+                val bestAsk = asks.first().price.toDouble()
+                if (bestBid > bestAsk) {
+                    println("⚠️ DOM: WARNING - Bid ($bestBid) > Ask ($bestAsk)!")
+                }
+            }
+
+            // Вычисляем тоталы (cumulative volume)
             val bidsWithTotals = calculateTotals(bids, isAsk = false)
             val asksWithTotals = calculateTotals(asks, isAsk = true)
 
@@ -65,6 +74,7 @@ class BinanceDomApi(
             )
         } catch (e: Exception) {
             println("❌ DOM: Snapshot failed: ${e.message}")
+            e.printStackTrace()
             throw e
         }
     }
@@ -78,6 +88,7 @@ class BinanceDomApi(
         var localOrderBook: OrderBook? = null
         var lastUpdateId = 0L
         var isFirstUpdate = true
+        var updateCount = 0
 
         try {
             client.webSocket(urlString = endpoint) {
@@ -87,35 +98,52 @@ class BinanceDomApi(
                     when (frame) {
                         is Frame.Text -> {
                             val text = frame.readText()
+                            updateCount++
 
                             try {
                                 val update = json.decodeFromString<BinanceDepthUpdate>(text)
 
-                                // Отладка первых обновлений
-
                                 if (isFirstUpdate) {
+                                    // Получаем снапшот
                                     localOrderBook = getOrderBookSnapshot(symbol)
                                     lastUpdateId = localOrderBook!!.lastUpdateId
-                                    isFirstUpdate = false
 
-                                    // Проверяем синхронизацию
+                                    println("📊 DOM: Snapshot loaded with lastUpdateId: $lastUpdateId")
+                                    println("📊 DOM: First update lastUpdateId: ${update.lastUpdateId}")
+
+                                    // По документации Binance:
+                                    // Пропускаем обновления пока не получим update.lastUpdateId > snapshot.lastUpdateId
+                                    // fixme this updating bug
                                     if (update.lastUpdateId <= lastUpdateId) {
-                                        println("⚠️ DOM: Skipping old update")
+                                        println("⚠️ DOM: Waiting for update > $lastUpdateId")
                                         continue
                                     }
+
+                                    isFirstUpdate = false
+                                    println("Local Orderbook $localOrderBook")
                                 }
 
-                                if (localOrderBook != null) {
-                                    val newOrderBook = applyUpdate(localOrderBook!!, update)
+                                // Применяем обновление если оно новее последнего
+                                if (localOrderBook != null && !isFirstUpdate) {
+                                    if (update.lastUpdateId > lastUpdateId) {
+                                        val newOrderBook = applyUpdate(localOrderBook!!, update)
 
-                                    // Проверяем, изменился ли best bid/ask
-                                    val oldBestBid = localOrderBook!!.bids.firstOrNull()?.price
-                                    val newBestBid = newOrderBook.bids.firstOrNull()?.price
-                                    val oldBestAsk = localOrderBook!!.asks.firstOrNull()?.price
-                                    val newBestAsk = newOrderBook.asks.firstOrNull()?.price
+                                        // Проверяем изменения цен
+                                        val oldBestBid = localOrderBook!!.bids.firstOrNull()?.price
+                                        val newBestBid = newOrderBook.bids.firstOrNull()?.price
+                                        val oldBestAsk = localOrderBook!!.asks.firstOrNull()?.price
+                                        val newBestAsk = newOrderBook.asks.firstOrNull()?.price
 
-                                    localOrderBook = newOrderBook
-                                    trySend(localOrderBook!!)
+                                        if (oldBestBid != newBestBid || oldBestAsk != newBestAsk) {
+                                            println("📊 DOM Price changed at ${update.eventTime}:")
+                                            println("   Bid: $oldBestBid → $newBestBid")
+                                            println("   Ask: $oldBestAsk → $newBestAsk")
+                                        }
+
+                                        localOrderBook = newOrderBook
+                                        lastUpdateId = update.lastUpdateId
+                                        trySend(localOrderBook!!)
+                                    }
                                 }
 
                             } catch (e: Exception) {
@@ -128,6 +156,7 @@ class BinanceDomApi(
             }
         } catch (e: Exception) {
             println("❌ DOM WebSocket failed: ${e.message}")
+            e.printStackTrace()
             delay(1000)
             throw e
         }
@@ -136,9 +165,9 @@ class BinanceDomApi(
     }
 
     private fun applyUpdate(current: OrderBook, update: BinanceDepthUpdate): OrderBook {
-        // Обновляем уровни
-        val newBids = updateLevels(current.bids, update.bids, isAsk = false)
-        val newAsks = updateLevels(current.asks, update.asks, isAsk = true)
+        // Обновляем уровни, сохраняя порядок
+        val newBids = updateLevels(current.bids, update.bids)
+        val newAsks = updateLevels(current.asks, update.asks)
 
         // Пересчитываем тоталы
         val bidsWithTotals = calculateTotals(newBids, isAsk = false)
@@ -155,16 +184,10 @@ class BinanceDomApi(
 
     private fun updateLevels(
         currentLevels: List<OrderBookLevel>,
-        updates: List<List<String>>,
-        isAsk: Boolean
+        updates: List<List<String>>
     ): List<OrderBookLevel> {
-        // Используем TreeMap для автоматической сортировки
-        val levelMap = java.util.TreeMap<String, OrderBookLevel>(
-            if (isAsk)
-                compareBy { it.toDouble() } // Asks: по возрастанию цены
-            else
-                compareByDescending { it.toDouble() } // Bids: по убыванию цены
-        )
+        // Используем LinkedHashMap для сохранения порядка вставки
+        val levelMap = LinkedHashMap<String, OrderBookLevel>()
 
         // Добавляем текущие уровни
         currentLevels.forEach { level ->
@@ -175,33 +198,30 @@ class BinanceDomApi(
         updates.forEach { update ->
             val price = update[0]
             val quantity = update[1]
-            val qtyDouble = quantity.toDouble()
+            val qtyDouble = quantity.toDoubleOrNull() ?: 0.0
 
             if (qtyDouble == 0.0) {
                 levelMap.remove(price)
+                println("   🗑️ Removed level: $price")
             } else {
                 levelMap[price] = OrderBookLevel(
                     price = price,
                     quantity = quantity,
                     total = "0"
                 )
+                println("   📝 Updated level: $price @ $quantity")
             }
         }
 
-        // Берем только нужное количество уровней
-        return levelMap.values.take(limit)
+        // Возвращаем только первые limit уровней
+        return levelMap.values.toList()//.take(limit)
     }
 
     private fun calculateTotals(levels: List<OrderBookLevel>, isAsk: Boolean): List<OrderBookLevel> {
         var total = 0.0
-        val sortedLevels = if (isAsk) {
-            levels.sortedBy { it.price.toDouble() }
-        } else {
-            levels.sortedByDescending { it.price.toDouble() }
-        }
-
-        return sortedLevels.map { level ->
-            val qty = level.quantity.toDouble()
+        // Не сортируем! Binance уже прислал в правильном порядке
+        return levels.map { level ->
+            val qty = level.quantity.toDoubleOrNull() ?: 0.0
             total += qty
             level.copy(total = total.toString())
         }

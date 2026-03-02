@@ -38,13 +38,12 @@ class DomViewModel(
                 }
                 .collect { data ->
                     if (data.bids.isNotEmpty()) {
-//                        println("   Best bid: ${data.bids.first().price}")
+                        println("from dom viewmodel Best bid: ${data.bids.first().price}")
                     }
                     if (data.asks.isNotEmpty()) {
-//                        println("   Best ask: ${data.asks.first().price}")
+                        println("from dom viewmodel Best ask: ${data.asks.first().price}")
                     }
 
-                    // Просто обновляем значение
                     _orderBook.value = data
                 }
         }
