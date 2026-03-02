@@ -24,11 +24,11 @@ fun DomHeader(
         modifier = modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.Companion
+            modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Companion.CenterVertically
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = "DOM - $symbol",
@@ -38,7 +38,7 @@ fun DomHeader(
 
             Text(
                 text = "Live",
-                color = Color.Companion.Green,
+                color = Color.Green,
                 style = MaterialTheme.typography.labelSmall
             )
         }

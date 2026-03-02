@@ -41,7 +41,7 @@ fun DomWidget(
         }
 
         if (orderBook != null) {
-            DomContent(
+            DomContentNinja(
                 orderBook = orderBook,
                 selectedPrice = selectedPrice,
                 onPriceSelected = onPriceSelected,
