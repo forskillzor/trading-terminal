@@ -2,13 +2,7 @@ package com.aandios.tradingterminal.ui.dom
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -20,9 +14,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.aandios.tradingterminal.domain.entities.OrderSide
+import com.aandios.tradingterminal.domain.commands.TradingCommand
 import com.aandios.tradingterminal.ui.components.TerminalButton
 
 @Composable
@@ -30,53 +25,82 @@ fun OrderPlacementPanel(
     selectedPrice: Double?,
     orderQuantity: String,
     onQuantityChanged: (String) -> Unit,
-    onPlaceOrder: (OrderSide) -> Unit,
-    modifier: Modifier = Modifier.Companion
+    onCreateBuyMarket: () -> TradingCommand,
+    onCreateSellMarket: () -> TradingCommand,
+    onCreateBuyLimit: (() -> TradingCommand?)?,
+    onCreateSellLimit: (() -> TradingCommand?)?,
+    onCreateBuyBestBid: (() -> TradingCommand?)?,
+    onCreateSellBestAsk: (() -> TradingCommand?)?,
+    onCreateTradeOff: () -> TradingCommand,
+    onExecuteCommand: (TradingCommand?) -> Unit,
+    isTradingEnabled: Boolean,
+    modifier: Modifier = Modifier
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant,
         modifier = modifier
     ) {
         Column(
-            modifier = Modifier.Companion
+            modifier = Modifier
                 .fillMaxSize()
                 .padding(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            // Выбранная цена
+            // Статус торговли
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.Companion.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "Price:",
+                    text = "Trading:",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.labelMedium
+                    style = MaterialTheme.typography.labelSmall
                 )
                 Text(
-                    text = selectedPrice?.let { formatDomPrice(it) } ?: "--",
-                    color = if (selectedPrice != null) Color.Companion.Yellow
+                    text = if (isTradingEnabled) "ON" else "OFF",
+                    color = if (isTradingEnabled) Color.Green else Color.Red,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+            }
+
+            // Информация о позиции
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "PnL:",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelSmall
+                )
+                Text(
+                    text = selectedPrice?.let { formatPrice(it) } ?: "--",
+                    color = if (selectedPrice != null) Color.Yellow
                     else MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontFamily = FontFamily.Monospace
+                    )
                 )
             }
 
             // Поле ввода количества
             Row(
-                verticalAlignment = Alignment.Companion.CenterVertically,
+                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
                     text = "Qty:",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.labelMedium
+                    style = MaterialTheme.typography.labelSmall
                 )
                 BasicTextField(
                     value = orderQuantity,
                     onValueChange = onQuantityChanged,
-                    modifier = Modifier.Companion
+                    modifier = Modifier
                         .weight(1f)
-                        .height(32.dp)
+                        .height(28.dp)
                         .background(
                             color = MaterialTheme.colorScheme.surface,
                             shape = MaterialTheme.shapes.small
@@ -86,46 +110,155 @@ fun OrderPlacementPanel(
                             color = MaterialTheme.colorScheme.outlineVariant,
                             shape = MaterialTheme.shapes.small
                         )
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                        .padding(horizontal = 6.dp, vertical = 4.dp),
                     textStyle = TextStyle(
                         color = MaterialTheme.colorScheme.onSurface,
-                        fontSize = 13.sp,
-                        fontFamily = FontFamily.Companion.Monospace
+                        fontSize = 12.sp,
+                        fontFamily = FontFamily.Monospace
                     ),
                     singleLine = true,
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary)
                 )
             }
 
-            // Кнопки размещения ордеров
+            // Market ордера
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.Companion.fillMaxWidth()
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 TerminalButton(
-                    onClick = { onPlaceOrder(OrderSide.BUY) },
+                    onClick = { onExecuteCommand(onCreateBuyMarket()) },
                     isActive = false,
-                    modifier = Modifier.Companion.weight(1f)
+                    modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        text = "BUY",
+                        text = "Market Buy",
                         color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.labelMedium
+                        style = MaterialTheme.typography.labelSmall
                     )
                 }
 
                 TerminalButton(
-                    onClick = { onPlaceOrder(OrderSide.SELL) },
+                    onClick = { onExecuteCommand(onCreateSellMarket()) },
                     isActive = false,
-                    modifier = Modifier.Companion.weight(1f)
+                    modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        text = "SELL",
+                        text = "Market Sell",
                         color = MaterialTheme.colorScheme.secondary,
-                        style = MaterialTheme.typography.labelMedium
+                        style = MaterialTheme.typography.labelSmall
                     )
                 }
             }
+
+            // Limit ордера (по выбранной цене)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                TerminalButton(
+                    onClick = {
+                        if (onCreateBuyLimit != null && selectedPrice != null) {
+                            onExecuteCommand(onCreateBuyLimit())
+                        }
+                    },
+                    isActive = false,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = if (selectedPrice != null) "Buy Limit" else "Buy Limit (select price)",
+                        color = if (selectedPrice != null)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+
+                TerminalButton(
+                    onClick = {
+                        if (onCreateSellLimit != null && selectedPrice != null) {
+                            onExecuteCommand(onCreateSellLimit())
+                        }
+                    },
+                    isActive = false,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = if (selectedPrice != null) "Sell Limit" else "Sell Limit (select price)",
+                        color = if (selectedPrice != null)
+                            MaterialTheme.colorScheme.secondary
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
+
+            // Best Bid/Ask ордера
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                TerminalButton(
+                    onClick = {
+                        onCreateBuyBestBid?.let { onExecuteCommand(it()) }
+                    },
+                    isActive = false,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = if (onCreateBuyBestBid != null) "Best Bid" else "Best Bid (waiting...)",
+                        color = if (onCreateBuyBestBid != null)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+
+                TerminalButton(
+                    onClick = {
+                        onCreateSellBestAsk?.let { onExecuteCommand(it()) }
+                    },
+                    isActive = false,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = if (onCreateSellBestAsk != null) "Best Ask" else "Best Ask (waiting...)",
+                        color = if (onCreateSellBestAsk != null)
+                            MaterialTheme.colorScheme.secondary
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
+
+            // Trade Off кнопка
+            TerminalButton(
+                onClick = { onExecuteCommand(onCreateTradeOff()) },
+                isActive = !isTradingEnabled,  // Активна когда торговля ВЫКЛЮЧЕНА
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = if (isTradingEnabled) "⚠️ TRADE OFF" else "✅ TRADE ON",
+                    color = if (isTradingEnabled) Color.Red else Color.Green,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+            }
         }
+    }
+}
+
+private fun formatPrice(price: Double): String {
+    return when {
+        price >= 1000 -> String.format("%.2f", price)
+        price >= 100 -> String.format("%.3f", price)
+        price >= 10 -> String.format("%.4f", price)
+        price >= 1 -> String.format("%.5f", price)
+        else -> String.format("%.6f", price)
     }
 }

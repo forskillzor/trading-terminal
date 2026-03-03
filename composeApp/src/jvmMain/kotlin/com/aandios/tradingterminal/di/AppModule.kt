@@ -1,12 +1,15 @@
 package com.aandios.tradingterminal.di
 
 import com.aandios.tradingterminal.data.api.binance.BinanceApi
+import com.aandios.tradingterminal.data.api.binance.BinanceBestPricesApi
 import com.aandios.tradingterminal.data.api.bybit.BybitApi
 import com.aandios.tradingterminal.data.api.binance.BinanceDomApi
 import com.aandios.tradingterminal.data.api.binance.BinanceTradesApi
+import com.aandios.tradingterminal.data.repository.BestPricesRepositoryImpl
 import com.aandios.tradingterminal.data.repository.ChartRepositoryImpl
 import com.aandios.tradingterminal.data.repository.DomRepositoryImpl
 import com.aandios.tradingterminal.data.repository.TradesRepositoryImpl
+import com.aandios.tradingterminal.domain.repository.BestPricesRepository
 import com.aandios.tradingterminal.domain.repository.ChartRepository
 import com.aandios.tradingterminal.domain.repository.DomRepository
 import com.aandios.tradingterminal.domain.repository.TradesRepository
@@ -86,7 +89,8 @@ val appModule = module {
 // DOM ViewModel
     factory {
         DomViewModel(
-            domRepository = get()
+            domRepository = get(),
+            bestPricesRepository = get(),
         )
     }
 
@@ -119,6 +123,13 @@ val appModule = module {
         TradesViewModel(
             tradesRepository = get()
         )
+    }
+    single<BinanceBestPricesApi> {
+        BinanceBestPricesApi(client = get())
+    }
+
+    single<BestPricesRepository> {
+        BestPricesRepositoryImpl(bestPricesApi = get())
     }
 }
 

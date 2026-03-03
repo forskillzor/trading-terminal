@@ -10,7 +10,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -18,6 +20,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.aandios.tradingterminal.data.api.binance.models.BestPrices
 import com.aandios.tradingterminal.domain.entities.OrderBookLevel
 import kotlin.math.abs
 import kotlin.math.max
@@ -26,6 +29,7 @@ import kotlin.math.max
 fun NinjaTraderDom(
     bids: List<OrderBookLevel>,
     asks: List<OrderBookLevel>,
+    bestPrices: BestPrices?,
     selectedPrice: Double?,
     onPriceSelected: (Double) -> Unit,
     modifier: Modifier = Modifier
@@ -91,12 +95,11 @@ fun NinjaTraderDom(
         val bestAsk = asks.firstOrNull()?.price?.toDoubleOrNull()
 
         if (bestBid != null && bestAsk != null) {
-            NinjaTraderSpread(
-                bestBid = bestBid,
-                bestAsk = bestAsk,
+            DomSpread(
+                bestPrices = bestPrices,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(32.dp)
+                    .height(48.dp)  // Чуть выше для отображения объемов
             )
         }
 

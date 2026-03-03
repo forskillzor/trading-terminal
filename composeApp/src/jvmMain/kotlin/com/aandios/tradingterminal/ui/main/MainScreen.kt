@@ -28,6 +28,7 @@ fun MainScreen(
 ) {
     val chartState by chartViewModel.chartState.collectAsState()
     val orderBook by domViewModel.orderBook.collectAsState()
+    val bestPrices by domViewModel.bestPrices.collectAsState()
     val selectedPrice by domViewModel.selectedPrice.collectAsState()
     val orderQuantity by domViewModel.orderQuantity.collectAsState()
 
@@ -90,19 +91,21 @@ fun MainScreen(
                 // DOM
                 DomWidget(
                     orderBook = orderBook,
+                    bestPrices = bestPrices,
                     selectedPrice = selectedPrice,
-                    onPriceSelected = { price ->
-                        domViewModel.selectPrice(price)
-                    },
+                    onPriceSelected = { price -> domViewModel.selectPrice(price) },
                     orderQuantity = orderQuantity,
-                    onQuantityChanged = { quantity ->
-                        domViewModel.updateOrderQuantity(quantity)
-                    },
-                    onPlaceOrder = { side ->
-                        domViewModel.placeOrder(side)
-                    },
-                    modifier = Modifier
-                        .width(300.dp)
+                    onQuantityChanged = { quantity -> domViewModel.updateOrderQuantity(quantity) },
+                    onCreateBuyMarket = { domViewModel.createBuyMarketCommand() },
+                    onCreateSellMarket = { domViewModel.createSellMarketCommand() },
+                    onCreateBuyLimit = domViewModel::createBuyLimitCommand,
+                    onCreateSellLimit = domViewModel::createSellLimitCommand,
+                    onCreateBuyBestBid = domViewModel::createBuyBestBidCommand,
+                    onCreateSellBestAsk = domViewModel::createSellBestAskCommand,
+                    onCreateTradeOff = { domViewModel.createTradeOffCommand() },
+                    onExecuteCommand = { command -> domViewModel.executeCommand(command) },
+                    isTradingEnabled = domViewModel.isTradingEnabled.collectAsState().value,
+                    modifier = Modifier.width(300.dp)
                 )
 
                 // Trades
@@ -123,7 +126,7 @@ fun MainScreen(
 private fun SymbolSelector(
     selectedSymbol: String, onSymbolSelected: (String) -> Unit
 ) {
-    val symbols = listOf("BTCUSDT", "ETHUSDT","LTCUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT")
+    val symbols = listOf("BTCUSDT", "ETHUSDT", "LTCUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT")
 
     Row(
         horizontalArrangement = Arrangement.spacedBy(4.dp)

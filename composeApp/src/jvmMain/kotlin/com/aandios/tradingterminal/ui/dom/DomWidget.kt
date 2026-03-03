@@ -1,32 +1,38 @@
 package com.aandios.tradingterminal.ui.dom
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.aandios.tradingterminal.data.api.binance.models.BestPrices
+import com.aandios.tradingterminal.domain.commands.TradingCommand
 import com.aandios.tradingterminal.domain.entities.OrderBookData
-import com.aandios.tradingterminal.domain.entities.OrderSide
 
 @Composable
 fun DomWidget(
     orderBook: OrderBookData?,
+    bestPrices: BestPrices?,
     selectedPrice: Double?,
     onPriceSelected: (Double?) -> Unit,
     orderQuantity: String,
     onQuantityChanged: (String) -> Unit,
-    onPlaceOrder: (OrderSide) -> Unit,
+    onCreateBuyMarket: () -> TradingCommand,
+    onCreateSellMarket: () -> TradingCommand,
+    onCreateBuyLimit: (() -> TradingCommand?)?,
+    onCreateSellLimit: (() -> TradingCommand?)?,
+    onCreateBuyBestBid: (() -> TradingCommand?)?,
+    onCreateSellBestAsk: (() -> TradingCommand?)?,
+    onCreateTradeOff: () -> TradingCommand,
+    onExecuteCommand: (TradingCommand?) -> Unit,
+    isTradingEnabled: Boolean,
     modifier: Modifier = Modifier,
     width: Dp = 300.dp,
-    showHeader: Boolean = true
-) {
+    showHeader: Boolean = true) {
     Column(
         modifier = modifier
             .width(width)
@@ -43,13 +49,21 @@ fun DomWidget(
         if (orderBook != null) {
             DomContentNinja(
                 orderBook = orderBook,
+                bestPrices = bestPrices,
                 selectedPrice = selectedPrice,
                 onPriceSelected = onPriceSelected,
                 orderQuantity = orderQuantity,
                 onQuantityChanged = onQuantityChanged,
-                onPlaceOrder = onPlaceOrder,
-                modifier = Modifier.weight(1f)
-            )
+                onCreateBuyMarket = onCreateBuyMarket,
+                onCreateSellMarket = onCreateSellMarket,
+                onCreateBuyLimit = onCreateBuyLimit,
+                onCreateSellLimit = onCreateSellLimit,
+                onCreateBuyBestBid = onCreateBuyBestBid,
+                onCreateSellBestAsk = onCreateSellBestAsk,
+                onCreateTradeOff = onCreateTradeOff,
+                onExecuteCommand = onExecuteCommand,
+                isTradingEnabled = isTradingEnabled,
+                modifier = Modifier.weight(1f)            )
         } else {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -63,3 +77,4 @@ fun DomWidget(
         }
     }
 }
+

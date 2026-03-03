@@ -1,20 +1,33 @@
 package com.aandios.tradingterminal.ui.dom
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.aandios.tradingterminal.data.api.binance.models.BestPrices
+import com.aandios.tradingterminal.domain.commands.TradingCommand
 import com.aandios.tradingterminal.domain.entities.OrderBookData
-import com.aandios.tradingterminal.domain.entities.OrderSide
 
 @Composable
 fun DomContentNinja(
     orderBook: OrderBookData,
+    bestPrices: BestPrices?,
     selectedPrice: Double?,
     onPriceSelected: (Double?) -> Unit,
     orderQuantity: String,
     onQuantityChanged: (String) -> Unit,
-    onPlaceOrder: (OrderSide) -> Unit,
+    onCreateBuyMarket: () -> TradingCommand,
+    onCreateSellMarket: () -> TradingCommand,
+    onCreateBuyLimit: (() -> TradingCommand?)?,
+    onCreateSellLimit: (() -> TradingCommand?)?,
+    onCreateBuyBestBid: (() -> TradingCommand?)?,
+    onCreateSellBestAsk: (() -> TradingCommand?)?,
+    onCreateTradeOff: () -> TradingCommand,
+    onExecuteCommand: (TradingCommand?) -> Unit,
+    isTradingEnabled: Boolean,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -22,20 +35,29 @@ fun DomContentNinja(
         NinjaTraderDom(
             bids = orderBook.bids,
             asks = orderBook.asks,
+            bestPrices = bestPrices,
             selectedPrice = selectedPrice,
             onPriceSelected = { price -> onPriceSelected(price) },
             modifier = Modifier.weight(1f)
         )
 
-        // Панель ордера
+        // Панель ордера с командами
         OrderPlacementPanel(
             selectedPrice = selectedPrice,
             orderQuantity = orderQuantity,
             onQuantityChanged = onQuantityChanged,
-            onPlaceOrder = onPlaceOrder,
+            onCreateBuyMarket = onCreateBuyMarket,
+            onCreateSellMarket = onCreateSellMarket,
+            onCreateBuyLimit = onCreateBuyLimit,
+            onCreateSellLimit = onCreateSellLimit,
+            onCreateBuyBestBid = onCreateBuyBestBid,
+            onCreateSellBestAsk = onCreateSellBestAsk,
+            onCreateTradeOff = onCreateTradeOff,
+            onExecuteCommand = onExecuteCommand,
+            isTradingEnabled = isTradingEnabled,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(120.dp)
+                .height(180.dp)  // Высота под все кнопки
         )
     }
 }
