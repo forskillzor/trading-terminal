@@ -1,4 +1,4 @@
-rootProject.name = "tradingterminal"
+rootProject.name = "nous-platform"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {

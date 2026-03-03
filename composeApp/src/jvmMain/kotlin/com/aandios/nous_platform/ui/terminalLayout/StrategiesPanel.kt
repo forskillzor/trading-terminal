@@ -1,0 +1,63 @@
+package com.aandios.nous_platform.ui.terminalLayout
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+
+@Composable
+fun StrategiesPanel(
+    modifier: Modifier = Modifier.Companion
+) {
+    val strategies = listOf(
+        "Moving Average Crossover",
+        "RSI Overbought/Oversold",
+        "MACD Divergence",
+        "Bollinger Bounce",
+        "Breakout Strategy",
+        "Scalping Strategy",
+        "Grid Trading"
+    )
+
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(vertical = 4.dp)
+    ) {
+        items(strategies) { strategy ->
+            Surface(
+                modifier = Modifier.Companion
+                    .fillMaxWidth()
+                    .clickable { /* Выбрать стратегию */ }
+            ) {
+                Column(
+                    modifier = Modifier.Companion
+                        .fillMaxWidth()
+                        .padding(12.dp)
+                ) {
+                    Text(
+                        text = strategy,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    // Можно добавить кнопку для применения стратегии
+                    Text(
+                        text = "Click to apply",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
+        }
+    }
+}

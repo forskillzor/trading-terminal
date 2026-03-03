@@ -58,11 +58,11 @@ kotlin {
 
 compose.desktop {
     application {
-        mainClass = "com.aandios.tradingterminal.MainKt"
+        mainClass = "com.aandios.nous-platform.MainKt"
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "com.aandios.tradingterminal"
+            packageName = "com.aandios.nous-platform"
             packageVersion = "1.0.0"
             buildTypes.release.proguard {
                 // 1. Отключаем оптимизации и обфускацию
