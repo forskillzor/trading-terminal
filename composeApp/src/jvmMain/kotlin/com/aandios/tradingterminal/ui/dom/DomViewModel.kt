@@ -65,6 +65,18 @@ class DomViewModel(
                 }
                 .collect { data ->
                     _orderBook.value = data
+                    // Сравниваем с bestPrices
+                    val bestBidFromBook = data.bids.firstOrNull()?.price?.toDoubleOrNull()
+                    val bestAskFromBook = data.asks.firstOrNull()?.price?.toDoubleOrNull()
+                    val bestBidFromTicker = _bestPrices.value?.bestBid
+                    val bestAskFromTicker = _bestPrices.value?.bestAsk
+
+                    if (bestBidFromBook != null && bestBidFromTicker != null) {
+                        val diff = Math.abs(bestBidFromBook - bestBidFromTicker)
+                        if (diff > 1.0) { // Если разница больше 1 доллара
+                            println("⚠️ BID MISMATCH: Book=$bestBidFromBook, Ticker=$bestBidFromTicker, diff=$diff")
+                        }
+                    }
                 }
         }
     }

@@ -69,7 +69,7 @@ fun DomContent(
         ) {
 
             DomSection(
-                levels = orderBook.asks.sortedByDescending { it.price.toDouble() },
+                levels = orderBook.asks,
                 maxVolume = maxVolume,
                 isAsk = true,
                 selectedPrice = selectedPrice,
