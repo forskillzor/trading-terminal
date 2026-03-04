@@ -3,7 +3,6 @@ package com.aandios.nous_platform.ui.dom
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
@@ -12,7 +11,6 @@ import com.aandios.nous_platform.di.initKoin
 import com.aandios.nous_platform.ui.theme.TradingTerminalTheme
 import org.koin.compose.koinInject
 
-@Preview
 @Composable
 private fun DomPreview(
     domViewModel: DomViewModel

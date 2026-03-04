@@ -18,6 +18,16 @@ import com.aandios.nous_platform.ui.trades.TradesViewModel
 import org.koin.compose.koinInject
 
 fun main() = application {
+    val classLoader = Thread.currentThread().contextClassLoader
+    println("🔍 Checking fonts:")
+    listOf(
+        "fonts/JetBrains-Mono-Regular.ttf",
+        "/fonts/JetBrains-Mono-Regular.ttf",
+        "JetBrains-Mono-Regular.ttf"
+    ).forEach { path ->
+        val resource = classLoader.getResource(path)
+        println("  - $path: ${if (resource != null) "FOUND" else "NOT FOUND"} (${resource})")
+    }
     initKoin()
 
     Window(

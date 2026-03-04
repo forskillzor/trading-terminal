@@ -1,15 +1,9 @@
-rootProject.name = "nous-platform"
-enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+rootProject.name = "Nous-Platform"
 
 pluginManagement {
+    includeBuild("build-logic")
     repositories {
-        google {
-            mavenContent {
-                includeGroupAndSubgroups("androidx")
-                includeGroupAndSubgroups("com.android")
-                includeGroupAndSubgroups("com.google")
-            }
-        }
+        google()
         mavenCentral()
         gradlePluginPortal()
     }
@@ -17,21 +11,16 @@ pluginManagement {
 
 dependencyResolutionManagement {
     repositories {
-        google {
-            mavenContent {
-                includeGroupAndSubgroups("androidx")
-                includeGroupAndSubgroups("com.android")
-                includeGroupAndSubgroups("com.google")
-            }
-        }
+        google()
         mavenCentral()
     }
 }
 
-
-plugins {
-    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
-}
-
 include(":composeApp")
+//include(":api:api-market")
+//include(":api:api-ui")
+include(":core:core-base")
+include(":core:core-domain")
+include(":core:core-dependencies")
 include(":features:feature-dom")
+include(":app")

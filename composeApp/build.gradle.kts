@@ -1,38 +1,43 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
-    alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.composeMultiplatform)
-    alias(libs.plugins.composeHotReload)
+    alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.compose.multiplatform)
+    alias(libs.plugins.compose.hot.reload)
     alias(libs.plugins.compose.compiler)
-    kotlin("plugin.serialization") version "2.1.20"
+    alias(libs.plugins.kotlin.serialization)
 }
 
 kotlin {
     jvm()
 
     sourceSets {
-        commonMain.dependencies {
-            // Koin для десктопа
-            implementation("io.insert-koin:koin-core:3.5.0")
-            implementation("io.insert-koin:koin-compose:1.1.0")
+        jvmMain {
+            resources.srcDirs("src/jvmMain/resources")  // исправлено!
+        }
 
-            // Ktor для работы с биржами
-            implementation("io.ktor:ktor-client-core:2.3.5")
-            implementation("io.ktor:ktor-client-cio:2.3.5")
-            implementation("io.ktor:ktor-client-websockets:2.3.5")
-            implementation("io.ktor:ktor-client-content-negotiation:2.3.5")
-            implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.5")
+        commonMain.dependencies {
+            // Koin
+            implementation(libs.koin.core)
+            implementation(libs.koin.compose)
+
+            // Ktor
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.cio)
+            implementation(libs.ktor.client.websockets)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
 
             // kotlinx datetime
-            implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.1")
+            implementation(libs.kotlinx.datetime)
 
-            // Для удобства работы с временем
-            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+            // Coroutines
+            implementation(libs.kotlinx.coroutines.core)
 
-            // Сериализация
-            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+            // Serialization
+            implementation(libs.kotlinx.serialization.json)
 
+            // Compose
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
@@ -40,21 +45,23 @@ kotlin {
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
         }
+
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
+
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
-            implementation(libs.kotlinx.coroutinesSwing)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.androidx.ui.geometry.desktop)
+            implementation(libs.kotlinx.coroutines.swing)
         }
+
         jvmTest.dependencies {
-            implementation("io.ktor:ktor-client-mock:2.3.5")
+            implementation(libs.ktor.client.mock)
         }
     }
 }
-
 
 compose.desktop {
     application {
@@ -64,16 +71,14 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "com.aandios.nous-platform"
             packageVersion = "1.0.0"
+
             buildTypes.release.proguard {
-                // 1. Отключаем оптимизации и обфускацию
                 obfuscate.set(false)
                 optimize.set(false)
 
-                // 2. Добавляем кастомные правила ИГНОРИРОВАНИЯ всех warnings
                 configurationFiles.from(
-                    // Создаём временный файл с правилами
                     providers.provider {
-                        val proguardFile = file("$buildDir/tmp/proguard-rules.pro")
+                        val proguardFile = layout.buildDirectory.dir("tmp").get().asFile.resolve("proguard-rules.pro")  // исправлено!
                         proguardFile.parentFile.mkdirs()
 
                         proguardFile.writeText("""
@@ -84,7 +89,7 @@ compose.desktop {
                             -dontpreverify
                             -ignorewarnings
                             
-                            # Игнорируем ВСЕ warnings (ProGuard требовательный)
+                            # Игнорируем ВСЕ warnings
                             -dontwarn **
                             
                             # Сохраняем наш код
@@ -111,14 +116,14 @@ compose.desktop {
                             # Сохраняем корутины
                             -keep class kotlinx.coroutines.** { *; }
                             
-                            # Игнорируем конкретные ошибки из лога
+                            # Игнорируем конкретные ошибки
                             -dontwarn androidx.compose.ui.util.ListUtilsKt
                             -dontwarn org.slf4j.**
                             -dontwarn org.slf4j.impl.**
                             -dontwarn kotlinx.coroutines.internal.LockFreeLinkedListHead
                             -dontwarn androidx.compose.ui.geometry.MutableRect
                             
-                            # Разрешаем дубликаты ресурсов (те Note про MANIFEST.MF)
+                            # Разрешаем дубликаты ресурсов
                             -ignorewarnings
                         """.trimIndent())
 
@@ -126,13 +131,11 @@ compose.desktop {
                     }
                 )
             }
+
             windows {
                 menu = true
             }
-
-            macOS {
-            }
-
+            macOS { }
             linux {
                 shortcut = true
             }

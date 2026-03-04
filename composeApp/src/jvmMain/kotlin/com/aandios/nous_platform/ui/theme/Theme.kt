@@ -52,8 +52,8 @@ private val NightTerminalColorScheme = darkColorScheme(
 )
 
 private val JetBrainsMono = FontFamily(
-    Font("fonts/JetBrains-Mono-Regular.ttf", FontWeight.Normal),
-    Font("fonts/JetBrains-Mono-Medium.ttf", FontWeight.Medium),
+    Font( resource = "/fonts/JetBrains-Mono-Regular.ttf", weight = FontWeight.Normal ),
+    Font( resource = "/fonts/JetBrains-Mono-Medium.ttf", weight = FontWeight.Medium )
 )
 private val Menlo = FontFamily(
     Font("fonts/Menlo-Regular.ttf", FontWeight.Normal),
