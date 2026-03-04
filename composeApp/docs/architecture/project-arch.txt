@@ -1,0 +1,339 @@
+Nous-Platform/                                      # КОРНЕВАЯ ПАПКА ПРОЕКТА
+├── gradle/
+│   └── libs.versions.toml                          # Все версии зависимостей в одном месте
+│
+├── build-logic/                                     # МОДУЛЬ для convention plugins
+│   ├── build.gradle.kts
+│   └── src/main/kotlin/
+│       └── conventions/                              # Пакет
+│           ├── KmpLibraryConvention.kt
+│           └── KmpFeatureConvention.kt
+│
+├── api/                                              # МОДУЛЬ - ПУБЛИЧНЫЙ API (Open Source)
+│   ├── build.gradle.kts
+│   └── src/commonMain/
+│       └── kotlin/
+│           └── com/aandios/nous/api/                  # ПАКЕТ
+│               ├── market/                             # Подпакет - рыночные данные
+│               │   ├── MarketDataProvider.kt           # Интерфейс для бирж
+│               │   ├── MarketDataSubscriber.kt
+│               │   └── models/
+│               │       ├── Candle.kt
+│               │       ├── OrderBook.kt
+│               │       ├── Trade.kt
+│               │       ├── Symbol.kt
+│               │       └── Interval.kt
+│               │
+│               ├── trading/                            # Подпакет - торговые операции
+│               │   ├── TradingProvider.kt
+│               │   ├── OrderManager.kt
+│               │   ├── PositionManager.kt
+│               │   └── models/
+│               │       ├── Order.kt
+│               │       ├── OrderRequest.kt
+│               │       ├── Position.kt
+│               │       └── OrderType.kt
+│               │
+│               ├── account/                            # Подпакет - счета и балансы
+│               │   ├── AccountProvider.kt
+│               │   └── models/
+│               │       ├── Balance.kt
+│               │       └── Account.kt
+│               │
+│               ├── indicators/                         # Подпакет - индикаторы
+│               │   ├── Indicator.kt
+│               │   ├── IndicatorContext.kt
+│               │   ├── IndicatorResult.kt
+│               │   ├── Parameter.kt
+│               │   └── Plot.kt
+│               │
+│               ├── strategies/                         # Подпакет - стратегии
+│               │   ├── Strategy.kt
+│               │   ├── StrategyContext.kt
+│               │   ├── Signal.kt
+│               │   └── BacktestResult.kt
+│               │
+│               ├── robots/                             # Подпакет - торговые роботы
+│               │   ├── TradingRobot.kt
+│               │   ├── RobotConfig.kt
+│               │   └── ExecutionContext.kt
+│               │
+│               ├── ui/                                 # Подпакет - UI компоненты
+│               │   ├── Widget.kt
+│               │   ├── WidgetContext.kt
+│               │   ├── ChartWidget.kt
+│               │   ├── OrderBookWidget.kt
+│               │   └── events/
+│               │       ├── WidgetEvent.kt
+│               │       └── UserAction.kt
+│               │
+│               └── provider/                           # Подпакет - фабрики провайдеров
+│                   ├── ProviderFactory.kt              # Главный интерфейс для адаптеров
+│                   ├── ProviderConfig.kt
+│                   ├── Provider.kt
+│                   └── discovery/
+│                       ├── PluginManifest.kt
+│                       └── ServiceDiscovery.kt
+│
+├── platform-core/                                    # МОДУЛЬ - ЗАКРЫТОЕ ЯДРО (ваш IP)
+│   ├── build.gradle.kts
+│   └── src/
+│       ├── commonMain/                                # Общий код
+│       │   └── kotlin/
+│       │       └── com/aandios/nous/core/              # ПАКЕТ
+│       │           ├── base/                            # Базовые утилиты
+│       │           │   ├── utils/
+│       │           │   ├── extensions/
+│       │           │   └── math/
+│       │           │
+│       │           ├── domain/                          # Доменные модели и бизнес-логика
+│       │           │   ├── entities/
+│       │           │   ├── repositories/
+│       │           │   ├── usecases/
+│       │           │   └── services/
+│       │           │
+│       │           └── di/                              # DI контейнер
+│       │               ├── CoreModule.kt
+│       │               └── DI.kt
+│       │
+│       └── jvmMain/                                   # Desktop-специфичный код
+│           └── kotlin/
+│               └── com/aandios/nous/core/
+│                   ├── network/                         # Сетевые компоненты
+│                   │   ├── http/
+│                   │   ├── websocket/
+│                   │   └── client/
+│                   │
+│                   ├── theme/                           # Тема оформления
+│                   │   ├── Colors.kt
+│                   │   ├── Typography.kt
+│                   │   ├── Shapes.kt
+│                   │   └── Theme.kt
+│                   │
+│                   └── plugin/                          # Плагинная система
+│                       ├── PluginLoader.kt              # Загрузка JAR-файлов
+│                       ├── PluginIsolator.kt            # Изоляция ClassLoader'ов
+│                       ├── PluginRegistry.kt            # Реестр плагинов
+│                       ├── PluginSandbox.kt             # Песочница для безопасности
+│                       └── security/
+│                           ├── PermissionManager.kt
+│                           ├── SignatureVerifier.kt     # Проверка цифровых подписей
+│                           └── SandboxClassLoader.kt
+│
+├── providers/                                        # ПАПКА с модулями провайдеров
+│   ├── provider-binance/                              # МОДУЛЬ - Binance (Open Source)
+│   │   ├── build.gradle.kts
+│   │   └── src/
+│   │       ├── commonMain/
+│   │       │   └── kotlin/
+│   │       │       └── com/aandios/nous/provider/binance/  # ПАКЕТ
+│   │       │           ├── BinanceMarketProvider.kt    # Реализует MarketDataProvider
+│   │       │           ├── BinanceTradingProvider.kt   # Реализует TradingProvider
+│   │       │           ├── BinanceAccountProvider.kt   # Реализует AccountProvider
+│   │       │           └── BinanceProviderFactory.kt   # Реализует ProviderFactory
+│   │       └── jvmMain/
+│   │           └── kotlin/
+│   │               └── com/aandios/nous/provider/binance/
+│   │                   ├── BinanceClient.kt
+│   │                   └── BinanceWebSocket.kt
+│   │
+│   ├── provider-bybit/                                # МОДУЛЬ - Bybit (Open Source)
+│   │   ├── build.gradle.kts
+│   │   └── src/
+│   │       └── commonMain/
+│   │           └── kotlin/
+│   │               └── com/aandios/nous/provider/bybit/
+│   │                   ├── BybitMarketProvider.kt
+│   │                   └── BybitProviderFactory.kt
+│   │
+│   └── provider-template/                             # МОДУЛЬ-ШАБЛОН для сообщества
+│       ├── build.gradle.kts
+│       ├── README.md                                  # Инструкция по созданию провайдера
+│       └── src/
+│           └── main/
+│               └── kotlin/
+│                   └── com/example/provider/
+│                       ├── TemplateProviderFactory.kt
+│                       └── TemplateMarketProvider.kt
+│
+├── features/                                         # ПАПКА с модулями фич
+│   ├── feature-chart/                                 # МОДУЛЬ - График
+│   │   ├── build.gradle.kts
+│   │   └── src/
+│   │       ├── commonMain/
+│   │       │   └── kotlin/
+│   │       │       └── com/aandios/nous/feature/chart/  # ПАКЕТ
+│   │       │           ├── domain/
+│   │       │           │   ├── ChartRepository.kt
+│   │       │           │   └── GetChartUseCase.kt
+│   │       │           └── presentation/
+│   │       │               ├── ChartViewModel.kt
+│   │       │               └── ChartState.kt
+│   │       │
+│   │       └── jvmMain/
+│   │           └── kotlin/
+│   │               └── com/aandios/nous/feature/chart/
+│   │                   ├── ChartWidget.kt
+│   │                   ├── CandleStickChart.kt
+│   │                   └── components/
+│   │
+│   ├── feature-dom/                                   # МОДУЛЬ - Стакан
+│   │   ├── build.gradle.kts
+│   │   └── src/
+│   │       ├── commonMain/
+│   │       │   └── kotlin/
+│   │       │       └── com/aandios/nous/feature/dom/    # ПАКЕТ
+│   │       │           ├── domain/
+│   │       │           │   ├── DomRepository.kt
+│   │       │           │   └── DepthAggregator.kt
+│   │       │           └── presentation/
+│   │       │               ├── DomViewModel.kt
+│   │       │               └── DomState.kt
+│   │       │
+│   │       └── jvmMain/
+│   │           └── kotlin/
+│   │               └── com/aandios/nous/feature/dom/
+│   │                   ├── DomWidget.kt
+│   │                   ├── DomSectionNinja.kt
+│   │                   └── OrderPlacementPanel.kt
+│   │
+│   ├── feature-trades/                                # МОДУЛЬ - Сделки
+│   │   ├── build.gradle.kts
+│   │   └── src/
+│   │       ├── commonMain/
+│   │       │   └── kotlin/
+│   │       │       └── com/aandios/nous/feature/trades/ # ПАКЕТ
+│   │       │           ├── domain/
+│   │       │           │   └── TradesRepository.kt
+│   │       │           └── presentation/
+│   │       │               ├── TradesViewModel.kt
+│   │       │               └── TradesState.kt
+│   │       │
+│   │       └── jvmMain/
+│   │           └── kotlin/
+│   │               └── com/aandios/nous/feature/trades/
+│   │                   ├── TradesWidget.kt
+│   │                   └── TradeRow.kt
+│   │
+│   ├── feature-terminal/                             # МОДУЛЬ - Лэйаут терминала
+│   │   ├── build.gradle.kts
+│   │   └── src/
+│   │       ├── commonMain/
+│   │       │   └── kotlin/
+│   │       │       └── com/aandios/nous/feature/terminal/ # ПАКЕТ
+│   │       │           ├── domain/
+│   │       │           │   └── TerminalState.kt
+│   │       │           └── presentation/
+│   │       │               └── TerminalStateViewModel.kt
+│   │       │
+│   │       └── jvmMain/
+│   │           └── kotlin/
+│   │               └── com/aandios/nous/feature/terminal/
+│   │                   ├── TerminalLayout.kt
+│   │                   └── panels/
+│   │                       ├── SymbolsPanel.kt
+│   │                       ├── IndicatorsPanel.kt
+│   │                       ├── StrategiesPanel.kt
+│   │                       └── DrawingsPanel.kt
+│   │
+│   ├── feature-portfolio/                            # МОДУЛЬ - Портфель
+│   │   ├── build.gradle.kts
+│   │   └── src/
+│   │       ├── commonMain/
+│   │       │   └── kotlin/
+│   │       │       └── com/aandios/nous/feature/portfolio/ # ПАКЕТ
+│   │       │           ├── domain/
+│   │       │           │   ├── Position.kt
+│   │       │           │   └── Balance.kt
+│   │       │           └── presentation/
+│   │       │               ├── PortfolioViewModel.kt
+│   │       │               └── PortfolioState.kt
+│   │       │
+│   │       └── jvmMain/
+│   │           └── kotlin/
+│   │               └── com/aandios/nous/feature/portfolio/
+│   │                   ├── PortfolioPanel.kt
+│   │                   ├── PositionsList.kt
+│   │                   ├── OrdersList.kt
+│   │                   ├── BalanceList.kt
+│   │                   └── TradingStats.kt
+│   │
+│   ├── feature-indicators/                           # МОДУЛЬ - Индикаторы
+│   │   ├── build.gradle.kts
+│   │   └── src/
+│   │       ├── commonMain/
+│   │       │   └── kotlin/
+│   │       │       └── com/aandios/nous/feature/indicators/ # ПАКЕТ
+│   │       │           ├── domain/
+│   │       │           │   ├── IndicatorRepository.kt
+│   │       │           │   └── IndicatorCalculation.kt
+│   │       │           └── presentation/
+│   │       │               ├── IndicatorsViewModel.kt
+│   │       │               └── IndicatorsState.kt
+│   │       │
+│   │       └── jvmMain/
+│   │           └── kotlin/
+│   │               └── com/aandios/nous/feature/indicators/
+│   │                   ├── IndicatorsPanel.kt
+│   │                   └── IndicatorList.kt
+│   │
+│   └── feature-strategies/                           # МОДУЛЬ - Стратегии
+│       ├── build.gradle.kts
+│       └── src/
+│           ├── commonMain/
+│           │   └── kotlin/
+│           │       └── com/aandios/nous/feature/strategies/ # ПАКЕТ
+│           │           ├── domain/
+│           │           │   ├── StrategyRepository.kt
+│           │           │   └── BacktestEngine.kt
+│           │           └── presentation/
+│           │               ├── StrategiesViewModel.kt
+│           │               └── StrategiesState.kt
+│           │
+│           └── jvmMain/
+│               └── kotlin/
+│                   └── com/aandios/nous/feature/strategies/
+│                       ├── StrategiesPanel.kt
+│                       └── BacktestPanel.kt
+│
+├── plugins/                                          # ПАПКА для динамических плагинов (НЕ МОДУЛЬ)
+│   ├── README.md                                     # Инструкция для сообщества
+│   └── examples/                                      # Примеры плагинов
+│       ├── simple-indicator/
+│       ├── custom-dom/
+│       └── trading-robot/
+│
+├── app/                                              # МОДУЛЬ - Точка входа (закрытое приложение)
+│   ├── build.gradle.kts
+│   └── src/
+│       ├── commonMain/
+│       │   └── kotlin/
+│       │       └── com/aandios/nous/app/               # ПАКЕТ
+│       │           ├── di/                              # DI для приложения
+│       │           │   ├── AppModule.kt
+│       │           │   └── FeatureModules.kt
+│       │           └── navigation/
+│       │               └── AppNavigator.kt
+│       │
+│       ├── androidMain/                               # Для будущего Android
+│       │   └── kotlin/
+│       │       └── com/aandios/nous/app/
+│       │           └── MainActivity.kt
+│       │
+│       └── jvmMain/                                   # Desktop точка входа
+│           └── kotlin/
+│               └── com/aandios/nous/app/
+│                   ├── Main.kt                         # main() функция
+│                   └── di/
+│                       └── DesktopModule.kt
+│
+├── build.gradle.kts                                   # Корневой build файл
+├── settings.gradle.kts                                # СПИСОК ВСЕХ МОДУЛЕЙ
+├── gradle.properties
+├── local.properties                                   # Локальные настройки (НЕ В GIT!)
+│
+└── docs/                                              # Документация
+    ├── api/
+    │   └── PLUGIN_DEVELOPMENT.md                      # Гайд для разработчиков плагинов
+    ├── architecture/
+    └── user-guide/
