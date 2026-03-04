@@ -7,10 +7,10 @@ plugins {
     alias(libs.plugins.compose.compiler) apply false
 
 }
-subprojects {
-    apply(plugin = "org.jetbrains.kotlin.jvm")
-
-    repositories {
-        mavenCentral()
-    }
-}
+//subprojects {
+//    apply(plugin = "org.jetbrains.kotlin.jvm")
+//
+//    repositories {
+//        mavenCentral()
+//    }
+//}

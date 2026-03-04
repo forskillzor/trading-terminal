@@ -5,7 +5,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeHotReload)
     alias(libs.plugins.compose.compiler)
-    kotlin("plugin.serialization") version "2.0.20"
+    kotlin("plugin.serialization") version "2.1.20"
 }
 
 kotlin {
@@ -128,17 +128,13 @@ compose.desktop {
             }
             windows {
                 menu = true
-                // iconFile.set(project.file("src/jvmMain/resources/icon.ico"))
             }
 
             macOS {
-                // bundleID = "com.aandios.tradingterminal"
-                // iconFile.set(project.file("src/jvmMain/resources/icon.icns"))
             }
 
             linux {
                 shortcut = true
-                // iconFile.set(project.file("src/jvmMain/resources/icon.png"))
             }
         }
     }
