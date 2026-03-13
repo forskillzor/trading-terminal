@@ -50,12 +50,6 @@ class BinanceTradesApi(
 
                                 trySend(trade)
 
-                                // Отладочный вывод первой сделки
-                                // if (aggTrade.aggregatedTradeId % 10 == 0L) {
-                                //     val side = if (trade.isBuyerMaker) "SELL" else "BUY"
-                                //     println("📊 Trades: ${trade.symbol} ${trade.price} x ${trade.quantity} $side")
-                                // }
-
                             } catch (e: Exception) {
                                 // Игнорируем ошибки парсинга
                             }

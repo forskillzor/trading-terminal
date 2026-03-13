@@ -17,10 +17,11 @@ dependencyResolutionManagement {
 }
 
 include(":composeApp")
-//include(":api:api-market")
-//include(":api:api-ui")
-//include(":core:core-base")
-//include(":core:core-domain")
 include(":core:core-dependencies")
 include(":features:feature-dom")
-//include(":app")
+include("public-api:api-market")
+include("public-api:api-trading")
+include("public-api:api-ui")
+include(":platform-core")
+include("providers")
+include("providers:binance-provider")

@@ -1,6 +1,6 @@
 package com.aandios.nous_platform.di
 
-import com.aandios.nous_platform.data.api.binance.BinanceApi
+import com.aandios.nous_platform.data.api.binance.BinanceCandlesApi
 import com.aandios.nous_platform.data.api.binance.BinanceBestPricesApi
 import com.aandios.nous_platform.data.api.bybit.BybitApi
 import com.aandios.nous_platform.data.api.binance.BinanceDomApi
@@ -29,6 +29,10 @@ import kotlinx.serialization.json.Json
 import org.koin.core.context.startKoin
 import org.koin.dsl.module
 
+val featureModules = module {
+//    includes(domModule, chartModule, tradesModule)
+}
+
 // all in one, for beginning
 val appModule = module {
 
@@ -45,7 +49,7 @@ val appModule = module {
 
             // WebSocket плагин
             install(WebSockets) {
-                pingInterval = 30000  // Пинг каждые 30 секунд
+                pingIntervalMillis = 30000  // Пинг каждые 30 секунд
                 maxFrameSize = Long.MAX_VALUE
             }
 
@@ -61,8 +65,8 @@ val appModule = module {
     }
 
 // 2. API clients
-    single<BinanceApi> {
-        BinanceApi(client = get())
+    single<BinanceCandlesApi> {
+        BinanceCandlesApi(client = get())
     }
 
     single<BybitApi> {
@@ -72,7 +76,7 @@ val appModule = module {
 // 3. Repository
     single<ChartRepository> {
         ChartRepositoryImpl(
-            binanceApi = get(),
+            binanceCandlesApi = get(),
             bybitApi = get()
         )
     }

@@ -1,0 +1,36 @@
+package com.aandios.nous.feature.dom.data.repository
+
+import com.aandios.nous.api.market.adapters.DomAdapter
+import com.aandios.nous.core.domain.entities.dom.OrderBook
+import com.aandios.nous.core.domain.repository.DomRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+
+class DomRepositoryImpl(
+    private val domAdapter: DomAdapter
+) : DomRepository {
+
+    override fun getOrderBook(symbol: String): Flow<OrderBook> {
+        return domAdapter.subscribeToOrderBook(symbol, depth = 20)
+            .map { orderBook ->
+                OrderBook(
+                    symbol = orderBook.symbol,
+                    bids = orderBook.bids.map { level ->
+                        com.aandios.nous.core.domain.entities.dom.OrderBookLevel(
+                            price = level.price,
+                            quantity = level.quantity,
+                            total = level.total
+                        )
+                    },
+                    asks = orderBook.asks.map { level ->
+                        com.aandios.nous.core.domain.entities.dom.OrderBookLevel(
+                            price = level.price,
+                            quantity = level.quantity,
+                            total = level.total
+                        )
+                    },
+                    timestamp = orderBook.timestamp
+                )
+            }
+    }
+}

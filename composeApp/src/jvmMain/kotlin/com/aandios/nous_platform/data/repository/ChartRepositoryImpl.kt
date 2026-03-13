@@ -1,6 +1,6 @@
 package com.aandios.nous_platform.data.repository
 
-import com.aandios.nous_platform.data.api.binance.BinanceApi
+import com.aandios.nous_platform.data.api.binance.BinanceCandlesApi
 import com.aandios.nous_platform.data.api.bybit.BybitApi
 import com.aandios.nous_platform.domain.entities.Candle
 import com.aandios.nous_platform.domain.repository.ChartRepository
@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.flow
 
 class ChartRepositoryImpl(
     private val bybitApi: BybitApi,
-    private val binanceApi: BinanceApi
+    private val binanceCandlesApi: BinanceCandlesApi
 ): ChartRepository {
 
     private val realTimeUpdates = MutableStateFlow<Map<String, Flow<Candle>>>(emptyMap())
@@ -50,7 +50,7 @@ class ChartRepositoryImpl(
         }
     }
     private suspend fun loadHistoricalCandles(symbol: String, timeframe: String): List<Candle> {
-        val binanceCandles = binanceApi.getCandles(
+        val binanceCandles = binanceCandlesApi.getCandles(
             symbol = symbol,
             interval = mapTimeframe(timeframe),
             limit = 200
@@ -68,7 +68,7 @@ class ChartRepositoryImpl(
     }
 
     private fun createRealTimeFlow(symbol: String, interval: String): Flow<Candle>  =  flow {
-        binanceApi.subscribeToCandles(symbol, interval).collect { wsCandle ->
+        binanceCandlesApi.subscribeToCandles(symbol, interval).collect { wsCandle ->
             emit(wsCandle.toDomain())
         }
     }
