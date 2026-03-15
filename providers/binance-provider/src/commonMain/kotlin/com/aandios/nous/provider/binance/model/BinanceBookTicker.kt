@@ -15,7 +15,7 @@ data class BinanceBookTicker(
     @SerialName("a") val bestAskPrice: String,     // best ask price
     @SerialName("A") val bestAskQty: String        // best ask quantity
 ) {
-    fun toDomain(): BestPrices {
+    fun toBookTicker(): BestPrices {
         return BestPrices(
             symbol = symbol,
             bestBid = bestBidPrice.toDouble(),

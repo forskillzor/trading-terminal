@@ -117,10 +117,6 @@ class BinanceDomAdapter(
                                 val updated = applyUpdateToCache(cache!!, update)
                                 lastProcessedUpdateId = update.lastUpdateId
 
-                                // Проверяем изменились ли лучшие цены
-                                val bestBid = updated.bids.firstOrNull()?.price
-                                val bestAsk = updated.asks.firstOrNull()?.price
-
                                 trySend(updated)
 
                             } catch (e: Exception) {
