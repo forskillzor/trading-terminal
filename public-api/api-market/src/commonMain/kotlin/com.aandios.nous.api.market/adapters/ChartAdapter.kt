@@ -4,7 +4,7 @@ package com.aandios.nous.api.market.adapters
 import com.aandios.nous.api.market.model.Candle
 import kotlinx.coroutines.flow.Flow
 
-interface ChartAdapter {
+interface ChartAdapter: MarketAdapter {
     /**
      * Historical candles
      */

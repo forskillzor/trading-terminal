@@ -1,58 +1,36 @@
 package com.aandios.nous.api.market
 
-import com.aandios.nous.api.market.adapters.ChartAdapter
-import com.aandios.nous.api.market.adapters.DomAdapter
-import com.aandios.nous.api.market.adapters.TradesAdapter
-import com.aandios.nous.api.market.adapters.TradingAdapter
+import com.aandios.nous.api.market.adapters.*
 import com.aandios.nous.api.market.model.Symbol
 
-/**
- * Композитный провайдер - объединяет все адаптеры
- * Каждая биржа предоставляет свою реализацию
- */
 interface Provider {
     val providerId: String
     val providerName: String
     val version: String
-
-    val trades: TradesAdapter?
-    val dom: DomAdapter?
-    val chart: ChartAdapter?
-    val trading: TradingAdapter?
+    val adapters: Map<AdapterType, MarketAdapter>
 
     /**
-     * Проверка доступности провайдера
+     * Получить адаптер по enum (для случаев, когда тип известен только в рантайме)
      */
+    @Suppress("UNCHECKED_CAST")
+    fun <T : MarketAdapter> get(type: AdapterType): T? = adapters[type] as? T
+
     suspend fun isAvailable(): Boolean
-
-    /**
-     * Получение списка поддерживаемых символов
-     */
     suspend fun getAvailableSymbols(): List<Symbol>
+}
 
-    companion object {
-        /**
-         * Создание провайдера с выборочной поддержкой
-         */
-        fun of(
-            id: String,
-            name: String,
-            version: String,
-            trades: TradesAdapter? = null,
-            dom: DomAdapter? = null,
-            chart: ChartAdapter? = null,
-            trading: TradingAdapter? = null
-        ): Provider = object : Provider {
-            override val providerId = id
-            override val providerName = name
-            override val version = version
-            override val trades = trades
-            override val dom = dom
-            override val chart = chart
-            override val trading = trading
-
-            override suspend fun isAvailable(): Boolean = true
-            override suspend fun getAvailableSymbols(): List<Symbol> = emptyList()
-        }
+/**
+ * Получить адаптер по его типу (рекомендуемый способ)
+ * Пример: val trades = provider.get<TradesAdapter>()
+ */
+inline fun <reified T : MarketAdapter> Provider.get(): T? {
+    val type = when (T::class) {
+        TradesAdapter::class -> AdapterType.TRADES
+        DomAdapter::class -> AdapterType.DOM
+        BookTickerAdapter::class -> AdapterType.BOOK_TICKER
+        ChartAdapter::class -> AdapterType.CHART
+        TradingAdapter::class -> AdapterType.TRADING
+        else -> return null
     }
+    return adapters[type] as? T
 }

@@ -3,7 +3,7 @@ package com.aandios.nous_platform.ui.dom
 import com.aandios.nous_platform.data.api.binance.models.BestPrices
 import com.aandios.nous_platform.domain.commands.*
 import com.aandios.nous_platform.domain.entities.OrderBookData
-import com.aandios.nous_platform.domain.repository.BestPricesRepository
+import com.aandios.nous_platform.domain.repository.BookTickerRepository
 import com.aandios.nous_platform.domain.repository.DomRepository
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.catch
 
 class DomViewModel(
     private val domRepository: DomRepository,
-    private val bestPricesRepository: BestPricesRepository
+    private val bookTickerRepository: BookTickerRepository
 ) {
     private val viewModelScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var subscriptionJob: Job? = null
@@ -42,7 +42,7 @@ class DomViewModel(
         bestPricesJob?.cancel()
 
         bestPricesJob = viewModelScope.launch {
-            bestPricesRepository.getBestPrices(symbol)
+            bookTickerRepository.getBookTicker(symbol)
                 .catch { e ->
                     println("❌ BestPrices error: ${e.message}")
                 }

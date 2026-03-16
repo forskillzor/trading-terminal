@@ -3,7 +3,7 @@ package com.aandios.nous.api.market.adapters
 import com.aandios.nous.api.market.model.OrderBook
 import kotlinx.coroutines.flow.Flow
 
-interface DomAdapter {
+interface DomAdapter: MarketAdapter {
     /**
      * Dom Snapshot
      */

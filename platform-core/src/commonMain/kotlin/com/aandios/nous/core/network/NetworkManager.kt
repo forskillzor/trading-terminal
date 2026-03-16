@@ -1,5 +1,6 @@
 package com.aandios.nous.core.network
 
+import com.aandios.nous.api.market.NetworkManager
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.*

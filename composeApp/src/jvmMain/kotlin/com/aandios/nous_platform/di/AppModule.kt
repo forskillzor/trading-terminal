@@ -1,15 +1,15 @@
 package com.aandios.nous_platform.di
 
 import com.aandios.nous_platform.data.api.binance.BinanceCandlesApi
-import com.aandios.nous_platform.data.api.binance.BinanceBestPricesApi
+import com.aandios.nous_platform.data.api.binance.BinanceBookTickerApi
 import com.aandios.nous_platform.data.api.bybit.BybitApi
 import com.aandios.nous_platform.data.api.binance.BinanceDomApi
 import com.aandios.nous_platform.data.api.binance.BinanceTradesApi
-import com.aandios.nous_platform.data.repository.BestPricesRepositoryImpl
+import com.aandios.nous_platform.data.repository.BookTickerRepositoryImpl
 import com.aandios.nous_platform.data.repository.ChartRepositoryImpl
 import com.aandios.nous_platform.data.repository.DomRepositoryImpl
 import com.aandios.nous_platform.data.repository.TradesRepositoryImpl
-import com.aandios.nous_platform.domain.repository.BestPricesRepository
+import com.aandios.nous_platform.domain.repository.BookTickerRepository
 import com.aandios.nous_platform.domain.repository.ChartRepository
 import com.aandios.nous_platform.domain.repository.DomRepository
 import com.aandios.nous_platform.domain.repository.TradesRepository
@@ -94,7 +94,7 @@ val appModule = module {
     factory {
         DomViewModel(
             domRepository = get(),
-            bestPricesRepository = get(),
+            bookTickerRepository = get(),
         )
     }
 
@@ -128,12 +128,12 @@ val appModule = module {
             tradesRepository = get()
         )
     }
-    single<BinanceBestPricesApi> {
-        BinanceBestPricesApi(client = get())
+    single<BinanceBookTickerApi> {
+        BinanceBookTickerApi(client = get())
     }
 
-    single<BestPricesRepository> {
-        BestPricesRepositoryImpl(bestPricesApi = get())
+    single<BookTickerRepository> {
+        BookTickerRepositoryImpl(bestPricesApi = get())
     }
 }
 

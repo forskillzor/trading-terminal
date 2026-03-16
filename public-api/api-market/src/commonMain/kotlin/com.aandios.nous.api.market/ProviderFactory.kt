@@ -8,7 +8,8 @@ interface ProviderFactory {
     val version: String
     val supportedAdapters: Set<AdapterType>
 
-    // Добавляем HttpClient в параметры
-    suspend fun createProvider(config: ProviderConfig, networkManager: NetworkManager): Provider
+    suspend fun createProvider(
+        config: ProviderConfig,
+        networkManager: NetworkManager
+    ): Provider
 }
-

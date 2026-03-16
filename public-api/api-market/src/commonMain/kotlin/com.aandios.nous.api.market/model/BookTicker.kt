@@ -1,6 +1,6 @@
-package com.aandios.nous.core.domain.entities.dom
+package com.aandios.nous.api.market.model
 
-data class BestPrices(
+data class BookTicker(
     val symbol: String,
     val bestBid: Double,
     val bestBidQty: Double,
@@ -12,3 +12,4 @@ data class BestPrices(
     val spread: Double get() = bestAsk - bestBid
     val spreadPercent: Double get() = if (bestBid > 0) (spread / bestBid) * 100 else 0.0
 }
+

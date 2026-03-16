@@ -3,7 +3,7 @@ package com.aandios.nous.api.market.adapters
 import com.aandios.nous.api.market.model.Trade
 import kotlinx.coroutines.flow.Flow
 
-interface TradesAdapter {
+interface TradesAdapter: MarketAdapter {
     /**
      * Realtime Times and Sales
      */

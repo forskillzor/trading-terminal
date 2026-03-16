@@ -6,7 +6,7 @@ import com.aandios.nous.api.market.model.OrderResponse
 import com.aandios.nous.api.market.model.Position
 
 
-interface TradingAdapter {
+interface TradingAdapter: MarketAdapter {
     /**
      * Размещение ордера
      */

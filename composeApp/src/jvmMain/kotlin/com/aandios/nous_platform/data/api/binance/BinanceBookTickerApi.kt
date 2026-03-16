@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.serialization.json.Json
 import kotlinx.coroutines.delay
 
-class BinanceBestPricesApi(
+class BinanceBookTickerApi(
     private val client: HttpClient
 ) {
     private val json = Json {
