@@ -8,6 +8,8 @@ interface ProviderFactory {
     val version: String
     val supportedAdapters: Set<AdapterType>
 
+    suspend fun validateConfig(config: ProviderConfig): ValidationResult = ValidationResult.Success
+
     suspend fun createProvider(
         config: ProviderConfig,
         networkManager: NetworkManager

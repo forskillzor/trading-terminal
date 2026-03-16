@@ -17,6 +17,10 @@ interface Provider {
 
     suspend fun isAvailable(): Boolean
     suspend fun getAvailableSymbols(): List<Symbol>
+
+    suspend fun start() {}
+
+    suspend fun stop() {}
 }
 
 /**

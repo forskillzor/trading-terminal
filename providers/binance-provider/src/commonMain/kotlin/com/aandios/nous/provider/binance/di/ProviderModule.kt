@@ -7,6 +7,8 @@ import com.aandios.nous.provider.binance.adapter.BinanceChartAdapter
 import com.aandios.nous.provider.binance.adapter.BinanceDomAdapter
 import com.aandios.nous.provider.binance.adapter.BinanceTradesAdapter
 import com.aandios.nous.provider.binance.adapter.BinanceTradingAdapter
+import com.aandios.nous.provider.binance.adapter.BinanceBookTickerAdapter
+import org.koin.core.parameter.parametersOf
 import org.koin.dsl.module
 
 val binanceProviderModule = module {
@@ -20,33 +22,52 @@ val binanceProviderModule = module {
 
     factory { (config: ProviderConfig) ->
         BinanceChartAdapter(
-            httpClient = get(),
+            client = get(),
+            config = config
+        )
+    }
+
+    factory { (config: ProviderConfig) ->
+        BinanceBookTickerAdapter(
+            client = get(),
             config = config
         )
     }
 
     factory { (config: ProviderConfig) ->
         BinanceDomAdapter(
-            httpClient = get(),
-            config = config
+            client = get(),
+            config = config,
+            bookTickerAdapter = get { parametersOf(config) }
         )
     }
 
     factory { (config: ProviderConfig) ->
         BinanceTradingAdapter(
-            httpClient = get(),
+            client = get(),
             config = config
         )
     }
 
     // Фабрика для самого провайдера
     factory { (config: ProviderConfig) ->
+        val tradesAdapter: MarketAdapter = get { parametersOf(config) }
+        val domAdapter: MarketAdapter = get { parametersOf(config) }
+        val chartAdapter: MarketAdapter = get { parametersOf(config) }
+        val tradingAdapter: MarketAdapter = get { parametersOf(config) }
+        val bookTickerAdapter: MarketAdapter = get { parametersOf(config) }
+        val adapters = mapOf(
+            AdapterType.TRADES to tradesAdapter,
+            AdapterType.DOM to domAdapter,
+            AdapterType.CHART to chartAdapter,
+            AdapterType.TRADING to tradingAdapter,
+            AdapterType.BOOK_TICKER to bookTickerAdapter
+        )
         BinanceProvider(
-            config = config,
-            tradesAdapter = get { parametersOf(config) },
-            domAdapter = get { parametersOf(config) },
-            chartAdapter = get { parametersOf(config) },
-            tradingAdapter = get { parametersOf(config) }
+            providerId = "binance",
+            providerName = "Binance Exchange",
+            version = "1.0.0",
+            adapters = adapters
         )
     }
 }
