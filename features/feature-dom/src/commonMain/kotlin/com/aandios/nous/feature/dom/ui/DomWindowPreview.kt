@@ -1,15 +1,23 @@
 package com.aandios.nous.feature.dom.ui
 
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
-import com.aandios.nous_platform.di.initKoin
-import com.aandios.nous_platform.ui.theme.TradingTerminalTheme
+import com.aandios.nous.feature.dom.di.featureDomModule
 import org.koin.compose.koinInject
+import org.koin.core.context.startKoin
+
+private fun initFeatureKoin() {
+    startKoin {
+        modules(featureDomModule)
+    }
+}
 
 @Composable
 private fun DomPreview(
@@ -20,7 +28,7 @@ private fun DomPreview(
     val bestPrices by domViewModel.bestPrices.collectAsState()
     DomWidget(
         orderBook = orderBook,
-        bestPrices = bestPrices,
+        bookTicker = bestPrices,
         selectedPrice = _selectedPrice,
         onPriceSelected = {
             _selectedPrice = it
@@ -40,7 +48,7 @@ private fun DomPreview(
     )
 }
 fun main() = application {
-    initKoin()
+    initFeatureKoin()
     val domViewModel: DomViewModel = koinInject()
     domViewModel.subscribeToOrderBook("BTCUSDT")
     domViewModel.subscribeToBestPrices("BTCUSDT")
@@ -50,9 +58,8 @@ fun main() = application {
         title = "Nous Platform • v 0.1",
         state = rememberWindowState(width = 300.dp, height = 1200.dp)
     ) {
-        TradingTerminalTheme(
-            darkTheme = true, // Всегда темная тема
-            nightMode = false // Можно добавить переключатель
+        MaterialTheme(
+            colorScheme = darkColorScheme()
         ) {
             DomPreview(domViewModel)
         }

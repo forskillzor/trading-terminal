@@ -9,14 +9,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.aandios.nous_platform.data.api.binance.models.BestPrices
-import com.aandios.nous_platform.domain.commands.TradingCommand
-import com.aandios.nous_platform.domain.entities.OrderBookData
+import com.aandios.nous.api.market.commands.TradingCommand
+import com.aandios.nous.api.market.model.BookTicker
+import com.aandios.nous.api.market.model.OrderBook
 
 @Composable
 fun DomWidget(
-    orderBook: OrderBookData?,
-    bestPrices: BestPrices?,
+    orderBook: OrderBook?,
+    bookTicker: BookTicker?,
     selectedPrice: Double?,
     onPriceSelected: (Double?) -> Unit,
     orderQuantity: String,
@@ -49,7 +49,7 @@ fun DomWidget(
         if (orderBook != null) {
             DomContentNinja(
                 orderBook = orderBook,
-                bestPrices = bestPrices,
+                bestPrices = bookTicker,
                 selectedPrice = selectedPrice,
                 onPriceSelected = onPriceSelected,
                 orderQuantity = orderQuantity,

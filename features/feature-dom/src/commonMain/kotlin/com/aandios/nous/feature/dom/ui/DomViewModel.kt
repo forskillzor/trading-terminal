@@ -1,10 +1,18 @@
 package com.aandios.nous.feature.dom.ui
 
-import com.aandios.nous_platform.data.api.binance.models.BestPrices
-import com.aandios.nous_platform.domain.commands.*
-import com.aandios.nous_platform.domain.entities.OrderBookData
-import com.aandios.nous_platform.domain.repository.BestPricesRepository
-import com.aandios.nous_platform.domain.repository.DomRepository
+import com.aandios.nous.api.market.commands.BuyBestBidCommand
+import com.aandios.nous.api.market.commands.BuyLimitCommand
+import com.aandios.nous.api.market.commands.BuyMarketCommand
+import com.aandios.nous.api.market.commands.CommandResult
+import com.aandios.nous.api.market.commands.SellBestAskCommand
+import com.aandios.nous.api.market.commands.SellLimitCommand
+import com.aandios.nous.api.market.commands.SellMarketCommand
+import com.aandios.nous.api.market.commands.TradeOffCommand
+import com.aandios.nous.api.market.commands.TradingCommand
+import com.aandios.nous.api.market.model.BookTicker
+import com.aandios.nous.api.market.model.OrderBook
+import com.aandios.nous.core.domain.repository.BookTickerRepository
+import com.aandios.nous.core.domain.repository.DomRepository
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,13 +21,13 @@ import kotlinx.coroutines.flow.catch
 
 class DomViewModel(
     private val domRepository: DomRepository,
-    private val bestPricesRepository: BestPricesRepository
+    private val bestPricesRepository: BookTickerRepository
 ) {
     private val viewModelScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var subscriptionJob: Job? = null
 
-    private val _orderBook = MutableStateFlow<OrderBookData?>(null)
-    val orderBook: StateFlow<OrderBookData?> = _orderBook.asStateFlow()
+    private val _orderBook = MutableStateFlow<OrderBook?>(null)
+    val orderBook: StateFlow<OrderBook?> = _orderBook.asStateFlow()
 
     private val _selectedPrice = MutableStateFlow<Double?>(null)
     val selectedPrice: StateFlow<Double?> = _selectedPrice.asStateFlow()
@@ -33,8 +41,8 @@ class DomViewModel(
     private val _lastCommandResult = MutableStateFlow<CommandResult?>(null)
     val lastCommandResult: StateFlow<CommandResult?> = _lastCommandResult.asStateFlow()
 
-    private val _bestPrices = MutableStateFlow<BestPrices?>(null)
-    val bestPrices: StateFlow<BestPrices?> = _bestPrices.asStateFlow()
+    private val _bestPrices = MutableStateFlow<BookTicker?>(null)
+    val bestPrices: StateFlow<BookTicker?> = _bestPrices.asStateFlow()
 
     private var bestPricesJob: Job? = null
 
@@ -42,7 +50,7 @@ class DomViewModel(
         bestPricesJob?.cancel()
 
         bestPricesJob = viewModelScope.launch {
-            bestPricesRepository.getBestPrices(symbol)
+            bestPricesRepository.getBookTicker(symbol)
                 .catch { e ->
                     println("❌ BestPrices error: ${e.message}")
                 }

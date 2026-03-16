@@ -4,7 +4,7 @@ package com.aandios.nous.core.plugin
 import com.aandios.nous.api.market.Provider
 import com.aandios.nous.api.market.ProviderConfig
 import com.aandios.nous.api.market.ProviderFactory
-import io.ktor.client.*
+import com.aandios.nous.api.market.NetworkManager
 import java.io.File
 import java.net.URLClassLoader
 import java.util.*
@@ -50,11 +50,11 @@ class ProviderLoader {
         }
     }
 
-    suspend fun getProvider(providerId: String, config: ProviderConfig, httpClient: HttpClient): Provider? {
+    suspend fun getProvider(providerId: String, config: ProviderConfig, networkManager: NetworkManager): Provider? {
         val factory = factories[providerId.lowercase()] ?: return null
 
         return try {
-            factory.createProvider(config, httpClient)
+            factory.createProvider(config, networkManager)
         } catch (e: Exception) {
             println("❌ Failed to create provider: ${e.message}")
             null

@@ -10,3 +10,19 @@ data class OrderBook(
     val lastUpdateId: Long = 0,
     val timestamp: Long = System.currentTimeMillis()
 )
+data class DomOrder(
+    val id: String,
+    val price: Double,
+    val quantity: Double,
+    val side: OrderSide,
+    val type: OrderType = OrderType.LIMIT,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
+enum class OrderSide {
+    BUY, SELL
+}
+
+enum class OrderType {
+    LIMIT, MARKET
+}

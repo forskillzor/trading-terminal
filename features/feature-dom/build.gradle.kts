@@ -10,6 +10,7 @@ kotlin {
             // Наши модули
             implementation(project(":platform-core"))
             implementation(project(":public-api:api-market"))
+            implementation(project(":providers:binance-provider"))
 
             // Koin
             implementation(libs.koin.core)
