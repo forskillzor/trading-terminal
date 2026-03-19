@@ -57,7 +57,7 @@ class BinanceBookTickerAdapter(
 
         close()
     }
-    suspend fun getBookTickerRest(symbol: String): BookTicker? {
+    override suspend fun getBookTickerRest(symbol: String): BookTicker? {
         return try {
             val response: Map<String, String> = client.get("https://fapi.binance.com/fapi/v1/ticker/bookTicker") {
                 url {

@@ -1,40 +1,61 @@
 package com.aandios.nous.feature.dom.di
 
+import com.aandios.nous.api.market.NetworkManager
+import com.aandios.nous.api.market.Provider
 import com.aandios.nous.api.market.ProviderConfig
-import com.aandios.nous.api.market.adapters.BookTickerAdapter
-import com.aandios.nous.api.market.adapters.DomAdapter
-import com.aandios.nous.provider.binance.adapter.BinanceBookTickerAdapter
-import com.aandios.nous.provider.binance.adapter.BinanceDomAdapter
-import com.aandios.nous.provider.binance.di.binanceProviderModule
-import com.aandios.nous.core.domain.repository.DomRepository
-import com.aandios.nous.core.domain.repository.BookTickerRepository
-import com.aandios.nous.feature.dom.data.repository.DomRepositoryImpl
 import com.aandios.nous.core.data.repository.BookTickerRepositoryImpl
+import com.aandios.nous.core.data.repository.DomRepositoryImpl
+import com.aandios.nous.core.di.coreModule
+import com.aandios.nous.core.domain.repository.BookTickerRepository
+import com.aandios.nous.core.domain.repository.DomRepository
+import com.aandios.nous.core.plugin.ProviderLoader
+import com.aandios.nous.feature.dom.ui.DomViewModel
+import com.aandios.nous.provider.binance.di.binanceProviderModule
 import org.koin.dsl.module
 
 val featureDomModule = module {
-    // Default configuration for Binance provider (mainnet)
+
+    // Включаем необходимые модули
+    includes(coreModule, binanceProviderModule)
+
+    // 1. Конфигурация провайдера (например, для Binance)
     single { ProviderConfig(isTestnet = false) }
 
-    // Include the provider's own module (registers adapters)
-    includes(binanceProviderModule)
+    // 2. Получаем провайдер через загрузчик
+    //    В реальном приложении здесь может быть выбор провайдера по ID
+    single<Provider> {
+        val loader = get<ProviderLoader>()
+        val config = get<ProviderConfig>()
+        val networkManager = get<NetworkManager>()
 
-    // Expose adapters as singletons (they will be created with the default config)
-    single<DomAdapter> { get<BinanceDomAdapter>() }
-    single<BookTickerAdapter> { get<BinanceBookTickerAdapter>() }
+        // Загружаем все доступные фабрики
+        val factories = loader.loadAllProviders()
+        // Находим фабрику для Binance (по ID или имени)
+        val binanceFactory = factories.find { it.providerId == "binance-nous" }
+            ?: error("Binance provider factory not found")
 
-    // Repositories
+        // Создаем провайдер
+        binanceFactory.createProvider(config, networkManager)
+    }
+
+    // 3. Предоставляем репозитории, используя адаптеры от провайдера
     single<DomRepository> {
         DomRepositoryImpl(
-            domAdapter = get()
-        )
-    }
-    single<BookTickerRepository> {
-        BookTickerRepositoryImpl(
-            bookTicker = get()
+            domAdapter = get<Provider>().dom // Берем адаптер DOM у провайдера
         )
     }
 
-    // Provide HttpClient (already defined in binanceProviderModule via factory parameters)
-    // No need to redefine, as the adapters already depend on HttpClient via factory.
+    single<BookTickerRepository> {
+        BookTickerRepositoryImpl(
+            bookTicker = get<Provider>().bookTicker // Берем адаптер BookTicker у провайдера
+        )
+    }
+
+    // 4. ViewModel (используем factory, чтобы не сохранять состояние между пересозданиями)
+    factory {
+        DomViewModel(
+            domRepository = get(),
+            bookTickerRepository = get()
+        )
+    }
 }

@@ -1,7 +1,8 @@
 package com.aandios.nous.feature.dom.data.repository
 
 import com.aandios.nous.api.market.adapters.DomAdapter
-import com.aandios.nous.core.domain.entities.dom.OrderBook
+import com.aandios.nous.api.market.model.OrderBook
+import com.aandios.nous.api.market.model.OrderBookLevel
 import com.aandios.nous.core.domain.repository.DomRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -16,14 +17,14 @@ class DomRepositoryImpl(
                 OrderBook(
                     symbol = orderBook.symbol,
                     bids = orderBook.bids.map { level ->
-                        com.aandios.nous.core.domain.entities.dom.OrderBookLevel(
+                        OrderBookLevel(
                             price = level.price,
                             quantity = level.quantity,
                             total = level.total
                         )
                     },
                     asks = orderBook.asks.map { level ->
-                        com.aandios.nous.core.domain.entities.dom.OrderBookLevel(
+                        OrderBookLevel(
                             price = level.price,
                             quantity = level.quantity,
                             total = level.total

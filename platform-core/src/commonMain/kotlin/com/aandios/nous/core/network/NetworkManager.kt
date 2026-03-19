@@ -10,7 +10,6 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
 import kotlin.time.Duration.Companion.milliseconds
 
-
 class NetworkManagerImpl : NetworkManager {
     override val httpClient: HttpClient by lazy {
         HttpClient(CIO) {
@@ -32,6 +31,9 @@ class NetworkManagerImpl : NetworkManager {
                     encodeDefaults = true
                 })
             }
+
+            // Add default request headers
+            expectSuccess = false
         }
     }
 }

@@ -20,7 +20,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import com.aandios.nous_platform.domain.entities.OrderBookLevel
+import com.aandios.nous.api.market.model.OrderBookLevel
 import kotlin.math.abs
 
 @Composable

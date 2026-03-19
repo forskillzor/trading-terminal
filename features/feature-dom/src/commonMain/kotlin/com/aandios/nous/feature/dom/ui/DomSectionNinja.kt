@@ -20,8 +20,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.aandios.nous_platform.data.api.binance.models.BestPrices
-import com.aandios.nous_platform.domain.entities.OrderBookLevel
+import com.aandios.nous.api.market.model.BookTicker
+import com.aandios.nous.api.market.model.OrderBookLevel
 import kotlin.math.abs
 import kotlin.math.max
 
@@ -29,7 +29,7 @@ import kotlin.math.max
 fun NinjaTraderDom(
     bids: List<OrderBookLevel>,
     asks: List<OrderBookLevel>,
-    bestPrices: BestPrices?,
+    bookTicker: BookTicker?,
     selectedPrice: Double?,
     onPriceSelected: (Double) -> Unit,
     modifier: Modifier = Modifier
@@ -96,7 +96,7 @@ fun NinjaTraderDom(
 
         if (bestBid != null && bestAsk != null) {
             DomSpread(
-                bestPrices = bestPrices,
+                bookTicker = bookTicker,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)  // Чуть выше для отображения объемов

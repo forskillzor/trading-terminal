@@ -20,7 +20,7 @@ data class OrderBookLevel(
     override fun hashCode(): Int = price.hashCode()
 }
 @Serializable
-data class OrderBookData(
+data class OrderBook(
     val symbol: String,
     val bids: List<OrderBookLevel>,
     val asks: List<OrderBookLevel>,
@@ -44,7 +44,7 @@ enum class OrderType {
     LIMIT, MARKET
 }
 
-val mockDomData = OrderBookData(
+val mockDomData = OrderBook(
     symbol = "BYTECOIN",
     bids = listOf(
         OrderBookLevel("99.9", "1043", "20", ""),

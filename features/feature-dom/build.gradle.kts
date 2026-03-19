@@ -1,37 +1,22 @@
 plugins {
-    id("conventions.kmp-feature")
-    alias(libs.plugins.compose.compiler)
-    alias(libs.plugins.kotlin.serialization)
+    id("conventions.kmp-feature")  // Теперь этот плагин применяет всё необходимое
+    alias(libs.plugins.kotlin.serialization)  // только дополнительные плагины
 }
 
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            // Наши модули
+            // Зависимости уже добавлены в конвеншн-плагине,
+            // но можно добавить специфичные для feature-dom:
             implementation(project(":platform-core"))
             implementation(project(":public-api:api-market"))
             implementation(project(":providers:binance-provider"))
 
-            // Koin
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
-
-            // Coroutines
             implementation(libs.kotlinx.coroutines.core)
-
-            // Serialization
             implementation(libs.kotlinx.serialization.json)
-
-            // Compose
-            implementation(compose.runtime)
-            implementation(compose.foundation)
-            implementation(compose.material3)
-            implementation(compose.ui)
-            implementation(compose.components.resources)
-        }
-
-        jvmMain.dependencies {
-            implementation(compose.desktop.currentOs)
+            implementation(libs.compose.material3)
         }
     }
 }

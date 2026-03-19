@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.aandios.nous.api.market.commands.CommandResult
 import com.aandios.nous.api.market.commands.TradingCommand
 import com.aandios.nous.api.market.model.BookTicker
 import com.aandios.nous.api.market.model.OrderBook
@@ -21,14 +22,8 @@ fun DomWidget(
     onPriceSelected: (Double?) -> Unit,
     orderQuantity: String,
     onQuantityChanged: (String) -> Unit,
-    onCreateBuyMarket: () -> TradingCommand,
-    onCreateSellMarket: () -> TradingCommand,
-    onCreateBuyLimit: (() -> TradingCommand?)?,
-    onCreateSellLimit: (() -> TradingCommand?)?,
-    onCreateBuyBestBid: (() -> TradingCommand?)?,
-    onCreateSellBestAsk: (() -> TradingCommand?)?,
-    onCreateTradeOff: () -> TradingCommand,
-    onExecuteCommand: (TradingCommand?) -> Unit,
+    onTradingCommand: (TradingCommand) -> Unit,
+    onCommandResult: (CommandResult) -> Unit,
     isTradingEnabled: Boolean,
     modifier: Modifier = Modifier,
     width: Dp = 300.dp,
@@ -49,21 +44,16 @@ fun DomWidget(
         if (orderBook != null) {
             DomContentNinja(
                 orderBook = orderBook,
-                bestPrices = bookTicker,
+                bookTicker = bookTicker,
                 selectedPrice = selectedPrice,
                 onPriceSelected = onPriceSelected,
                 orderQuantity = orderQuantity,
                 onQuantityChanged = onQuantityChanged,
-                onCreateBuyMarket = onCreateBuyMarket,
-                onCreateSellMarket = onCreateSellMarket,
-                onCreateBuyLimit = onCreateBuyLimit,
-                onCreateSellLimit = onCreateSellLimit,
-                onCreateBuyBestBid = onCreateBuyBestBid,
-                onCreateSellBestAsk = onCreateSellBestAsk,
-                onCreateTradeOff = onCreateTradeOff,
-                onExecuteCommand = onExecuteCommand,
+                onTradingCommand = onTradingCommand,
+                onCommandResult = onCommandResult,
                 isTradingEnabled = isTradingEnabled,
-                modifier = Modifier.weight(1f)            )
+                modifier = Modifier.weight(1f),
+            )
         } else {
             Box(
                 modifier = Modifier.fillMaxSize(),

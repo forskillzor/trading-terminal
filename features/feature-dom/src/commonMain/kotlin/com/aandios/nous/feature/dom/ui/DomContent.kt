@@ -2,33 +2,28 @@ package com.aandios.nous.feature.dom.ui
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.aandios.nous_platform.domain.commands.TradingCommand
-import com.aandios.nous_platform.domain.entities.OrderBookData
+import com.aandios.nous.api.market.commands.CommandResult
+import com.aandios.nous.api.market.commands.TradingCommand
+import com.aandios.nous.api.market.model.OrderBook
 import org.koin.compose.koinInject
 import kotlin.math.max
 
 @Composable
 fun DomContent(
-    orderBook: OrderBookData,
+    orderBook: OrderBook,
     selectedPrice: Double?,
     onPriceSelected: (Double?) -> Unit,
     orderQuantity: String,
     onQuantityChanged: (String) -> Unit,
-    onCreateBuyMarket: () -> TradingCommand,
-    onCreateSellMarket: () -> TradingCommand,
-    onCreateBuyLimit: (() -> TradingCommand)?,
-    onCreateSellLimit: (() -> TradingCommand)?,
-    onCreateBuyBestBid: (() -> TradingCommand)?,
-    onCreateSellBestAsk: (() -> TradingCommand)?,
-    onCreateTradeOff: () -> TradingCommand,
-    onExecuteCommand: (TradingCommand?) -> Unit,
+    onTradingCommand: (TradingCommand) -> Unit,
+    onCommandResult: (CommandResult) -> Unit,
     isTradingEnabled: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -79,7 +74,7 @@ fun DomContent(
 
             // Spread (разница)
             DomSpread(
-                bestPrices = bestPrices,
+                bookTicker = bestPrices,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)  // Чуть выше для отображения объемов
@@ -97,21 +92,16 @@ fun DomContent(
 
         // Панель размещения ордера
         OrderPlacementPanel(
+            orderBook = orderBook,
             selectedPrice = selectedPrice,
             orderQuantity = orderQuantity,
             onQuantityChanged = onQuantityChanged,
-            onCreateBuyMarket = onCreateBuyMarket,
-            onCreateSellMarket = onCreateSellMarket,
-            onCreateBuyLimit = onCreateBuyLimit,
-            onCreateSellLimit = onCreateSellLimit,
-            onCreateBuyBestBid = onCreateBuyBestBid,
-            onCreateSellBestAsk = onCreateSellBestAsk,
-            onCreateTradeOff = onCreateTradeOff,
-            onExecuteCommand = onExecuteCommand,
+            onTradingCommand = onTradingCommand,
+            onCommandResult = onCommandResult,
             isTradingEnabled = isTradingEnabled,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(180.dp)  // Высота под все кнопки
+                .height(180.dp)
         )
     }
 }

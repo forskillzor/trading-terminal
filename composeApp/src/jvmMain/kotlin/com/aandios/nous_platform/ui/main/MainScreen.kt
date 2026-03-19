@@ -96,14 +96,8 @@ fun MainScreen(
                     onPriceSelected = { price -> domViewModel.selectPrice(price) },
                     orderQuantity = orderQuantity,
                     onQuantityChanged = { quantity -> domViewModel.updateOrderQuantity(quantity) },
-                    onCreateBuyMarket = { domViewModel.createBuyMarketCommand() },
-                    onCreateSellMarket = { domViewModel.createSellMarketCommand() },
-                    onCreateBuyLimit = domViewModel::createBuyLimitCommand,
-                    onCreateSellLimit = domViewModel::createSellLimitCommand,
-                    onCreateBuyBestBid = domViewModel::createBuyBestBidCommand,
-                    onCreateSellBestAsk = domViewModel::createSellBestAskCommand,
-                    onCreateTradeOff = { domViewModel.createTradeOffCommand() },
-                    onExecuteCommand = { command -> domViewModel.executeCommand(command) },
+                    onTradingCommand = { command -> domViewModel.executeCommand(command) },
+                    onCommandResult = domViewModel::onCommandResult,
                     isTradingEnabled = domViewModel.isTradingEnabled.collectAsState().value,
                     modifier = Modifier.width(300.dp)
                 )

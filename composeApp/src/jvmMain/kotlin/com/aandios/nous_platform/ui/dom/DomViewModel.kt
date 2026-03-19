@@ -2,7 +2,7 @@ package com.aandios.nous_platform.ui.dom
 
 import com.aandios.nous_platform.data.api.binance.models.BestPrices
 import com.aandios.nous_platform.domain.commands.*
-import com.aandios.nous_platform.domain.entities.OrderBookData
+import com.aandios.nous_platform.domain.entities.OrderBook
 import com.aandios.nous_platform.domain.repository.BookTickerRepository
 import com.aandios.nous_platform.domain.repository.DomRepository
 import kotlinx.coroutines.*
@@ -18,8 +18,8 @@ class DomViewModel(
     private val viewModelScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var subscriptionJob: Job? = null
 
-    private val _orderBook = MutableStateFlow<OrderBookData?>(null)
-    val orderBook: StateFlow<OrderBookData?> = _orderBook.asStateFlow()
+    private val _orderBook = MutableStateFlow<OrderBook?>(null)
+    val orderBook: StateFlow<OrderBook?> = _orderBook.asStateFlow()
 
     private val _selectedPrice = MutableStateFlow<Double?>(null)
     val selectedPrice: StateFlow<Double?> = _selectedPrice.asStateFlow()
@@ -89,6 +89,10 @@ class DomViewModel(
                 command.execute()
             }
         }
+    }
+
+    fun onCommandResult(result: CommandResult) {
+        _lastCommandResult.value = result
     }
 
     // Фабричные методы для создания команд (удобно для UI)

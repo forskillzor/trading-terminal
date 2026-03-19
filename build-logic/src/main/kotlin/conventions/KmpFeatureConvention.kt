@@ -2,6 +2,7 @@ package conventions
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.gradle.kotlin.dsl.*
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
@@ -11,7 +12,12 @@ class KmpFeatureConvention : Plugin<Project> {
             with(pluginManager) {
                 apply("org.jetbrains.kotlin.multiplatform")
                 apply("org.jetbrains.compose")
+                apply("org.jetbrains.kotlin.plugin.compose")
             }
+
+            // ✅ Получаем доступ к каталогу версий
+            val libs = extensions.getByType<VersionCatalogsExtension>()
+                .named("libs")
 
             extensions.configure<KotlinMultiplatformExtension> {
                 jvm()
@@ -20,6 +26,12 @@ class KmpFeatureConvention : Plugin<Project> {
                     val commonMain by getting
                     commonMain.dependencies {
                         api(project(":core:core-dependencies"))
+
+                        // ✅ Используем каталог через findLibrary()
+                        implementation(libs.findLibrary("compose.runtime").get())
+                        implementation(libs.findLibrary("compose.foundation").get())
+                        implementation(libs.findLibrary("compose.material3").get())
+                        implementation(libs.findLibrary("compose.ui").get())
                     }
                 }
             }

@@ -1,7 +1,7 @@
 package com.aandios.nous_platform.data.repository
 
 import com.aandios.nous_platform.data.api.binance.BinanceDomApi
-import com.aandios.nous_platform.domain.entities.OrderBookData
+import com.aandios.nous_platform.domain.entities.OrderBook
 import com.aandios.nous_platform.domain.entities.OrderBookLevel
 import com.aandios.nous_platform.domain.repository.DomRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -14,10 +14,10 @@ class DomRepositoryImpl(
     private val domApi: BinanceDomApi
 ) : DomRepository {
 
-    private val activeSubscriptions = MutableStateFlow<Map<String, Flow<OrderBookData>>>(emptyMap())
+    private val activeSubscriptions = MutableStateFlow<Map<String, Flow<OrderBook>>>(emptyMap())
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    override fun getOrderBook(symbol: String): Flow<OrderBookData> {
+    override fun getOrderBook(symbol: String): Flow<OrderBook> {
 
         return activeSubscriptions.flatMapLatest { flows ->
             flows[symbol] ?: createOrderBookFlow(symbol).also { flow ->
@@ -26,10 +26,10 @@ class DomRepositoryImpl(
         }
     }
 
-    private fun createOrderBookFlow(symbol: String): Flow<OrderBookData> = flow {
+    private fun createOrderBookFlow(symbol: String): Flow<OrderBook> = flow {
         domApi.subscribeToOrderBook(symbol).collect { orderBook ->
             emit(
-                OrderBookData(
+                OrderBook(
                     symbol = orderBook.symbol,
                     bids = orderBook.bids.map {
                         OrderBookLevel(

@@ -8,25 +8,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.aandios.nous_platform.data.api.binance.models.BestPrices
+import com.aandios.nous_platform.domain.commands.CommandResult
 import com.aandios.nous_platform.domain.commands.TradingCommand
-import com.aandios.nous_platform.domain.entities.OrderBookData
+import com.aandios.nous_platform.domain.entities.OrderBook
 
 @Composable
 fun DomContentNinja(
-    orderBook: OrderBookData,
+    orderBook: OrderBook,
     bestPrices: BestPrices?,
     selectedPrice: Double?,
     onPriceSelected: (Double?) -> Unit,
     orderQuantity: String,
     onQuantityChanged: (String) -> Unit,
-    onCreateBuyMarket: () -> TradingCommand,
-    onCreateSellMarket: () -> TradingCommand,
-    onCreateBuyLimit: (() -> TradingCommand?)?,
-    onCreateSellLimit: (() -> TradingCommand?)?,
-    onCreateBuyBestBid: (() -> TradingCommand?)?,
-    onCreateSellBestAsk: (() -> TradingCommand?)?,
-    onCreateTradeOff: () -> TradingCommand,
-    onExecuteCommand: (TradingCommand?) -> Unit,
+    onTradingCommand: (TradingCommand) -> Unit,
+    onCommandResult: (CommandResult) -> Unit,
     isTradingEnabled: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -43,17 +38,12 @@ fun DomContentNinja(
 
         // Панель ордера с командами
         OrderPlacementPanel(
+            orderBook = orderBook,
             selectedPrice = selectedPrice,
             orderQuantity = orderQuantity,
             onQuantityChanged = onQuantityChanged,
-            onCreateBuyMarket = onCreateBuyMarket,
-            onCreateSellMarket = onCreateSellMarket,
-            onCreateBuyLimit = onCreateBuyLimit,
-            onCreateSellLimit = onCreateSellLimit,
-            onCreateBuyBestBid = onCreateBuyBestBid,
-            onCreateSellBestAsk = onCreateSellBestAsk,
-            onCreateTradeOff = onCreateTradeOff,
-            onExecuteCommand = onExecuteCommand,
+            onTradingCommand = onTradingCommand,
+            onCommandResult = onCommandResult,
             isTradingEnabled = isTradingEnabled,
             modifier = Modifier
                 .fillMaxWidth()

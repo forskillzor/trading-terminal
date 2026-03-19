@@ -23,30 +23,27 @@ private fun initFeatureKoin() {
 private fun DomPreview(
     domViewModel: DomViewModel
 ) {
-    var _selectedPrice by remember {mutableStateOf<Double?>(null)}
+    var _selectedPrice by remember { mutableStateOf<Double?>(null) }
     val orderBook by domViewModel.orderBook.collectAsState()
     val bestPrices by domViewModel.bestPrices.collectAsState()
+    val orderQuantity by domViewModel.orderQuantity.collectAsState()
     DomWidget(
         orderBook = orderBook,
         bookTicker = bestPrices,
         selectedPrice = _selectedPrice,
-        onPriceSelected = {
-            _selectedPrice = it
+        onPriceSelected = { price ->
+            _selectedPrice = price
+            domViewModel.selectPrice(price)
         },
-        orderQuantity = "10",
+        orderQuantity = orderQuantity,
         onQuantityChanged = { quantity -> domViewModel.updateOrderQuantity(quantity) },
-        onCreateBuyMarket = { domViewModel.createBuyMarketCommand() },
-        onCreateSellMarket = { domViewModel.createSellMarketCommand() },
-        onCreateBuyLimit = {domViewModel.createBuyLimitCommand()},
-        onCreateSellLimit = {domViewModel.createSellLimitCommand()},
-        onCreateBuyBestBid = {domViewModel.createBuyBestBidCommand()},
-        onCreateSellBestAsk = {domViewModel.createSellBestAskCommand()},
-        onCreateTradeOff = { domViewModel.createTradeOffCommand() },
-        onExecuteCommand = { command -> domViewModel.executeCommand(command) },
+        onTradingCommand = { command -> domViewModel.executeCommand(command) },
+        onCommandResult = { result -> println("Trading command result: $result") },
         isTradingEnabled = domViewModel.isTradingEnabled.collectAsState().value,
         modifier = Modifier.width(300.dp)
     )
 }
+
 fun main() = application {
     initFeatureKoin()
     val domViewModel: DomViewModel = koinInject()

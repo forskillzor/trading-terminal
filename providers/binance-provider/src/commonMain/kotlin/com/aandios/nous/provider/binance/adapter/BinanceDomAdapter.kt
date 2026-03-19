@@ -2,9 +2,11 @@ package com.aandios.nous.provider.binance.adapter
 
 import com.aandios.nous.api.market.adapters.DomAdapter
 import com.aandios.nous.api.market.ProviderConfig
+import com.aandios.nous.api.market.adapters.BookTickerAdapter
 import com.aandios.nous.api.market.model.BookTicker
 import com.aandios.nous.api.market.model.OrderBook
 import com.aandios.nous.api.market.model.OrderBookLevel
+import com.aandios.nous.provider.binance.BinanceProvider
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.websocket.*
@@ -29,9 +31,10 @@ import java.util.concurrent.ConcurrentHashMap
 class BinanceDomAdapter(
     private val client: HttpClient,
     private val config: ProviderConfig,
-    private val bookTickerAdapter: BinanceBookTickerAdapter,  // для получения BestPrice
-    private val depthLimit: Int = 20  // количество отображаемых уровней
+    private val depthLimit: Int = 20,  // количество отображаемых уровней
+    provider: BinanceProvider
 ) : DomAdapter {
+    private val bookTickerAdapter: BookTickerAdapter = provider.bookTicker  // для получения BestPrice
 
     private val json = Json { ignoreUnknownKeys = true }
 

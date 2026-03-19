@@ -9,11 +9,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.aandios.nous_platform.data.api.binance.models.BestPrices
+import com.aandios.nous.api.market.model.BookTicker
 
 @Composable
 fun DomSpread(
-    bestPrices: BestPrices?,
+    bookTicker: BookTicker?,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -27,7 +27,7 @@ fun DomSpread(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (bestPrices != null) {
+            if (bookTicker != null) {
                 // Best Bid
                 Column(
                     horizontalAlignment = Alignment.Start
@@ -38,12 +38,12 @@ fun DomSpread(
                         style = MaterialTheme.typography.labelSmall
                     )
                     Text(
-                        text = formatPrice(bestPrices.bestBid),
+                        text = formatPrice(bookTicker.bestBid),
                         color = MaterialTheme.colorScheme.primary,
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        text = formatQuantity(bestPrices.bestBidQty),
+                        text = formatQuantity(bookTicker.bestBidQty),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.labelSmall
                     )
@@ -59,12 +59,12 @@ fun DomSpread(
                         style = MaterialTheme.typography.labelSmall
                     )
                     Text(
-                        text = formatPrice(bestPrices.spread),
+                        text = formatPrice(bookTicker.spread),
                         color = Color.Yellow,
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        text = String.format("(%.3f%%)", bestPrices.spreadPercent),
+                        text = String.format("(%.3f%%)", bookTicker.spreadPercent),
                         color = Color.Yellow,
                         style = MaterialTheme.typography.labelSmall
                     )
@@ -80,12 +80,12 @@ fun DomSpread(
                         style = MaterialTheme.typography.labelSmall
                     )
                     Text(
-                        text = formatPrice(bestPrices.bestAsk),
+                        text = formatPrice(bookTicker.bestAsk),
                         color = MaterialTheme.colorScheme.secondary,
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        text = formatQuantity(bestPrices.bestAskQty),
+                        text = formatQuantity(bookTicker.bestAskQty),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.labelSmall
                     )

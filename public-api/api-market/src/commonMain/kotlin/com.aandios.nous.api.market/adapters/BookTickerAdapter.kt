@@ -5,4 +5,5 @@ import kotlinx.coroutines.flow.Flow
 
 interface BookTickerAdapter: MarketAdapter {
     fun subscribeToBookTicker(symbol: String): Flow<BookTicker>
+    suspend fun getBookTickerRest(symbol: String): BookTicker?
 }

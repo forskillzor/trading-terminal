@@ -1,5 +1,8 @@
 plugins {
     id("conventions.kmp-library")
+    id("conventions.kmp-application")
+    alias(libs.plugins.compose.multiplatform)
+    alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlin.serialization)
 }
 
@@ -8,6 +11,7 @@ kotlin {
         commonMain.dependencies {
             implementation(project(":core:core-dependencies"))
             implementation(project(":public-api:api-market"))
+            implementation(project(":providers:binance-provider"))
 
             // Kotlin
             api(libs.kotlinx.coroutines.core)
@@ -24,6 +28,13 @@ kotlin {
             api("io.ktor:ktor-client-cio:$ktorVersion")
             api("io.ktor:ktor-client-websockets:$ktorVersion")
             api("io.ktor:ktor-client-content-negotiation:$ktorVersion")
+
+            // Compose UI для темы
+            implementation(compose.runtime)
+            implementation(compose.foundation)
+            implementation(compose.material3)
+            implementation(compose.ui)
+            implementation(compose.components.resources)
 
             // Koin (для DI)
             api(libs.koin.core)

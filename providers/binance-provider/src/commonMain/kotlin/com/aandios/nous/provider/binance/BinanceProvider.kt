@@ -1,29 +1,26 @@
 package com.aandios.nous.provider.binance
 
-import com.aandios.nous.api.market.*
+import com.aandios.nous.api.market.NetworkManager
+import com.aandios.nous.api.market.Provider
+import com.aandios.nous.api.market.ProviderConfig
 import com.aandios.nous.api.market.adapters.*
-import com.aandios.nous.api.market.model.Symbol
+import com.aandios.nous.provider.binance.adapter.BinanceBookTickerAdapter
+import com.aandios.nous.provider.binance.adapter.BinanceChartAdapter
+import com.aandios.nous.provider.binance.adapter.BinanceDomAdapter
+import com.aandios.nous.provider.binance.adapter.BinanceTradesAdapter
+import com.aandios.nous.provider.binance.adapter.BinanceTradingAdapter
 
 class BinanceProvider(
-    override val providerId: String,
-    override val providerName: String,
-    override val version: String,
-    override val adapters: Map<AdapterType, MarketAdapter>
+    override val providerId: String = "binance-nous",
+    override val providerName: String = "Binance",
+    override val version: String = "1.0.0",
+    override val config: ProviderConfig,
+    override val networkManager: NetworkManager,
 ) : Provider {
+    override val trades by lazy { BinanceTradesAdapter(networkManager.httpClient, config) }
+    override val dom: DomAdapter by lazy { BinanceDomAdapter(networkManager.httpClient, config, provider = this) }
+    override val bookTicker: BookTickerAdapter by lazy { BinanceBookTickerAdapter(networkManager.httpClient, config) }
+    override val chart: ChartAdapter by lazy { BinanceChartAdapter(networkManager.httpClient, config) }
+    override val trading: TradingAdapter by lazy { BinanceTradingAdapter(networkManager.httpClient, config) }
 
-    override suspend fun isAvailable(): Boolean {
-        return try {
-            getAvailableSymbols().isNotEmpty()
-        } catch (e: Exception) {
-            false
-        }
-    }
-
-    override suspend fun getAvailableSymbols(): List<Symbol> {
-        // TODO: Реализовать запрос к Binance API
-        return listOf(
-            Symbol("BTCUSDT", "Bitcoin/USDT"),
-            Symbol("ETHUSDT", "Ethereum/USDT")
-        )
-    }
 }

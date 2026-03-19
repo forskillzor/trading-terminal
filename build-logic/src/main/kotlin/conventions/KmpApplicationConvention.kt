@@ -11,6 +11,7 @@ class KmpApplicationConvention : Plugin<Project> {
             with(pluginManager) {
                 apply("org.jetbrains.kotlin.multiplatform")
                 apply("org.jetbrains.compose")
+                apply("org.jetbrains.kotlin.plugin.compose")
             }
 
             extensions.configure<KotlinMultiplatformExtension> {
