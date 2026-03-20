@@ -121,7 +121,7 @@ class BinanceDomAdapter(
         val snapshot: DepthSnapshot = client.get("https://fapi.binance.com/fapi/v1/depth") {
             url {
                 parameters.append("symbol", symbol)
-                parameters.append("limit", "1000")  // максимум для снапшота
+                parameters.append("limit", "100")  // максимум для снапшота
             }
         }.body()
 
@@ -165,7 +165,7 @@ class BinanceDomAdapter(
                 val snapshot: DepthSnapshot = client.get("https://fapi.binance.com/fapi/v1/depth") {
                     url {
                         parameters.append("symbol", symbol)
-                        parameters.append("limit", "1000")
+                        parameters.append("limit", "100")
                     }
                 }.body()
 
@@ -217,7 +217,7 @@ class BinanceDomAdapter(
      * Подписка на depth обновления
      */
     private fun subscribeToDepthUpdates(symbol: String): Flow<DepthUpdate> = callbackFlow {
-        val streamName = "${symbol.lowercase()}@depth"
+        val streamName = "${symbol.lowercase()}@depth${depthLimit}@100ms"
         val endpoint = if (config.isTestnet) {
             "wss://testnet.binance.vision/ws/$streamName"
         } else {

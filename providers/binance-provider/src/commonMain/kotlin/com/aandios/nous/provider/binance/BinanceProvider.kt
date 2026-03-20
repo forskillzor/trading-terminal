@@ -11,9 +11,9 @@ import com.aandios.nous.provider.binance.adapter.BinanceTradesAdapter
 import com.aandios.nous.provider.binance.adapter.BinanceTradingAdapter
 
 class BinanceProvider(
-    override val providerId: String = "binance-nous",
-    override val providerName: String = "Binance",
-    override val version: String = "1.0.0",
+    override val providerId: String,
+    override val providerName: String,
+    override val version: String,
     override val config: ProviderConfig,
     override val networkManager: NetworkManager,
 ) : Provider {

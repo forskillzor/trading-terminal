@@ -1,57 +1,80 @@
+// features/feature-dom/src/commonMain/kotlin/com/aandios/nous/feature/dom/di/FeatureDomModule.kt
 package com.aandios.nous.feature.dom.di
 
 import com.aandios.nous.api.market.NetworkManager
 import com.aandios.nous.api.market.Provider
 import com.aandios.nous.api.market.ProviderConfig
+import com.aandios.nous.api.market.adapters.BookTickerAdapter
+import com.aandios.nous.api.market.adapters.DomAdapter
 import com.aandios.nous.core.data.repository.BookTickerRepositoryImpl
 import com.aandios.nous.core.data.repository.DomRepositoryImpl
 import com.aandios.nous.core.di.coreModule
 import com.aandios.nous.core.domain.repository.BookTickerRepository
 import com.aandios.nous.core.domain.repository.DomRepository
-import com.aandios.nous.core.plugin.ProviderLoader
 import com.aandios.nous.feature.dom.ui.DomViewModel
-import com.aandios.nous.provider.binance.di.binanceProviderModule
+import com.aandios.nous.provider.binance.BinanceProviderFactory
+import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
 import org.koin.dsl.module
+
+/**
+ * Инициализация Koin ТОЛЬКО для превью
+ * - Останавливаем старый контекст
+ * - Не включаем binanceProviderModule (чтобы не было конфликта)
+ * - Создаём Provider вручную через фабрику
+ */
+fun initKoinForPreview() {
+    stopKoin() // ← Обязательно! Очищаем старый контекст
+    startKoin {
+        modules(
+            coreModule,        // NetworkManager
+            featureDomModule,   // Наш модуль с фичей DOM
+        )
+    }
+}
 
 val featureDomModule = module {
 
-    // Включаем необходимые модули
-    includes(coreModule, binanceProviderModule)
+    // 1. Конфигурация для превью (тестовая сеть, без ключей)
+    single<ProviderConfig> {
+        ProviderConfig(
+            apiKey = null,
+            secretKey = null,
+            isTestnet = false,  // ← Тестнет для безопасности
+            customSettings = emptyMap()
+        )
+    }
 
-    // 1. Конфигурация провайдера (например, для Binance)
-    single { ProviderConfig(isTestnet = false) }
-
-    // 2. Получаем провайдер через загрузчик
-    //    В реальном приложении здесь может быть выбор провайдера по ID
+    // 2. Создаём Provider НАПРЯМУЮ через фабрику
+    // Передаём ВСЕ зависимости явно — никаких параметров в factory {}
     single<Provider> {
-        val loader = get<ProviderLoader>()
         val config = get<ProviderConfig>()
         val networkManager = get<NetworkManager>()
 
-        // Загружаем все доступные фабрики
-        val factories = loader.loadAllProviders()
-        // Находим фабрику для Binance (по ID или имени)
-        val binanceFactory = factories.find { it.providerId == "binance-nous" }
-            ?: error("Binance provider factory not found")
-
-        // Создаем провайдер
-        binanceFactory.createProvider(config, networkManager)
+        // ← Используем фабрику напрямую, передаём всё что нужно
+        BinanceProviderFactory().createProvider(
+            config = config,
+            networkManager = networkManager
+        )
     }
 
-    // 3. Предоставляем репозитории, используя адаптеры от провайдера
+    // 3. Адаптеры из провайдера
+    single<DomAdapter> {
+        get<Provider>().dom ?: error("DOM adapter not available")
+    }
+    single<BookTickerAdapter> {
+        get<Provider>().bookTicker ?: error("BookTicker adapter not available")
+    }
+
+    // 4. Репозитории
     single<DomRepository> {
-        DomRepositoryImpl(
-            domAdapter = get<Provider>().dom // Берем адаптер DOM у провайдера
-        )
+        DomRepositoryImpl(domAdapter = get())
     }
-
     single<BookTickerRepository> {
-        BookTickerRepositoryImpl(
-            bookTicker = get<Provider>().bookTicker // Берем адаптер BookTicker у провайдера
-        )
+        BookTickerRepositoryImpl(bookTicker = get())
     }
 
-    // 4. ViewModel (используем factory, чтобы не сохранять состояние между пересозданиями)
+    // 5. ViewModel — обе зависимости через get()
     factory {
         DomViewModel(
             domRepository = get(),

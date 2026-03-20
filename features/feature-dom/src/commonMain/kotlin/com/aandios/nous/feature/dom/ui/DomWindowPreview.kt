@@ -1,64 +1,66 @@
 package com.aandios.nous.feature.dom.ui
 
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
-import com.aandios.nous.feature.dom.di.featureDomModule
+import com.aandios.nous.core.ui.theme.TradingTerminalTheme
+import com.aandios.nous.feature.dom.di.initKoinForPreview
+import org.koin.compose.KoinContext
 import org.koin.compose.koinInject
-import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
 
-private fun initFeatureKoin() {
-    startKoin {
-        modules(featureDomModule)
-    }
-}
 
 @Composable
-private fun DomPreview(
-    domViewModel: DomViewModel
-) {
-    var _selectedPrice by remember { mutableStateOf<Double?>(null) }
+fun DomPreview() {
+    val domViewModel: DomViewModel = koinInject()
+    var selectedPrice by remember { mutableStateOf<Double?>(null) }
     val orderBook by domViewModel.orderBook.collectAsState()
-    val bestPrices by domViewModel.bestPrices.collectAsState()
+    val bookTicker by domViewModel.bookTicker.collectAsState()
     val orderQuantity by domViewModel.orderQuantity.collectAsState()
+    val isTradingEnabled by domViewModel.isTradingEnabled.collectAsState()
+
+    // Подписка на данные при первом запуске
+    LaunchedEffect(Unit) {
+        domViewModel.subscribeToOrderBook("BTCUSDT")
+        domViewModel.subscribeToBookTicker("BTCUSDT")
+    }
+
     DomWidget(
         orderBook = orderBook,
-        bookTicker = bestPrices,
-        selectedPrice = _selectedPrice,
+        bookTicker = bookTicker,
+        selectedPrice = selectedPrice,
         onPriceSelected = { price ->
-            _selectedPrice = price
+            selectedPrice = price
             domViewModel.selectPrice(price)
         },
         orderQuantity = orderQuantity,
         onQuantityChanged = { quantity -> domViewModel.updateOrderQuantity(quantity) },
         onTradingCommand = { command -> domViewModel.executeCommand(command) },
         onCommandResult = { result -> println("Trading command result: $result") },
-        isTradingEnabled = domViewModel.isTradingEnabled.collectAsState().value,
-        modifier = Modifier.width(300.dp)
+        isTradingEnabled = isTradingEnabled,
+        modifier = Modifier.width(350.dp).fillMaxHeight()
     )
 }
 
 fun main() = application {
-    initFeatureKoin()
-    val domViewModel: DomViewModel = koinInject()
-    domViewModel.subscribeToOrderBook("BTCUSDT")
-    domViewModel.subscribeToBestPrices("BTCUSDT")
+    stopKoin()
+    initKoinForPreview()
 
     Window(
         onCloseRequest = ::exitApplication,
-        title = "Nous Platform • v 0.1",
+        title = "Nous Platform • DOM Preview",
         state = rememberWindowState(width = 300.dp, height = 1200.dp)
     ) {
-        MaterialTheme(
-            colorScheme = darkColorScheme()
-        ) {
-            DomPreview(domViewModel)
+        KoinContext {
+            TradingTerminalTheme(
+            ) {
+                DomPreview()
+            }
         }
     }
 }

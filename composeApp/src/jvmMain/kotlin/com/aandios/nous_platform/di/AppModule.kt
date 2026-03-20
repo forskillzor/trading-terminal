@@ -29,10 +29,6 @@ import kotlinx.serialization.json.Json
 import org.koin.core.context.startKoin
 import org.koin.dsl.module
 
-val featureModules = module {
-//    includes(domModule, chartModule, tradesModule)
-}
-
 // all in one, for beginning
 val appModule = module {
 

@@ -1,5 +1,7 @@
 package com.aandios.nous_platform.data.api.binance.models
 
+import com.aandios.nous_platform.domain.entities.OrderBook
+import com.aandios.nous_platform.domain.entities.OrderBookLevel
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -17,20 +19,42 @@ data class BinanceDepthUpdate(
 )
 
 @Serializable
-data class OrderBookLevel(
+data class BinanceOrderBookLevel(
     val price: String,
     val quantity: String,
     val total: String = "0" // Будем вычислять
 )
 
 @Serializable
-data class OrderBook(
+data class BinanceOrderBook(
     val symbol: String,
-    val bids: List<OrderBookLevel> = emptyList(),
-    val asks: List<OrderBookLevel> = emptyList(),
+    val bids: List<BinanceOrderBookLevel> = emptyList(),
+    val asks: List<BinanceOrderBookLevel> = emptyList(),
     val lastUpdateId: Long = 0,
     val timestamp: Long = System.currentTimeMillis()
-)
+) {
+    fun toOrderBook(): OrderBook {
+
+        return OrderBook(
+            symbol = this.symbol,
+            bids = this.bids.map {
+                OrderBookLevel(
+                    price = it.price,
+                    quantity = it.quantity,
+                    total = it.total
+                )
+            },
+            asks = this.asks.map {
+                OrderBookLevel(
+                    price = it.price,
+                    quantity = it.quantity,
+                    total = it.total
+                )
+            },
+            timestamp = this.timestamp
+        )
+    }
+}
 
 @Serializable
 data class DepthResponse(

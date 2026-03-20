@@ -34,7 +34,7 @@ private fun DomPreview(
     )
 }
 fun main() = application {
-    initKoin()
+//    initKoin()
     val domViewModel: DomViewModel = koinInject()
     domViewModel.subscribeToOrderBook("BTCUSDT")
     domViewModel.subscribeToBestPrices("BTCUSDT")

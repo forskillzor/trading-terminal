@@ -18,12 +18,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import java.util.concurrent.Executors
 
 class DomViewModel(
     private val domRepository: DomRepository,
-    private val bestPricesRepository: BookTickerRepository
+    private val bookTickerRepository: BookTickerRepository
 ) {
-    private val viewModelScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private val dispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+    private val viewModelScope = CoroutineScope(dispatcher + SupervisorJob())
     private var subscriptionJob: Job? = null
 
     private val _orderBook = MutableStateFlow<OrderBook?>(null)
@@ -41,21 +43,21 @@ class DomViewModel(
     private val _lastCommandResult = MutableStateFlow<CommandResult?>(null)
     val lastCommandResult: StateFlow<CommandResult?> = _lastCommandResult.asStateFlow()
 
-    private val _bestPrices = MutableStateFlow<BookTicker?>(null)
-    val bestPrices: StateFlow<BookTicker?> = _bestPrices.asStateFlow()
+    private val _bookTicker = MutableStateFlow<BookTicker?>(null)
+    val bookTicker: StateFlow<BookTicker?> = _bookTicker.asStateFlow()
 
-    private var bestPricesJob: Job? = null
+    private var bookTickerJob: Job? = null
 
-    fun subscribeToBestPrices(symbol: String) {
-        bestPricesJob?.cancel()
+    fun subscribeToBookTicker(symbol: String) {
+        bookTickerJob?.cancel()
 
-        bestPricesJob = viewModelScope.launch {
-            bestPricesRepository.getBookTicker(symbol)
+        bookTickerJob = viewModelScope.launch {
+            bookTickerRepository.getBookTicker(symbol)
                 .catch { e ->
                     println("❌ BestPrices error: ${e.message}")
                 }
                 .collect { prices ->
-                    _bestPrices.value = prices
+                    _bookTicker.value = prices
                 }
         }
     }

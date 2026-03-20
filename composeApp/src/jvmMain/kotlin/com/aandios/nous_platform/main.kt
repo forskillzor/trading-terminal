@@ -18,7 +18,7 @@ import com.aandios.nous_platform.ui.trades.TradesViewModel
 import org.koin.compose.koinInject
 
 fun main() = application {
-    initKoin()
+//    initKoin()
 
     Window(
         onCloseRequest = ::exitApplication,

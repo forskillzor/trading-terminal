@@ -1,20 +1,25 @@
 package com.aandios.nous.provider.binance
 
-import com.aandios.nous.api.market.*
-import com.aandios.nous.provider.binance.adapter.*
+import com.aandios.nous.api.market.NetworkManager
+import com.aandios.nous.api.market.Provider
+import com.aandios.nous.api.market.ProviderConfig
+import com.aandios.nous.api.market.ProviderFactory
 
-class BinanceProviderFactory() : ProviderFactory {
+class BinanceProviderFactory(
+    override val providerName: String = "binance-nous",
+    override val providerVersion: String = "0.0.1"
+) : ProviderFactory {
+    override val providerId: String = "$providerName-$providerVersion"
 
-    override suspend fun createProvider(
+    override fun createProvider(
         config: ProviderConfig,
         networkManager: NetworkManager
     ): Provider {
-        val client = networkManager.httpClient
-
-        val bookTickerAdapter = BinanceBookTickerAdapter(client, config)
-
 
         return BinanceProvider(
+            providerId = providerId,
+            providerName = providerName,
+            version = providerVersion,
             config = config,
             networkManager = networkManager,
         )

@@ -13,25 +13,5 @@ class DomRepositoryImpl(
 
     override fun getOrderBook(symbol: String): Flow<OrderBook> {
         return domAdapter.subscribeToOrderBook(symbol, depth = 20)
-            .map { orderBook ->
-                OrderBook(
-                    symbol = orderBook.symbol,
-                    bids = orderBook.bids.map { level ->
-                        OrderBookLevel(
-                            price = level.price,
-                            quantity = level.quantity,
-                            total = level.total
-                        )
-                    },
-                    asks = orderBook.asks.map { level ->
-                        OrderBookLevel(
-                            price = level.price,
-                            quantity = level.quantity,
-                            total = level.total
-                        )
-                    },
-                    timestamp = orderBook.timestamp
-                )
-            }
     }
 }

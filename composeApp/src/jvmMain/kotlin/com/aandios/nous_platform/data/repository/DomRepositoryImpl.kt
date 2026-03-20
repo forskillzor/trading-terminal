@@ -28,26 +28,7 @@ class DomRepositoryImpl(
 
     private fun createOrderBookFlow(symbol: String): Flow<OrderBook> = flow {
         domApi.subscribeToOrderBook(symbol).collect { orderBook ->
-            emit(
-                OrderBook(
-                    symbol = orderBook.symbol,
-                    bids = orderBook.bids.map {
-                        OrderBookLevel(
-                            price = it.price,
-                            quantity = it.quantity,
-                            total = it.total
-                        )
-                    },
-                    asks = orderBook.asks.map {
-                        OrderBookLevel(
-                            price = it.price,
-                            quantity = it.quantity,
-                            total = it.total
-                        )
-                    },
-                    timestamp = orderBook.timestamp
-                )
-            )
+            emit( orderBook.toOrderBook() )
         }
     }
 }

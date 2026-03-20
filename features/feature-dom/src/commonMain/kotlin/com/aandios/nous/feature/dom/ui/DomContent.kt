@@ -28,7 +28,7 @@ fun DomContent(
     modifier: Modifier = Modifier
 ) {
     val domViewModel: DomViewModel = koinInject()
-    val bestPrices by domViewModel.bestPrices.collectAsState()
+    val bestPrices by domViewModel.bookTicker.collectAsState()
     Column(
         modifier = modifier.fillMaxSize()
     ) {
