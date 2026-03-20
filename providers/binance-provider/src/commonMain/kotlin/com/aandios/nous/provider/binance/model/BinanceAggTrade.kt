@@ -1,7 +1,7 @@
 package com.aandios.nous.provider.binance.model
 
-import com.aandios.nous.api.market.model.Trade
-import com.aandios.nous.api.market.model.TradeSide
+import com.aandios.nous.api.market.model.trades.Trade
+import com.aandios.nous.api.market.model.trading.TradeSide
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 

@@ -2,7 +2,7 @@ package com.aandios.nous.provider.binance.adapter
 
 import com.aandios.nous.api.market.ProviderConfig
 import com.aandios.nous.api.market.adapters.TradesAdapter
-import com.aandios.nous.api.market.model.Trade
+import com.aandios.nous.api.market.model.trades.Trade
 import com.aandios.nous.provider.binance.model.BinanceAggTrade
 import io.ktor.client.*
 import io.ktor.client.plugins.websocket.*

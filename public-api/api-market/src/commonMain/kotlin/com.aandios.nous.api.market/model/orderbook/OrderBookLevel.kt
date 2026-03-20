@@ -1,4 +1,4 @@
-package com.aandios.nous.api.market.model
+package com.aandios.nous.api.market.model.orderbook
 
 import kotlinx.serialization.Serializable
 

@@ -21,7 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aandios.nous.api.market.model.BookTicker
-import com.aandios.nous.api.market.model.OrderBookLevel
+import com.aandios.nous.api.market.model.orderbook.OrderBookLevel
 import kotlin.math.abs
 import kotlin.math.max
 
@@ -91,17 +91,17 @@ fun NinjaTraderDom(
         }
 
         // Spread (разница)
-        val bestBid = bids.firstOrNull()?.price?.toDoubleOrNull()
-        val bestAsk = asks.firstOrNull()?.price?.toDoubleOrNull()
-
-        if (bestBid != null && bestAsk != null) {
-            DomSpread(
-                bookTicker = bookTicker,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)  // Чуть выше для отображения объемов
-            )
-        }
+//        val bestBid = bids.firstOrNull()?.price?.toDoubleOrNull()
+//        val bestAsk = asks.firstOrNull()?.price?.toDoubleOrNull()
+//
+//        if (bestBid != null && bestAsk != null) {
+//            DomSpread(
+//                bookTicker = bookTicker,
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .height(48.dp)  // Чуть выше для отображения объемов
+//            )
+//        }
 
         // BIDS (снизу)
         LazyColumn(

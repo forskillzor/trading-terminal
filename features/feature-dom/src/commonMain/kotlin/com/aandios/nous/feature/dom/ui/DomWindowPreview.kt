@@ -26,7 +26,7 @@ fun DomPreview() {
 
     // Подписка на данные при первом запуске
     LaunchedEffect(Unit) {
-        domViewModel.subscribeToOrderBook("BTCUSDT")
+        domViewModel.subscribeToOrderBook("BTCUSDT", depth = 20)
         domViewModel.subscribeToBookTicker("BTCUSDT")
     }
 

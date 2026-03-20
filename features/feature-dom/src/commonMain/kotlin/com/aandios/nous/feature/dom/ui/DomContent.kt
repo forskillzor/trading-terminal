@@ -11,7 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.aandios.nous.api.market.commands.CommandResult
 import com.aandios.nous.api.market.commands.TradingCommand
-import com.aandios.nous.api.market.model.OrderBook
+import com.aandios.nous.api.market.model.orderbook.OrderBook
 import org.koin.compose.koinInject
 import kotlin.math.max
 

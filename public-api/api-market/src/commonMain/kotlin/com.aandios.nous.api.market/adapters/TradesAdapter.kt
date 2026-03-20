@@ -1,6 +1,6 @@
 package com.aandios.nous.api.market.adapters
 
-import com.aandios.nous.api.market.model.Trade
+import com.aandios.nous.api.market.model.trades.Trade
 import kotlinx.coroutines.flow.Flow
 
 interface TradesAdapter: MarketAdapter {

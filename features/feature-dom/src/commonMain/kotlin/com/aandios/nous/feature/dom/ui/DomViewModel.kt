@@ -10,8 +10,7 @@ import com.aandios.nous.api.market.commands.SellMarketCommand
 import com.aandios.nous.api.market.commands.TradeOffCommand
 import com.aandios.nous.api.market.commands.TradingCommand
 import com.aandios.nous.api.market.model.BookTicker
-import com.aandios.nous.api.market.model.OrderBook
-import com.aandios.nous.core.domain.repository.BookTickerRepository
+import com.aandios.nous.api.market.model.orderbook.OrderBook
 import com.aandios.nous.core.domain.repository.DomRepository
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,7 +21,6 @@ import java.util.concurrent.Executors
 
 class DomViewModel(
     private val domRepository: DomRepository,
-    private val bookTickerRepository: BookTickerRepository
 ) {
     private val dispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
     private val viewModelScope = CoroutineScope(dispatcher + SupervisorJob())
@@ -52,7 +50,7 @@ class DomViewModel(
         bookTickerJob?.cancel()
 
         bookTickerJob = viewModelScope.launch {
-            bookTickerRepository.getBookTicker(symbol)
+            domRepository.getBookTicker(symbol)
                 .catch { e ->
                     println("❌ BestPrices error: ${e.message}")
                 }
@@ -62,13 +60,13 @@ class DomViewModel(
         }
     }
 
-    fun subscribeToOrderBook(symbol: String) {
+    fun subscribeToOrderBook(symbol: String, depth: Int) {
         println("📊 VM: Subscribing to $symbol")
 
         subscriptionJob?.cancel()
 
         subscriptionJob = viewModelScope.launch {
-            domRepository.getOrderBook(symbol)
+            domRepository.subscribeToOrderBook(symbol, depth)
                 .catch { e ->
                     println("❌ VM Error: ${e.message}")
                     e.printStackTrace()

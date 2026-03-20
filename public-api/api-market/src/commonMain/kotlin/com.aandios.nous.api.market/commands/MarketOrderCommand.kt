@@ -1,7 +1,7 @@
 package com.aandios.nous.api.market.commands
 
-import com.aandios.nous.api.market.model.OrderSide
-import com.aandios.nous.api.market.model.OrderType
+import com.aandios.nous.api.market.model.orderbook.OrderSide
+import com.aandios.nous.api.market.model.orderbook.OrderType
 
 
 class BuyMarketCommand(

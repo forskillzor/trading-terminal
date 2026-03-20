@@ -7,10 +7,10 @@ import com.aandios.nous.api.market.ProviderConfig
 import com.aandios.nous.api.market.adapters.BookTickerAdapter
 import com.aandios.nous.api.market.adapters.DomAdapter
 import com.aandios.nous.core.data.repository.BookTickerRepositoryImpl
-import com.aandios.nous.core.data.repository.DomRepositoryImpl
 import com.aandios.nous.core.di.coreModule
 import com.aandios.nous.core.domain.repository.BookTickerRepository
 import com.aandios.nous.core.domain.repository.DomRepository
+import com.aandios.nous.feature.dom.data.repository.DomRepositoryImpl
 import com.aandios.nous.feature.dom.ui.DomViewModel
 import com.aandios.nous.provider.binance.BinanceProviderFactory
 import org.koin.core.context.startKoin
@@ -68,7 +68,7 @@ val featureDomModule = module {
 
     // 4. Репозитории
     single<DomRepository> {
-        DomRepositoryImpl(domAdapter = get())
+        DomRepositoryImpl(domAdapter = get(), bookTickerAdapter = get())
     }
     single<BookTickerRepository> {
         BookTickerRepositoryImpl(bookTicker = get())
@@ -78,7 +78,6 @@ val featureDomModule = module {
     factory {
         DomViewModel(
             domRepository = get(),
-            bookTickerRepository = get()
         )
     }
 }

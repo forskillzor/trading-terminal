@@ -1,16 +1,17 @@
 package com.aandios.nous.api.market.adapters
 
-import com.aandios.nous.api.market.model.OrderBook
+import com.aandios.nous.api.market.model.orderbook.DepthSnapshot
+import com.aandios.nous.api.market.model.orderbook.DepthUpdate
 import kotlinx.coroutines.flow.Flow
 
 interface DomAdapter: MarketAdapter {
     /**
      * Dom Snapshot
      */
-    suspend fun getOrderBookSnapshot(symbol: String, depth: Int = 20): OrderBook
+    suspend fun getOrderBookSnapshot(symbol: String, depth: Int = 20): DepthSnapshot
 
     /**
      * Subscribe to order book updates
      */
-    fun subscribeToOrderBook(symbol: String, depth: Int = 20): Flow<OrderBook>
+    suspend fun subscribeToDepthUpdates(symbol: String): Flow<DepthUpdate>
 }

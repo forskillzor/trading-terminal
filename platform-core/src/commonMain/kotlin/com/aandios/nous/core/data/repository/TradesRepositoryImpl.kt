@@ -1,7 +1,7 @@
 package com.aandios.nous.core.data.repository
 
 import com.aandios.nous.api.market.adapters.TradesAdapter
-import com.aandios.nous.api.market.model.Trade
+import com.aandios.nous.api.market.model.trades.Trade
 import com.aandios.nous.core.domain.repository.TradesRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow

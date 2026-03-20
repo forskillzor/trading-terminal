@@ -26,7 +26,7 @@ import com.aandios.nous.api.market.commands.SellLimitCommand
 import com.aandios.nous.api.market.commands.SellMarketCommand
 import com.aandios.nous.api.market.commands.TradeOffCommand
 import com.aandios.nous.api.market.commands.TradingCommand
-import com.aandios.nous.api.market.model.OrderBook
+import com.aandios.nous.api.market.model.orderbook.OrderBook
 import com.aandios.nous.core.ui.component.TerminalButton
 
 @Composable

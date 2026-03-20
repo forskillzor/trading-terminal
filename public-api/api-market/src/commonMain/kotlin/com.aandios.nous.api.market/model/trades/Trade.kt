@@ -1,7 +1,7 @@
-package com.aandios.nous.api.market.model
+package com.aandios.nous.api.market.model.trades
 
+import com.aandios.nous.api.market.model.trading.TradeSide
 import kotlinx.serialization.Serializable
-
 
 @Serializable
 data class Trade(

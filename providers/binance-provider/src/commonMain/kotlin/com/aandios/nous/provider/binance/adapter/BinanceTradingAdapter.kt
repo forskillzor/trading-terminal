@@ -3,9 +3,9 @@ package com.aandios.nous.provider.binance.adapter
 import com.aandios.nous.api.market.ProviderConfig
 import com.aandios.nous.api.market.adapters.TradingAdapter
 import com.aandios.nous.api.market.model.Balance
-import com.aandios.nous.api.market.model.OrderRequest
-import com.aandios.nous.api.market.model.OrderResponse
-import com.aandios.nous.api.market.model.Position
+import com.aandios.nous.api.market.model.trading.OrderRequest
+import com.aandios.nous.api.market.model.trading.OrderResponse
+import com.aandios.nous.api.market.model.trading.Position
 import io.ktor.client.*
 
 class BinanceTradingAdapter(
