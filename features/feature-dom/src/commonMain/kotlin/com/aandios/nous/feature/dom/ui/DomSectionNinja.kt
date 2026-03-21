@@ -104,22 +104,22 @@ fun NinjaTraderDom(
 //        }
 
         // BIDS (снизу)
-        LazyColumn(
-            modifier = Modifier.weight(1f)
-        ) {
-            items(
-                items = bids,
-                key = { "bid-${it.price}" }
-            ) { level ->
-                NinjaTraderRow(
-                    level = level,
-                    isAsk = false,
-                    maxVolume = maxVolume,
-                    selectedPrice = selectedPrice,
-                    onPriceClick = onPriceSelected
-                )
-            }
-        }
+//        LazyColumn(
+//            modifier = Modifier.weight(1f)
+//        ) {
+//            items(
+//                items = bids,
+//                key = { "bid-${it.price}" }
+//            ) { level ->
+//                NinjaTraderRow(
+//                    level = level,
+//                    isAsk = false,
+//                    maxVolume = maxVolume,
+//                    selectedPrice = selectedPrice,
+//                    onPriceClick = onPriceSelected
+//                )
+//            }
+//        }
     }
 }
 

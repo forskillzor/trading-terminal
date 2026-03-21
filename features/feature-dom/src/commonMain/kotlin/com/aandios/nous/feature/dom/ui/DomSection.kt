@@ -142,15 +142,15 @@ private fun DomLevelRow(
                     size = Size(size.width * volumeWidth, size.height)
                 )
             }
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                drawRect(
-                    color = if (isAsk)
-                        Color.Red.copy(alpha = 0.1f)
-                    else
-                        Color.Green.copy(alpha = 0.1f),
-                    size = Size(size.width * volumeWidth, size.height)
-                )
-            }
+//            Canvas(modifier = Modifier.fillMaxSize()) {
+//                drawRect(
+//                    color = if (isAsk)
+//                        Color.Red.copy(alpha = 0.1f)
+//                    else
+//                        Color.Green.copy(alpha = 0.1f),
+//                    size = Size(size.width * volumeWidth, size.height)
+//                )
+//            }
 
             Text(
                 text = formattedQuantity,

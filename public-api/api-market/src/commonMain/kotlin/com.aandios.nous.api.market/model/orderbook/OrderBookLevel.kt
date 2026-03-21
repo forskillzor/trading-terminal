@@ -6,5 +6,7 @@ import kotlinx.serialization.Serializable
 data class OrderBookLevel(
     val price: String,
     val quantity: String,
-    val total: String = "0" // Будем вычислять
+    val total: String = "0", // Будем вычислять
+    val bidQty: String = "",
+    val askQty: String = "",
 )
