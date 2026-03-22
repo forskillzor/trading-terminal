@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.border
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -188,6 +189,8 @@ fun DomNinjaTrader(
                     level = level,
                     maxVolume = maxVolume,
                     selectedPrice = selectedPrice,
+                    bestBid = bookTicker?.bestBid,
+                    bestAsk = bookTicker?.bestAsk,
                     onPriceClick = onPriceSelected
                 )
             }
@@ -321,6 +324,8 @@ fun NinjaTraderDomUnified(
                     level = level,
                     maxVolume = maxVolume,
                     selectedPrice = selectedPrice,
+                    bestBid = unifiedOrderBook?.bestBid,
+                    bestAsk = unifiedOrderBook?.bestAsk,
                     onPriceClick = onPriceSelected
                 )
             }
@@ -454,6 +459,8 @@ private fun NinjaTraderRowUnified(
     level: OrderBookLevel,
     maxVolume: Double,
     selectedPrice: Double?,
+    bestBid: Double?,
+    bestAsk: Double?,
     onPriceClick: (Double) -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -463,6 +470,9 @@ private fun NinjaTraderRowUnified(
     val bidQty = level.bidQty.toDoubleOrNull() ?: 0.0
     val askQty = level.askQty.toDoubleOrNull() ?: 0.0
     val isSelected = selectedPrice?.let { abs(it - price) < 0.000001 } ?: false
+    val isBestBid = bestBid?.let { abs(it - price) < 0.000001 } ?: false
+    val isBestAsk = bestAsk?.let { abs(it - price) < 0.000001 } ?: false
+    val isBestPrice = isBestBid || isBestAsk
 
     // Цвета
     val backgroundColor = when {
@@ -470,6 +480,13 @@ private fun NinjaTraderRowUnified(
         isHovered -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         else -> Color.Transparent
     }
+    // Подсветка лучших цен: тонкая граница
+    val borderColor = when {
+        isBestBid -> MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+        isBestAsk -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f)
+        else -> Color.Transparent
+    }
+    val borderWidth = if (isBestPrice) 1.dp else 0.dp
 
     val priceColor = Color.White // Белый цвет для текста цены
 
@@ -482,6 +499,7 @@ private fun NinjaTraderRowUnified(
                 indication = null
             ) { onPriceClick(price) }
             .background(backgroundColor)
+            .border(borderWidth, borderColor, shape = androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
             .padding(horizontal = 8.dp, vertical = 1.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically

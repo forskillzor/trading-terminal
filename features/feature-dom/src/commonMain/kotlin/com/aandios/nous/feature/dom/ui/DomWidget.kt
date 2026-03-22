@@ -38,7 +38,8 @@ fun DomWidget(
     width: Dp = 300.dp,
     showHeader: Boolean = true,
     unifiedOrderBook: UnifiedOrderBook? = null,
-    domMode: DomMode = DomMode.NINJA) {
+    domMode: DomMode = DomMode.NINJA,
+    onDomModeChanged: (DomMode) -> Unit = {}) {
     Column(
         modifier = modifier
             .width(width)
@@ -48,7 +49,9 @@ fun DomWidget(
         if (showHeader) {
             DomHeader(
                 symbol = unifiedOrderBook?.symbol ?: orderBook?.symbol ?: "",
-                timestamp = unifiedOrderBook?.timestamp ?: orderBook?.timestamp ?: 0
+                timestamp = unifiedOrderBook?.timestamp ?: orderBook?.timestamp ?: 0,
+                currentMode = domMode,
+                onModeChanged = onDomModeChanged
             )
         }
 

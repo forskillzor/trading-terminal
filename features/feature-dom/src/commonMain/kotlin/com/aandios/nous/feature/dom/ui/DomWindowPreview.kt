@@ -24,6 +24,7 @@ fun DomPreview() {
     val unifiedOrderBook by domViewModel.unifiedOrderBook.collectAsState()
     val orderQuantity by domViewModel.orderQuantity.collectAsState()
     val isTradingEnabled by domViewModel.isTradingEnabled.collectAsState()
+    var domMode by remember { mutableStateOf(DomMode.NINJA) }
 
     // Подписка на данные при первом запуске
     LaunchedEffect(Unit) {
@@ -48,7 +49,9 @@ fun DomPreview() {
         onCommandResult = { result -> println("Trading command result: $result") },
         isTradingEnabled = isTradingEnabled,
         modifier = Modifier.width(350.dp).fillMaxHeight(),
-        unifiedOrderBook = unifiedOrderBook
+        unifiedOrderBook = unifiedOrderBook,
+        domMode = domMode,
+        onDomModeChanged = { newMode -> domMode = newMode }
     )
 }
 
