@@ -8,9 +8,11 @@ import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -34,12 +36,113 @@ fun NinjaTraderDom(
     onPriceSelected: (Double) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Находим максимальный объем для масштабирования
-    val maxVolume = remember(bids, asks) {
-        max(
-            bids.maxOfOrNull { it.quantity.toDouble() } ?: 0.0,
-            asks.maxOfOrNull { it.quantity.toDouble() } ?: 0.0
-        )
+    // Объединяем bids и asks в единый список уровней с bidQty и askQty
+    val mergedLevels = remember(bids, asks) {
+        val priceMap = mutableMapOf<String, OrderBookLevel>()
+        // Добавляем bids
+        bids.forEach { level ->
+            priceMap[level.price] = level.copy(
+                bidQty = level.quantity,
+                askQty = ""
+            )
+        }
+        // Добавляем asks, объединяя с существующими ценами
+        asks.forEach { level ->
+            val existing = priceMap[level.price]
+            if (existing != null) {
+                // Цена есть в bids, обновляем askQty
+                priceMap[level.price] = existing.copy(
+                    askQty = level.quantity
+                )
+            } else {
+                // Новая цена только в asks
+                priceMap[level.price] = level.copy(
+                    bidQty = "",
+                    askQty = level.quantity
+                )
+            }
+        }
+        // Сортируем по цене в порядке убывания (как в стакане: сверху asks, снизу bids)
+        priceMap.values.sortedByDescending { it.price.toDoubleOrNull() ?: 0.0 }
+    }
+
+    // Находим максимальный объем для масштабирования (учитываем и bidQty, и askQty)
+    val maxVolume = remember(mergedLevels) {
+        mergedLevels.maxOfOrNull { level ->
+            max(
+                level.bidQty.toDoubleOrNull() ?: 0.0,
+                level.askQty.toDoubleOrNull() ?: 0.0
+            )
+        } ?: 1.0
+    }
+
+    // Состояние скролла для автоматического скролла до цен из bookticker
+    val lazyListState = rememberLazyListState()
+
+    // Находим индекс цены для скролла (лучшая цена bid или ask из bookticker)
+    val scrollToIndex = remember(bookTicker, mergedLevels) {
+        if (bookTicker == null) {
+            return@remember null
+        }
+        
+        if (mergedLevels.isEmpty()) {
+            return@remember null
+        }
+        
+
+        // Используем среднюю цену между bestBid и bestAsk для центрирования
+        val targetPrice = (bookTicker.bestBid + bookTicker.bestAsk) / 2.0
+
+        // Поскольку mergedLevels отсортированы по убыванию, ищем ближайшую цену
+        var closestIndex = 0
+        var minDiff = Double.MAX_VALUE
+        
+        mergedLevels.forEachIndexed { index, level ->
+            val price = level.price.toDoubleOrNull() ?: return@forEachIndexed
+            val diff = abs(price - targetPrice)
+            
+            // Если найдено точное совпадение, сразу возвращаем индекс
+            if (diff < 0.000001) {
+                return@remember index
+            }
+            
+            if (diff < minDiff) {
+                minDiff = diff
+                closestIndex = index
+            }
+        }
+        
+        // Возвращаем индекс с небольшим смещением вверх, чтобы цена была видна в центре
+        val visibleItemCount = 10
+        val centeredIndex = max(0, closestIndex - visibleItemCount / 2)
+
+        centeredIndex
+    }
+
+    // Автоматический скролл до цены из bookticker
+    LaunchedEffect(scrollToIndex) {
+        if (scrollToIndex != null) {
+
+            // Плавный скролл с анимацией
+            try {
+                lazyListState.animateScrollToItem(
+                    index = scrollToIndex,
+                    scrollOffset = 0
+                )
+                println("[DOM DEBUG] Scroll completed successfully to index $scrollToIndex")
+            } catch (e: Exception) {
+                println("[DOM DEBUG] Scroll error: ${e.message}")
+                // Пробуем альтернативный метод скролла
+                try {
+                    lazyListState.scrollToItem(scrollToIndex, 0)
+                    println("[DOM DEBUG] Scroll with scrollToItem completed")
+                } catch (e2: Exception) {
+                    println("[DOM DEBUG] Both scroll methods failed: ${e2.message}")
+                }
+            }
+        } else {
+            println("[DOM DEBUG] No scroll index, skipping scroll")
+        }
     }
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -71,18 +174,17 @@ fun NinjaTraderDom(
             )
         }
 
-        // ASKS (сверху)
+        // Единый LazyColumn со всеми уровнями
         LazyColumn(
-            modifier = Modifier.weight(1f),
-            reverseLayout = true // Asks от лучшей (мин) к худшей (макс)
+            state = lazyListState,
+            modifier = Modifier.weight(1f)
         ) {
             items(
-                items = asks,
-                key = { "ask-${it.price}" }
+                items = mergedLevels,
+                key = { "level-${it.price}" }
             ) { level ->
-                NinjaTraderRow(
+                NinjaTraderRowUnified(
                     level = level,
-                    isAsk = true,
                     maxVolume = maxVolume,
                     selectedPrice = selectedPrice,
                     onPriceClick = onPriceSelected
@@ -90,36 +192,10 @@ fun NinjaTraderDom(
             }
         }
 
-        // Spread (разница)
-//        val bestBid = bids.firstOrNull()?.price?.toDoubleOrNull()
-//        val bestAsk = asks.firstOrNull()?.price?.toDoubleOrNull()
-//
-//        if (bestBid != null && bestAsk != null) {
-//            DomSpread(
-//                bookTicker = bookTicker,
-//                modifier = Modifier
-//                    .fillMaxWidth()
-//                    .height(48.dp)  // Чуть выше для отображения объемов
-//            )
-//        }
-
-        // BIDS (снизу)
-//        LazyColumn(
-//            modifier = Modifier.weight(1f)
-//        ) {
-//            items(
-//                items = bids,
-//                key = { "bid-${it.price}" }
-//            ) { level ->
-//                NinjaTraderRow(
-//                    level = level,
-//                    isAsk = false,
-//                    maxVolume = maxVolume,
-//                    selectedPrice = selectedPrice,
-//                    onPriceClick = onPriceSelected
-//                )
-//            }
-//        }
+        // Spread (разница) - можно оставить закомментированным или доработать
+        // val bestBid = bids.firstOrNull()?.price?.toDoubleOrNull()
+        // val bestAsk = asks.firstOrNull()?.price?.toDoubleOrNull()
+        // ...
     }
 }
 
@@ -145,10 +221,7 @@ private fun NinjaTraderRow(
         else -> Color.Transparent
     }
 
-    val priceColor = if (isAsk)
-        MaterialTheme.colorScheme.secondary
-    else
-        MaterialTheme.colorScheme.primary
+    val priceColor = Color.White // Белый цвет для текста цены
 
     Row(
         modifier = Modifier
@@ -179,15 +252,17 @@ private fun NinjaTraderRow(
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
                 )
             }
-            Text(
-                text = if (!isAsk) formatVolume(quantity) else "",
-                color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 11.sp
-                ),
-                modifier = Modifier.align(Alignment.CenterStart)
-            )
+            if (!isAsk && quantity > 0) {
+                Text(
+                    text = formatVolume(quantity),
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 11.sp
+                    ),
+                    modifier = Modifier.align(Alignment.CenterStart)
+                )
+            }
         }
 
         // Price (центр)
@@ -219,15 +294,127 @@ private fun NinjaTraderRow(
                         .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f))
                 )
             }
-            Text(
-                text = if (isAsk) formatVolume(quantity) else "",
-                color = MaterialTheme.colorScheme.secondary,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 11.sp
-                ),
-                modifier = Modifier.align(Alignment.CenterEnd)
-            )
+            if (isAsk && quantity > 0) {
+                Text(
+                    text = formatVolume(quantity),
+                    color = MaterialTheme.colorScheme.secondary,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 11.sp
+                    ),
+                    modifier = Modifier.align(Alignment.CenterEnd)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun NinjaTraderRowUnified(
+    level: OrderBookLevel,
+    maxVolume: Double,
+    selectedPrice: Double?,
+    onPriceClick: (Double) -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isHovered by interactionSource.collectIsHoveredAsState()
+
+    val price = level.price.toDoubleOrNull() ?: return
+    val bidQty = level.bidQty.toDoubleOrNull() ?: 0.0
+    val askQty = level.askQty.toDoubleOrNull() ?: 0.0
+    val isSelected = selectedPrice?.let { abs(it - price) < 0.000001 } ?: false
+
+    // Цвета
+    val backgroundColor = when {
+        isSelected -> Color.Yellow.copy(alpha = 0.3f)
+        isHovered -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        else -> Color.Transparent
+    }
+
+    val priceColor = Color.White // Белый цвет для текста цены
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .hoverable(interactionSource)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) { onPriceClick(price) }
+            .background(backgroundColor)
+            .padding(horizontal = 8.dp, vertical = 1.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Bid Volume (слева)
+        Box(
+            modifier = Modifier
+                .weight(0.8f)
+                .height(20.dp)
+        ) {
+            if (bidQty > 0) {
+                // Горизонтальный объем для Bid
+                val volumeWidth = (bidQty / maxVolume).coerceIn(0.0, 1.0)
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(volumeWidth.toFloat())
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                )
+            }
+            if (bidQty > 0) {
+                Text(
+                    text = formatVolume(bidQty),
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 11.sp
+                    ),
+                    modifier = Modifier.align(Alignment.CenterStart)
+                )
+            }
+        }
+
+        // Price (центр)
+        Text(
+            text = formatPrice(price),
+            color = priceColor,
+            style = MaterialTheme.typography.bodySmall.copy(
+                fontFamily = FontFamily.Monospace,
+                fontSize = 11.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+            ),
+            modifier = Modifier.weight(0.6f)
+        )
+
+        // Ask Volume (справа)
+        Box(
+            modifier = Modifier
+                .weight(0.8f)
+                .height(20.dp)
+        ) {
+            if (askQty > 0) {
+                // Горизонтальный объем для Ask
+                val volumeWidth = (askQty / maxVolume).coerceIn(0.0, 1.0)
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(volumeWidth.toFloat())
+                        .align(Alignment.CenterEnd)
+                        .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f))
+                )
+            }
+            if (askQty > 0) {
+                Text(
+                    text = formatVolume(askQty),
+                    color = MaterialTheme.colorScheme.secondary,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 11.sp
+                    ),
+                    modifier = Modifier.align(Alignment.CenterEnd)
+                )
+            }
         }
     }
 }
