@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aandios.nous.api.market.model.BookTicker
 import com.aandios.nous.api.market.model.orderbook.OrderBookLevel
+import com.aandios.nous.feature.dom.domain.UnifiedOrderBook
 import kotlin.math.abs
 import kotlin.math.max
 
@@ -196,6 +197,145 @@ fun NinjaTraderDom(
         // val bestBid = bids.firstOrNull()?.price?.toDoubleOrNull()
         // val bestAsk = asks.firstOrNull()?.price?.toDoubleOrNull()
         // ...
+    }
+}
+
+@Composable
+fun NinjaTraderDomUnified(
+    unifiedOrderBook: UnifiedOrderBook?,
+    selectedPrice: Double?,
+    onPriceSelected: (Double) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val levels = unifiedOrderBook?.levels ?: emptyList()
+    val maxVolume = unifiedOrderBook?.maxVolume() ?: 1.0
+    
+    // Состояние скролла для автоматического скролла до цен из bookticker
+    val lazyListState = rememberLazyListState()
+    
+    // Находим индекс цены для скролла (лучшая цена bid или ask из unifiedOrderBook)
+    val scrollToIndex = remember(unifiedOrderBook, levels) {
+        if (unifiedOrderBook == null || levels.isEmpty()) {
+            return@remember null
+        }
+        
+        val bestBid = unifiedOrderBook.bestBid
+        val bestAsk = unifiedOrderBook.bestAsk
+        if (bestBid == null || bestAsk == null) {
+            return@remember null
+        }
+        
+        // Используем среднюю цену между bestBid и bestAsk для центрирования
+        val targetPrice = (bestBid + bestAsk) / 2.0
+        
+        // Поскольку levels отсортированы по убыванию, ищем ближайшую цену
+        var closestIndex = 0
+        var minDiff = Double.MAX_VALUE
+        
+        levels.forEachIndexed { index, level ->
+            val price = level.price.toDoubleOrNull() ?: return@forEachIndexed
+            val diff = abs(price - targetPrice)
+            
+            // Если найдено точное совпадение, сразу возвращаем индекс
+            if (diff < 0.000001) {
+                return@remember index
+            }
+            
+            if (diff < minDiff) {
+                minDiff = diff
+                closestIndex = index
+            }
+        }
+        
+        // Возвращаем индекс с небольшим смещением вверх, чтобы цена была видна в центре
+        val visibleItemCount = 10
+        val centeredIndex = max(0, closestIndex - visibleItemCount / 2)
+        
+        centeredIndex
+    }
+    
+    // Автоматический скролл до цены из bookticker
+    LaunchedEffect(scrollToIndex) {
+        if (scrollToIndex != null) {
+            // Плавный скролл с анимацией
+            try {
+                lazyListState.animateScrollToItem(
+                    index = scrollToIndex,
+                    scrollOffset = 0
+                )
+                println("[DOM DEBUG] Unified scroll completed successfully to index $scrollToIndex")
+            } catch (e: Exception) {
+                println("[DOM DEBUG] Unified scroll error: ${e.message}")
+                // Пробуем альтернативный метод скролла
+                try {
+                    lazyListState.scrollToItem(scrollToIndex, 0)
+                    println("[DOM DEBUG] Unified scroll with scrollToItem completed")
+                } catch (e2: Exception) {
+                    println("[DOM DEBUG] Both scroll methods failed: ${e2.message}")
+                }
+            }
+        } else {
+            println("[DOM DEBUG] No scroll index, skipping scroll")
+        }
+    }
+    
+    Column(modifier = modifier.fillMaxSize()) {
+        // Заголовок
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Bid Vol",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.weight(0.8f)
+            )
+            Text(
+                text = "Price",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.weight(0.6f)
+            )
+            Text(
+                text = "Ask Vol",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.weight(0.8f)
+            )
+        }
+        
+        // Единый LazyColumn со всеми уровнями
+        LazyColumn(
+            state = lazyListState,
+            modifier = Modifier.weight(1f)
+        ) {
+            items(
+                items = levels,
+                key = { "level-${it.price}" }
+            ) { level ->
+                NinjaTraderRowUnified(
+                    level = level,
+                    maxVolume = maxVolume,
+                    selectedPrice = selectedPrice,
+                    onPriceClick = onPriceSelected
+                )
+            }
+        }
+        
+        // Spread (разница) - можно отображать, если есть данные
+        if (unifiedOrderBook?.spread != null && unifiedOrderBook.spreadPercent != null) {
+            NinjaTraderSpread(
+                bestBid = unifiedOrderBook.bestBid ?: 0.0,
+                bestAsk = unifiedOrderBook.bestAsk ?: 0.0,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+            )
+        }
     }
 }
 

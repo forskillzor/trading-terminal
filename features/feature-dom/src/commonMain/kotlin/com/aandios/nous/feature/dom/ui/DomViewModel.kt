@@ -12,6 +12,8 @@ import com.aandios.nous.api.market.commands.TradingCommand
 import com.aandios.nous.api.market.model.BookTicker
 import com.aandios.nous.api.market.model.orderbook.OrderBook
 import com.aandios.nous.core.domain.repository.DomRepository
+import com.aandios.nous.feature.dom.data.repository.subscribeToUnifiedOrderBook
+import com.aandios.nous.feature.dom.domain.UnifiedOrderBook
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -44,7 +46,11 @@ class DomViewModel(
     private val _bookTicker = MutableStateFlow<BookTicker?>(null)
     val bookTicker: StateFlow<BookTicker?> = _bookTicker.asStateFlow()
 
+    private val _unifiedOrderBook = MutableStateFlow<UnifiedOrderBook?>(null)
+    val unifiedOrderBook: StateFlow<UnifiedOrderBook?> = _unifiedOrderBook.asStateFlow()
+
     private var bookTickerJob: Job? = null
+    private var unifiedSubscriptionJob: Job? = null
 
     fun subscribeToBookTicker(symbol: String) {
         bookTickerJob?.cancel()
@@ -73,6 +79,23 @@ class DomViewModel(
                 }
                 .collect { data ->
                     _orderBook.value = data
+                }
+        }
+    }
+
+    fun subscribeToUnifiedOrderBook(symbol: String, depth: Int) {
+        println("📊 VM: Subscribing to unified order book for $symbol")
+
+        unifiedSubscriptionJob?.cancel()
+
+        unifiedSubscriptionJob = viewModelScope.launch {
+            domRepository.subscribeToUnifiedOrderBook(symbol, depth)
+                .catch { e ->
+                    println("❌ Unified Order Book Error: ${e.message}")
+                    e.printStackTrace()
+                }
+                .collect { unifiedData ->
+                    _unifiedOrderBook.value = unifiedData
                 }
         }
     }
@@ -187,6 +210,8 @@ class DomViewModel(
 
     fun clear() {
         subscriptionJob?.cancel()
+        unifiedSubscriptionJob?.cancel()
+        bookTickerJob?.cancel()
         viewModelScope.coroutineContext.cancelChildren()
     }
 }

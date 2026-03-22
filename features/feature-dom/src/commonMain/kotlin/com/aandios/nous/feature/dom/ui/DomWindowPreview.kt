@@ -21,11 +21,15 @@ fun DomPreview() {
     var selectedPrice by remember { mutableStateOf<Double?>(null) }
     val orderBook by domViewModel.orderBook.collectAsState()
     val bookTicker by domViewModel.bookTicker.collectAsState()
+    val unifiedOrderBook by domViewModel.unifiedOrderBook.collectAsState()
     val orderQuantity by domViewModel.orderQuantity.collectAsState()
     val isTradingEnabled by domViewModel.isTradingEnabled.collectAsState()
 
     // Подписка на данные при первом запуске
     LaunchedEffect(Unit) {
+        // Используем новый унифицированный поток вместо отдельных подписок
+        domViewModel.subscribeToUnifiedOrderBook("BTCUSDT", depth = 20)
+        // Оставляем старые подписки для обратной совместимости (можно удалить позже)
         domViewModel.subscribeToOrderBook("BTCUSDT", depth = 20)
         domViewModel.subscribeToBookTicker("BTCUSDT")
     }
@@ -43,7 +47,8 @@ fun DomPreview() {
         onTradingCommand = { command -> domViewModel.executeCommand(command) },
         onCommandResult = { result -> println("Trading command result: $result") },
         isTradingEnabled = isTradingEnabled,
-        modifier = Modifier.width(350.dp).fillMaxHeight()
+        modifier = Modifier.width(350.dp).fillMaxHeight(),
+        unifiedOrderBook = unifiedOrderBook
     )
 }
 
