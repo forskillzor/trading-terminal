@@ -14,6 +14,14 @@ import com.aandios.nous.api.market.commands.TradingCommand
 import com.aandios.nous.api.market.model.BookTicker
 import com.aandios.nous.api.market.model.orderbook.OrderBook
 import com.aandios.nous.feature.dom.domain.UnifiedOrderBook
+import com.aandios.nous.feature.dom.ui.classic.DomContentClassic
+import com.aandios.nous.feature.dom.ui.ninja.DomContentNinja
+import com.aandios.nous.feature.dom.ui.ninja.DomContentNinjaUnified
+
+enum class DomMode {
+    CLASSIC,
+    NINJA
+}
 
 @Composable
 fun DomWidget(
@@ -29,7 +37,8 @@ fun DomWidget(
     modifier: Modifier = Modifier,
     width: Dp = 300.dp,
     showHeader: Boolean = true,
-    unifiedOrderBook: UnifiedOrderBook? = null) {
+    unifiedOrderBook: UnifiedOrderBook? = null,
+    domMode: DomMode = DomMode.NINJA) {
     Column(
         modifier = modifier
             .width(width)
@@ -45,33 +54,51 @@ fun DomWidget(
 
         val dataAvailable = unifiedOrderBook != null || orderBook != null
         if (dataAvailable) {
-            if (unifiedOrderBook != null) {
-                // Используем унифицированные данные (бизнес-логика уже в репозитории)
-                DomContentNinjaUnified(
-                    unifiedOrderBook = unifiedOrderBook,
-                    selectedPrice = selectedPrice,
-                    onPriceSelected = onPriceSelected,
-                    orderQuantity = orderQuantity,
-                    onQuantityChanged = onQuantityChanged,
-                    onTradingCommand = onTradingCommand,
-                    onCommandResult = onCommandResult,
-                    isTradingEnabled = isTradingEnabled,
-                    modifier = Modifier.weight(1f),
-                )
-            } else {
-                // Fallback к старой логике (для обратной совместимости)
-                DomContentNinja(
-                    orderBook = orderBook!!,
-                    bookTicker = bookTicker,
-                    selectedPrice = selectedPrice,
-                    onPriceSelected = onPriceSelected,
-                    orderQuantity = orderQuantity,
-                    onQuantityChanged = onQuantityChanged,
-                    onTradingCommand = onTradingCommand,
-                    onCommandResult = onCommandResult,
-                    isTradingEnabled = isTradingEnabled,
-                    modifier = Modifier.weight(1f),
-                )
+            when (domMode) {
+                DomMode.CLASSIC -> {
+                    // Классический DOM с раздельными bid/ask потоками
+                    DomContentClassic(
+                        orderBook = orderBook!!,
+                        selectedPrice = selectedPrice,
+                        onPriceSelected = onPriceSelected,
+                        orderQuantity = orderQuantity,
+                        onQuantityChanged = onQuantityChanged,
+                        onTradingCommand = onTradingCommand,
+                        onCommandResult = onCommandResult,
+                        isTradingEnabled = isTradingEnabled,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                DomMode.NINJA -> {
+                    if (unifiedOrderBook != null) {
+                        // Используем унифицированные данные (бизнес-логика уже в репозитории)
+                        DomContentNinjaUnified(
+                            unifiedOrderBook = unifiedOrderBook,
+                            selectedPrice = selectedPrice,
+                            onPriceSelected = onPriceSelected,
+                            orderQuantity = orderQuantity,
+                            onQuantityChanged = onQuantityChanged,
+                            onTradingCommand = onTradingCommand,
+                            onCommandResult = onCommandResult,
+                            isTradingEnabled = isTradingEnabled,
+                            modifier = Modifier.weight(1f),
+                        )
+                    } else {
+                        // Fallback к старой логике (для обратной совместимости)
+                        DomContentNinja(
+                            orderBook = orderBook!!,
+                            bookTicker = bookTicker,
+                            selectedPrice = selectedPrice,
+                            onPriceSelected = onPriceSelected,
+                            orderQuantity = orderQuantity,
+                            onQuantityChanged = onQuantityChanged,
+                            onTradingCommand = onTradingCommand,
+                            onCommandResult = onCommandResult,
+                            isTradingEnabled = isTradingEnabled,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
             }
         } else {
             Box(
