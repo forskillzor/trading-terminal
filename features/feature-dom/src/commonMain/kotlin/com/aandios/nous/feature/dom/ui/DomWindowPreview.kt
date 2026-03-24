@@ -9,6 +9,7 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.aandios.nous.core.ui.theme.TradingTerminalTheme
+import com.aandios.nous.feature.dom.domain.DomMode
 import com.aandios.nous.feature.dom.di.initKoinForPreview
 import org.koin.compose.KoinContext
 import org.koin.compose.koinInject
@@ -27,6 +28,9 @@ fun DomPreview() {
     val aggregationLevel by domViewModel.aggregationLevel.collectAsState()
     val subscriptionDepth by domViewModel.subscriptionDepth.collectAsState()
     val tradingProvider by domViewModel.tradingProvider.collectAsState()
+    val tradingSymbol by domViewModel.tradingSymbol.collectAsState()
+    val depthLimit by domViewModel.depthLimit.collectAsState()
+    val aggregationTime by domViewModel.aggregationTime.collectAsState()
     var domMode by remember { mutableStateOf(DomMode.NINJA) }
 
     // Подписка на данные при первом запуске
@@ -60,7 +64,13 @@ fun DomPreview() {
         subscriptionDepth = subscriptionDepth,
         onSubscriptionDepthChanged = { depth -> domViewModel.updateSubscriptionDepth(depth) },
         tradingProvider = tradingProvider,
-        onTradingProviderChanged = { provider -> domViewModel.updateTradingProvider(provider) }
+        onTradingProviderChanged = { provider -> domViewModel.updateTradingProvider(provider) },
+        tradingSymbol = tradingSymbol,
+        onTradingSymbolChanged = { symbol -> domViewModel.updateTradingSymbol(symbol) },
+        depthLimit = depthLimit,
+        onDepthLimitChanged = { limit -> domViewModel.updateDepthLimit(limit) },
+        aggregationTime = aggregationTime,
+        onAggregationTimeChanged = { time -> domViewModel.updateAggregationTime(time) }
     )
 }
 

@@ -14,18 +14,10 @@ import com.aandios.nous.api.market.commands.CommandResult
 import com.aandios.nous.api.market.commands.TradingCommand
 import com.aandios.nous.api.market.model.BookTicker
 import com.aandios.nous.api.market.model.orderbook.OrderBook
-import com.aandios.nous.feature.dom.domain.AggregationLevel
-import com.aandios.nous.feature.dom.domain.SubscriptionDepth
-import com.aandios.nous.feature.dom.domain.TradingProvider
-import com.aandios.nous.feature.dom.domain.UnifiedOrderBook
+import com.aandios.nous.feature.dom.domain.*
 import com.aandios.nous.feature.dom.ui.classic.DomContentClassic
 import com.aandios.nous.feature.dom.ui.ninja.DomContentNinja
 import com.aandios.nous.feature.dom.ui.ninja.DomContentNinjaUnified
-
-enum class DomMode {
-    CLASSIC,
-    NINJA
-}
 
 @Composable
 fun DomWidget(
@@ -49,7 +41,13 @@ fun DomWidget(
     subscriptionDepth: SubscriptionDepth = SubscriptionDepth.default(),
     onSubscriptionDepthChanged: (SubscriptionDepth) -> Unit = {},
     tradingProvider: TradingProvider = TradingProvider.BINANCE,
-    onTradingProviderChanged: (TradingProvider) -> Unit = {}) {
+    onTradingProviderChanged: (TradingProvider) -> Unit = {},
+    tradingSymbol: TradingSymbol = TradingSymbol.default(),
+    onTradingSymbolChanged: (TradingSymbol) -> Unit = {},
+    depthLimit: DepthLimit = DepthLimit.default(),
+    onDepthLimitChanged: (DepthLimit) -> Unit = {},
+    aggregationTime: AggregationTime = AggregationTime.default(),
+    onAggregationTimeChanged: (AggregationTime) -> Unit = {}) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -58,16 +56,16 @@ fun DomWidget(
     ) {
         if (showHeader) {
             DomHeader(
-                symbol = unifiedOrderBook?.symbol ?: orderBook?.symbol ?: "",
-                timestamp = unifiedOrderBook?.timestamp ?: orderBook?.timestamp ?: 0,
-                currentMode = domMode,
-                onModeChanged = onDomModeChanged,
-                aggregationLevel = aggregationLevel,
-                onAggregationLevelChanged = onAggregationLevelChanged,
-                subscriptionDepth = subscriptionDepth,
-                onSubscriptionDepthChanged = onSubscriptionDepthChanged,
                 tradingProvider = tradingProvider,
-                onTradingProviderChanged = onTradingProviderChanged
+                onTradingProviderChanged = onTradingProviderChanged,
+                tradingSymbol = tradingSymbol,
+                onSymbolChanged = onTradingSymbolChanged,
+                depthLimit = depthLimit,
+                onDepthLimitChanged = onDepthLimitChanged,
+                aggregationTime = aggregationTime,
+                onAggregationTimeChanged = onAggregationTimeChanged,
+                domMode = domMode,
+                onDomModeChanged = onDomModeChanged
             )
         }
 

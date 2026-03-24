@@ -1,44 +1,31 @@
 package com.aandios.nous.feature.dom.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.aandios.nous.feature.dom.domain.AggregationLevel
-import com.aandios.nous.feature.dom.domain.SubscriptionDepth
-import com.aandios.nous.feature.dom.domain.TradingProvider
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import com.aandios.nous.feature.dom.domain.*
 
 @Composable
 fun DomHeader(
-    symbol: String,
-    timestamp: Long,
-    currentMode: DomMode,
-    onModeChanged: (DomMode) -> Unit,
-    aggregationLevel: AggregationLevel,
-    onAggregationLevelChanged: (AggregationLevel) -> Unit,
-    subscriptionDepth: SubscriptionDepth = SubscriptionDepth.default(),
-    onSubscriptionDepthChanged: (SubscriptionDepth) -> Unit = {},
-    tradingProvider: TradingProvider = TradingProvider.BINANCE,
-    onTradingProviderChanged: (TradingProvider) -> Unit = {},
-    modifier: Modifier = Modifier.Companion
+    tradingProvider: TradingProvider,
+    onTradingProviderChanged: (TradingProvider) -> Unit,
+    tradingSymbol: TradingSymbol,
+    onSymbolChanged: (TradingSymbol) -> Unit,
+    depthLimit: DepthLimit,
+    onDepthLimitChanged: (DepthLimit) -> Unit,
+    aggregationTime: AggregationTime,
+    onAggregationTimeChanged: (AggregationTime) -> Unit,
+    domMode: DomMode,
+    onDomModeChanged: (DomMode) -> Unit,
+    isLive: Boolean = true,
+    modifier: Modifier = Modifier
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant,
@@ -48,122 +35,84 @@ fun DomHeader(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp)
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Первая строка: провайдер, символ, время и индикатор Live
+            // Первая строка: provider + live индикатор
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Левая часть: провайдер и символ
+                // Provider dropdown
+                TradingProviderDropdown(
+                    currentProvider = tradingProvider,
+                    onProviderChanged = onTradingProviderChanged,
+                    modifier = Modifier.weight(1f)
+                )
+                
+                // Live индикатор
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    // Выбор провайдера
-                    TradingProviderDropdown(
-                        currentProvider = tradingProvider,
-                        onProviderChanged = onTradingProviderChanged,
-                        modifier = Modifier
-                    )
-                    
-                    // Вертикальный разделитель
                     Box(
                         modifier = Modifier
-                            .width(1.dp)
-                            .height(16.dp)
-                            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                            .size(8.dp)
+                            .background(
+                                color = if (isLive) Color.Green else Color.Red,
+                                shape = MaterialTheme.shapes.small
+                            )
                     )
-                    
-                    // Символ (futures coin-m)
-                    Surface(
-                        shape = MaterialTheme.shapes.small,
-                        color = MaterialTheme.colorScheme.surface,
-                        tonalElevation = 1.dp,
-                        modifier = Modifier.padding(vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = symbol,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
-                    
-                    // Время обновления
-                    if (timestamp > 0) {
-                        val timeStr = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
-                            .format(Date(timestamp))
-                        Text(
-                            text = timeStr,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontSize = 10.sp,
-                            modifier = Modifier.padding(start = 4.dp)
-                        )
-                    }
+                    Text(
+                        text = if (isLive) "LIVE" else "OFFLINE",
+                        color = if (isLive) Color.Green else Color.Red,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+                    )
                 }
+            }
 
-                // Правая часть: индикатор Live
-                Text(
-                    text = "● Live",
-                    color = Color.Green,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontSize = 11.sp
+            // Вторая строка: symbol dropdown + depth limit selector
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Symbol dropdown
+                SymbolDropdown(
+                    currentSymbol = tradingSymbol,
+                    provider = tradingProvider,
+                    onSymbolChanged = onSymbolChanged,
+                    modifier = Modifier.weight(1f)
+                )
+                
+                // Depth limit selector
+                DepthLimitSelector(
+                    currentLimit = depthLimit,
+                    onLimitChanged = onDepthLimitChanged,
+                    modifier = Modifier.weight(1f)
                 )
             }
 
-            // Вторая строка: настройки глубины, агрегации и режима DOM
+            // Третья строка: aggregation time selector + DOM style toggle
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Левая часть: настройки глубины и агрегации
-                Surface(
-                    shape = MaterialTheme.shapes.small,
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 1.dp
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(1.dp),
-                        modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp)
-                    ) {
-                        // Выбор глубины подписки (компактный)
-                        SubscriptionDepthDropdown(
-                            currentDepth = subscriptionDepth,
-                            onDepthChanged = onSubscriptionDepthChanged,
-                            modifier = Modifier
-                        )
-                        
-                        // Тонкий разделитель
-                        Box(
-                            modifier = Modifier
-                                .width(1.dp)
-                                .height(14.dp)
-                                .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-                        )
-                        
-                        // Выбор уровня агрегации (компактный)
-                        AggregationLevelDropdown(
-                            currentLevel = aggregationLevel,
-                            onLevelChanged = onAggregationLevelChanged,
-                            modifier = Modifier
-                        )
-                    }
-                }
-
-                // Правая часть: переключатель режимов DOM
-                DomModeDropdown(
-                    currentMode = currentMode,
-                    onModeChanged = onModeChanged,
-                    modifier = Modifier
+                // Aggregation time selector
+                AggregationTimeSelector(
+                    currentTime = aggregationTime,
+                    onTimeChanged = onAggregationTimeChanged,
+                    modifier = Modifier.weight(1f)
+                )
+                
+                // DOM style toggle (classic/ninja)
+                DomStyleToggle(
+                    currentMode = domMode,
+                    onModeChanged = onDomModeChanged,
+                    modifier = Modifier.weight(1f)
                 )
             }
         }

@@ -13,10 +13,7 @@ import com.aandios.nous.api.market.model.BookTicker
 import com.aandios.nous.api.market.model.orderbook.OrderBook
 import com.aandios.nous.core.domain.repository.DomRepository
 import com.aandios.nous.feature.dom.data.repository.subscribeToUnifiedOrderBook
-import com.aandios.nous.feature.dom.domain.AggregationLevel
-import com.aandios.nous.feature.dom.domain.SubscriptionDepth
-import com.aandios.nous.feature.dom.domain.TradingProvider
-import com.aandios.nous.feature.dom.domain.UnifiedOrderBook
+import com.aandios.nous.feature.dom.domain.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -60,6 +57,18 @@ class DomViewModel(
 
     private val _tradingProvider = MutableStateFlow(TradingProvider.BINANCE)
     val tradingProvider: StateFlow<TradingProvider> = _tradingProvider.asStateFlow()
+
+    private val _tradingSymbol = MutableStateFlow(TradingSymbol.defaultForProvider(TradingProvider.BINANCE))
+    val tradingSymbol: StateFlow<TradingSymbol> = _tradingSymbol.asStateFlow()
+
+    private val _depthLimit = MutableStateFlow(DepthLimit.default())
+    val depthLimit: StateFlow<DepthLimit> = _depthLimit.asStateFlow()
+
+    private val _aggregationTime = MutableStateFlow(AggregationTime.default())
+    val aggregationTime: StateFlow<AggregationTime> = _aggregationTime.asStateFlow()
+
+    private val _domMode = MutableStateFlow(DomMode.CLASSIC)
+    val domMode: StateFlow<DomMode> = _domMode.asStateFlow()
 
     private var bookTickerJob: Job? = null
     private var unifiedSubscriptionJob: Job? = null
@@ -246,6 +255,46 @@ class DomViewModel(
         if (_tradingProvider.value != provider) {
             println("📊 VM: Trading provider changed to ${provider.displayName}")
             _tradingProvider.value = provider
+            
+            // При смене провайдера обновляем символ на дефолтный для нового провайдера
+            val defaultSymbol = TradingSymbol.defaultForProvider(provider)
+            updateTradingSymbol(defaultSymbol)
+        }
+    }
+
+    fun updateTradingSymbol(symbol: TradingSymbol) {
+        if (_tradingSymbol.value != symbol) {
+            println("📊 VM: Trading symbol changed to ${symbol.displayName}")
+            _tradingSymbol.value = symbol
+            
+            // При смене символа перезапускаем подписку
+            subscribeToOrderBook(symbol.symbol, _depthLimit.value.value)
+            subscribeToBookTicker(symbol.symbol)
+        }
+    }
+
+    fun updateDepthLimit(limit: DepthLimit) {
+        if (_depthLimit.value != limit) {
+            println("📊 VM: Depth limit changed to ${limit.value} levels")
+            _depthLimit.value = limit
+            
+            // При смене глубины перезапускаем подписку
+            val currentSymbol = _tradingSymbol.value
+            subscribeToOrderBook(currentSymbol.symbol, limit.value)
+        }
+    }
+
+    fun updateAggregationTime(time: AggregationTime) {
+        if (_aggregationTime.value != time) {
+            println("📊 VM: Aggregation time changed to ${time.displayName}")
+            _aggregationTime.value = time
+        }
+    }
+
+    fun updateDomMode(mode: DomMode) {
+        if (_domMode.value != mode) {
+            println("📊 VM: DOM mode changed to ${mode.displayName}")
+            _domMode.value = mode
         }
     }
 
