@@ -26,6 +26,7 @@ fun DomPreview() {
     val isTradingEnabled by domViewModel.isTradingEnabled.collectAsState()
     val aggregationLevel by domViewModel.aggregationLevel.collectAsState()
     val subscriptionDepth by domViewModel.subscriptionDepth.collectAsState()
+    val tradingProvider by domViewModel.tradingProvider.collectAsState()
     var domMode by remember { mutableStateOf(DomMode.NINJA) }
 
     // Подписка на данные при первом запуске
@@ -57,7 +58,9 @@ fun DomPreview() {
         aggregationLevel = aggregationLevel,
         onAggregationLevelChanged = { level -> domViewModel.updateAggregationLevel(level) },
         subscriptionDepth = subscriptionDepth,
-        onSubscriptionDepthChanged = { depth -> domViewModel.updateSubscriptionDepth(depth) }
+        onSubscriptionDepthChanged = { depth -> domViewModel.updateSubscriptionDepth(depth) },
+        tradingProvider = tradingProvider,
+        onTradingProviderChanged = { provider -> domViewModel.updateTradingProvider(provider) }
     )
 }
 

@@ -16,6 +16,7 @@ import com.aandios.nous.api.market.model.BookTicker
 import com.aandios.nous.api.market.model.orderbook.OrderBook
 import com.aandios.nous.feature.dom.domain.AggregationLevel
 import com.aandios.nous.feature.dom.domain.SubscriptionDepth
+import com.aandios.nous.feature.dom.domain.TradingProvider
 import com.aandios.nous.feature.dom.domain.UnifiedOrderBook
 import com.aandios.nous.feature.dom.ui.classic.DomContentClassic
 import com.aandios.nous.feature.dom.ui.ninja.DomContentNinja
@@ -46,7 +47,9 @@ fun DomWidget(
     aggregationLevel: AggregationLevel = AggregationLevel.TICK_0_1,
     onAggregationLevelChanged: (AggregationLevel) -> Unit = {},
     subscriptionDepth: SubscriptionDepth = SubscriptionDepth.default(),
-    onSubscriptionDepthChanged: (SubscriptionDepth) -> Unit = {}) {
+    onSubscriptionDepthChanged: (SubscriptionDepth) -> Unit = {},
+    tradingProvider: TradingProvider = TradingProvider.BINANCE,
+    onTradingProviderChanged: (TradingProvider) -> Unit = {}) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -62,7 +65,9 @@ fun DomWidget(
                 aggregationLevel = aggregationLevel,
                 onAggregationLevelChanged = onAggregationLevelChanged,
                 subscriptionDepth = subscriptionDepth,
-                onSubscriptionDepthChanged = onSubscriptionDepthChanged
+                onSubscriptionDepthChanged = onSubscriptionDepthChanged,
+                tradingProvider = tradingProvider,
+                onTradingProviderChanged = onTradingProviderChanged
             )
         }
 

@@ -140,11 +140,16 @@ fun OrderPlacementPanel(
                     isActive = false,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text(
-                        text = "Market Buy",
-                        color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.labelSmall
-                    )
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Market Buy",
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
                 }
 
                 TerminalButton(
@@ -157,11 +162,16 @@ fun OrderPlacementPanel(
                     isActive = false,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text(
-                        text = "Market Sell",
-                        color = MaterialTheme.colorScheme.secondary,
-                        style = MaterialTheme.typography.labelSmall
-                    )
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Market Sell",
+                            color = MaterialTheme.colorScheme.secondary,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
                 }
             }
 
@@ -182,14 +192,19 @@ fun OrderPlacementPanel(
                     isActive = false,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text(
-                        text = if (selectedPrice != null) "Buy Limit" else "Buy Limit (select price)",
-                        color = if (selectedPrice != null)
-                            MaterialTheme.colorScheme.primary
-                        else
-                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                        style = MaterialTheme.typography.labelSmall
-                    )
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (selectedPrice != null) "Buy Limit" else "Buy Limit (select price)",
+                            color = if (selectedPrice != null)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
                 }
 
                 TerminalButton(
@@ -204,14 +219,19 @@ fun OrderPlacementPanel(
                     isActive = false,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text(
-                        text = if (selectedPrice != null) "Sell Limit" else "Sell Limit (select price)",
-                        color = if (selectedPrice != null)
-                            MaterialTheme.colorScheme.secondary
-                        else
-                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                        style = MaterialTheme.typography.labelSmall
-                    )
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (selectedPrice != null) "Sell Limit" else "Sell Limit (select price)",
+                            color = if (selectedPrice != null)
+                                MaterialTheme.colorScheme.secondary
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
                 }
             }
 
@@ -233,14 +253,19 @@ fun OrderPlacementPanel(
                     isActive = false,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text(
-                        text = if (orderBook.bids.isNotEmpty()) "Best Bid" else "Best Bid (waiting...)",
-                        color = if (orderBook.bids.isNotEmpty())
-                            MaterialTheme.colorScheme.primary
-                        else
-                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                        style = MaterialTheme.typography.labelSmall
-                    )
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (orderBook.bids.isNotEmpty()) "Best Bid" else "Best Bid (waiting...)",
+                            color = if (orderBook.bids.isNotEmpty())
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
                 }
 
                 TerminalButton(
@@ -256,14 +281,19 @@ fun OrderPlacementPanel(
                     isActive = false,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text(
-                        text = if (orderBook.asks.isNotEmpty()) "Best Ask" else "Best Ask (waiting...)",
-                        color = if (orderBook.asks.isNotEmpty())
-                            MaterialTheme.colorScheme.secondary
-                        else
-                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                        style = MaterialTheme.typography.labelSmall
-                    )
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (orderBook.asks.isNotEmpty()) "Best Ask" else "Best Ask (waiting...)",
+                            color = if (orderBook.asks.isNotEmpty())
+                                MaterialTheme.colorScheme.secondary
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
                 }
             }
 
@@ -276,13 +306,18 @@ fun OrderPlacementPanel(
                 isActive = !isTradingEnabled,  // Активна когда торговля ВЫКЛЮЧЕНА
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = if (isTradingEnabled) "⚠️ TRADE OFF" else "✅ TRADE ON",
-                    color = if (isTradingEnabled) Color.Red else Color.Green,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Bold
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (isTradingEnabled) "⚠️ TRADE OFF" else "✅ TRADE ON",
+                        color = if (isTradingEnabled) Color.Red else Color.Green,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold
+                        )
                     )
-                )
+                }
             }
         }
     }

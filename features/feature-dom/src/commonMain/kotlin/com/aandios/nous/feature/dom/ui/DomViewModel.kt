@@ -15,6 +15,7 @@ import com.aandios.nous.core.domain.repository.DomRepository
 import com.aandios.nous.feature.dom.data.repository.subscribeToUnifiedOrderBook
 import com.aandios.nous.feature.dom.domain.AggregationLevel
 import com.aandios.nous.feature.dom.domain.SubscriptionDepth
+import com.aandios.nous.feature.dom.domain.TradingProvider
 import com.aandios.nous.feature.dom.domain.UnifiedOrderBook
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -56,6 +57,9 @@ class DomViewModel(
 
     private val _subscriptionDepth = MutableStateFlow(SubscriptionDepth.default())
     val subscriptionDepth: StateFlow<SubscriptionDepth> = _subscriptionDepth.asStateFlow()
+
+    private val _tradingProvider = MutableStateFlow(TradingProvider.BINANCE)
+    val tradingProvider: StateFlow<TradingProvider> = _tradingProvider.asStateFlow()
 
     private var bookTickerJob: Job? = null
     private var unifiedSubscriptionJob: Job? = null
@@ -235,6 +239,13 @@ class DomViewModel(
         if (_subscriptionDepth.value != depth) {
             println("📊 VM: Subscription depth changed to ${depth.displayName}")
             _subscriptionDepth.value = depth
+        }
+    }
+
+    fun updateTradingProvider(provider: TradingProvider) {
+        if (_tradingProvider.value != provider) {
+            println("📊 VM: Trading provider changed to ${provider.displayName}")
+            _tradingProvider.value = provider
         }
     }
 
