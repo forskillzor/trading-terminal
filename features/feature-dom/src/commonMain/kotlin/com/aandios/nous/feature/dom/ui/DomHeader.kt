@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.aandios.nous.feature.dom.domain.AggregationLevel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -24,6 +25,8 @@ fun DomHeader(
     timestamp: Long,
     currentMode: DomMode,
     onModeChanged: (DomMode) -> Unit,
+    aggregationLevel: AggregationLevel,
+    onAggregationLevelChanged: (AggregationLevel) -> Unit,
     modifier: Modifier = Modifier.Companion
 ) {
     Surface(
@@ -65,12 +68,25 @@ fun DomHeader(
                 style = MaterialTheme.typography.labelSmall
             )
 
-            // Правая часть: переключатель режимов
-            DomModeSwitch(
-                currentMode = currentMode,
-                onModeChanged = onModeChanged,
-                modifier = Modifier.padding(start = 8.dp)
-            )
+            // Правая часть: переключатель режимов и агрегация
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Выбор уровня агрегации
+                AggregationLevelDropdown(
+                    currentLevel = aggregationLevel,
+                    onLevelChanged = onAggregationLevelChanged,
+                    modifier = Modifier
+                )
+                
+                // Переключатель режимов DOM
+                DomModeDropdown(
+                    currentMode = currentMode,
+                    onModeChanged = onModeChanged,
+                    modifier = Modifier
+                )
+            }
         }
     }
 }

@@ -51,7 +51,8 @@ fun DomPreview() {
         modifier = Modifier.width(350.dp).fillMaxHeight(),
         unifiedOrderBook = unifiedOrderBook,
         domMode = domMode,
-        onDomModeChanged = { newMode -> domMode = newMode }
+        onDomModeChanged = { newMode -> domMode = newMode },
+        onAggregationLevelChanged = {}
     )
 }
 

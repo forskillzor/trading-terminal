@@ -13,6 +13,7 @@ import com.aandios.nous.api.market.model.BookTicker
 import com.aandios.nous.api.market.model.orderbook.OrderBook
 import com.aandios.nous.core.domain.repository.DomRepository
 import com.aandios.nous.feature.dom.data.repository.subscribeToUnifiedOrderBook
+import com.aandios.nous.feature.dom.domain.AggregationLevel
 import com.aandios.nous.feature.dom.domain.UnifiedOrderBook
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,6 +49,9 @@ class DomViewModel(
 
     private val _unifiedOrderBook = MutableStateFlow<UnifiedOrderBook?>(null)
     val unifiedOrderBook: StateFlow<UnifiedOrderBook?> = _unifiedOrderBook.asStateFlow()
+
+    private val _aggregationLevel = MutableStateFlow(AggregationLevel.TICK_0_1)
+    val aggregationLevel: StateFlow<AggregationLevel> = _aggregationLevel.asStateFlow()
 
     private var bookTickerJob: Job? = null
     private var unifiedSubscriptionJob: Job? = null
@@ -207,6 +211,20 @@ class DomViewModel(
     fun updateOrderQuantity(quantity: String) {
         _orderQuantity.value = quantity
     }
+
+    fun updateAggregationLevel(level: AggregationLevel) {
+        if (_aggregationLevel.value != level) {
+            println("📊 VM: Aggregation level changed to ${level.displayName()}")
+            _aggregationLevel.value = level
+        }
+    }
+
+    /**
+     * Возвращает агрегированный UnifiedOrderBook с применением текущего уровня агрегации.
+     * Если unifiedOrderBook отсутствует, возвращает null.
+     */
+    val aggregatedUnifiedOrderBook: UnifiedOrderBook?
+        get() = _unifiedOrderBook.value?.aggregate(_aggregationLevel.value)
 
     fun clear() {
         subscriptionJob?.cancel()

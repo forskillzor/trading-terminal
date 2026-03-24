@@ -87,4 +87,14 @@ data class UnifiedOrderBook(
             )
         } ?: 1.0
     }
+    
+    /**
+     * Создает новый UnifiedOrderBook с агрегированными уровнями по заданному тику.
+     * @param aggregationLevel уровень агрегации (0.1, 1.0, 10.0)
+     * @return новый UnifiedOrderBook с агрегированными уровнями
+     */
+    fun aggregate(aggregationLevel: AggregationLevel): UnifiedOrderBook {
+        val aggregatedLevels = DomAggregator.aggregateUnifiedLevels(levels, aggregationLevel)
+        return copy(levels = aggregatedLevels)
+    }
 }
