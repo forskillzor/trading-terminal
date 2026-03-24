@@ -24,14 +24,16 @@ fun DomPreview() {
     val unifiedOrderBook by domViewModel.unifiedOrderBook.collectAsState()
     val orderQuantity by domViewModel.orderQuantity.collectAsState()
     val isTradingEnabled by domViewModel.isTradingEnabled.collectAsState()
+    val aggregationLevel by domViewModel.aggregationLevel.collectAsState()
+    val subscriptionDepth by domViewModel.subscriptionDepth.collectAsState()
     var domMode by remember { mutableStateOf(DomMode.NINJA) }
 
     // Подписка на данные при первом запуске
     LaunchedEffect(Unit) {
         // Используем новый унифицированный поток вместо отдельных подписок
-        domViewModel.subscribeToUnifiedOrderBook("BTCUSDT", depth = 20)
+        domViewModel.subscribeToUnifiedOrderBook("BTCUSDT")
         // Оставляем старые подписки для обратной совместимости (можно удалить позже)
-        domViewModel.subscribeToOrderBook("BTCUSDT", depth = 20)
+        domViewModel.subscribeToOrderBook("BTCUSDT")
         domViewModel.subscribeToBookTicker("BTCUSDT")
     }
 
@@ -52,7 +54,10 @@ fun DomPreview() {
         unifiedOrderBook = unifiedOrderBook,
         domMode = domMode,
         onDomModeChanged = { newMode -> domMode = newMode },
-        onAggregationLevelChanged = {}
+        aggregationLevel = aggregationLevel,
+        onAggregationLevelChanged = { level -> domViewModel.updateAggregationLevel(level) },
+        subscriptionDepth = subscriptionDepth,
+        onSubscriptionDepthChanged = { depth -> domViewModel.updateSubscriptionDepth(depth) }
     )
 }
 

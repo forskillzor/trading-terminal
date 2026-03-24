@@ -14,6 +14,7 @@ import com.aandios.nous.api.market.model.orderbook.OrderBook
 import com.aandios.nous.core.domain.repository.DomRepository
 import com.aandios.nous.feature.dom.data.repository.subscribeToUnifiedOrderBook
 import com.aandios.nous.feature.dom.domain.AggregationLevel
+import com.aandios.nous.feature.dom.domain.SubscriptionDepth
 import com.aandios.nous.feature.dom.domain.UnifiedOrderBook
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,6 +54,9 @@ class DomViewModel(
     private val _aggregationLevel = MutableStateFlow(AggregationLevel.TICK_0_1)
     val aggregationLevel: StateFlow<AggregationLevel> = _aggregationLevel.asStateFlow()
 
+    private val _subscriptionDepth = MutableStateFlow(SubscriptionDepth.default())
+    val subscriptionDepth: StateFlow<SubscriptionDepth> = _subscriptionDepth.asStateFlow()
+
     private var bookTickerJob: Job? = null
     private var unifiedSubscriptionJob: Job? = null
 
@@ -71,7 +75,7 @@ class DomViewModel(
     }
 
     fun subscribeToOrderBook(symbol: String, depth: Int) {
-        println("📊 VM: Subscribing to $symbol")
+        println("📊 VM: Subscribing to $symbol with depth=$depth")
 
         subscriptionJob?.cancel()
 
@@ -87,8 +91,12 @@ class DomViewModel(
         }
     }
 
+    fun subscribeToOrderBook(symbol: String) {
+        subscribeToOrderBook(symbol, _subscriptionDepth.value.levels)
+    }
+
     fun subscribeToUnifiedOrderBook(symbol: String, depth: Int) {
-        println("📊 VM: Subscribing to unified order book for $symbol")
+        println("📊 VM: Subscribing to unified order book for $symbol with depth=$depth")
 
         unifiedSubscriptionJob?.cancel()
 
@@ -102,6 +110,10 @@ class DomViewModel(
                     _unifiedOrderBook.value = unifiedData
                 }
         }
+    }
+
+    fun subscribeToUnifiedOrderBook(symbol: String) {
+        subscribeToUnifiedOrderBook(symbol, _subscriptionDepth.value.levels)
     }
 
     // Единый метод для выполнения команд
@@ -216,6 +228,13 @@ class DomViewModel(
         if (_aggregationLevel.value != level) {
             println("📊 VM: Aggregation level changed to ${level.displayName()}")
             _aggregationLevel.value = level
+        }
+    }
+
+    fun updateSubscriptionDepth(depth: SubscriptionDepth) {
+        if (_subscriptionDepth.value != depth) {
+            println("📊 VM: Subscription depth changed to ${depth.displayName}")
+            _subscriptionDepth.value = depth
         }
     }
 

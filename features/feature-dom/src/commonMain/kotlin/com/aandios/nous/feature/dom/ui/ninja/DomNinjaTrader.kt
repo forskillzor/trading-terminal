@@ -1,4 +1,5 @@
 package com.aandios.nous.feature.dom.ui.ninja
+import com.aandios.nous.feature.dom.domain.AggregationLevel
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -208,6 +209,7 @@ fun NinjaTraderDomUnified(
     unifiedOrderBook: UnifiedOrderBook?,
     selectedPrice: Double?,
     onPriceSelected: (Double) -> Unit,
+    aggregationLevel: AggregationLevel = AggregationLevel.TICK_0_1,
     modifier: Modifier = Modifier
 ) {
     val levels = unifiedOrderBook?.levels ?: emptyList()
@@ -311,6 +313,14 @@ fun NinjaTraderDomUnified(
             )
         }
         
+        // Вычисляем агрегированные лучшие цены для подсветки
+        val aggregatedBestBid = remember(key1 = unifiedOrderBook?.bestBid, key2 = aggregationLevel) {
+            unifiedOrderBook?.bestBid?.let { aggregationLevel.roundDown(it) }
+        }
+        val aggregatedBestAsk = remember(key1 = unifiedOrderBook?.bestAsk, key2 = aggregationLevel) {
+            unifiedOrderBook?.bestAsk?.let { aggregationLevel.roundDown(it) }
+        }
+        
         // Единый LazyColumn со всеми уровнями
         LazyColumn(
             state = lazyListState,
@@ -324,8 +334,8 @@ fun NinjaTraderDomUnified(
                     level = level,
                     maxVolume = maxVolume,
                     selectedPrice = selectedPrice,
-                    bestBid = unifiedOrderBook?.bestBid,
-                    bestAsk = unifiedOrderBook?.bestAsk,
+                    bestBid = aggregatedBestBid,
+                    bestAsk = aggregatedBestAsk,
                     onPriceClick = onPriceSelected
                 )
             }

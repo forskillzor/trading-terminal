@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
@@ -14,6 +15,7 @@ import com.aandios.nous.api.market.commands.TradingCommand
 import com.aandios.nous.api.market.model.BookTicker
 import com.aandios.nous.api.market.model.orderbook.OrderBook
 import com.aandios.nous.feature.dom.domain.AggregationLevel
+import com.aandios.nous.feature.dom.domain.SubscriptionDepth
 import com.aandios.nous.feature.dom.domain.UnifiedOrderBook
 import com.aandios.nous.feature.dom.ui.classic.DomContentClassic
 import com.aandios.nous.feature.dom.ui.ninja.DomContentNinja
@@ -42,7 +44,9 @@ fun DomWidget(
     domMode: DomMode = DomMode.NINJA,
     onDomModeChanged: (DomMode) -> Unit = {},
     aggregationLevel: AggregationLevel = AggregationLevel.TICK_0_1,
-    onAggregationLevelChanged: (AggregationLevel) -> Unit = {}) {
+    onAggregationLevelChanged: (AggregationLevel) -> Unit = {},
+    subscriptionDepth: SubscriptionDepth = SubscriptionDepth.default(),
+    onSubscriptionDepthChanged: (SubscriptionDepth) -> Unit = {}) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -56,12 +60,29 @@ fun DomWidget(
                 currentMode = domMode,
                 onModeChanged = onDomModeChanged,
                 aggregationLevel = aggregationLevel,
-                onAggregationLevelChanged = onAggregationLevelChanged
+                onAggregationLevelChanged = onAggregationLevelChanged,
+                subscriptionDepth = subscriptionDepth,
+                onSubscriptionDepthChanged = onSubscriptionDepthChanged
             )
         }
 
         val dataAvailable = unifiedOrderBook != null || orderBook != null
         if (dataAvailable) {
+            // Вычисляем агрегированные цены bookticker для корректной подсветки при агрегации
+            val aggregatedBookTicker = remember(bookTicker, aggregationLevel) {
+                if (bookTicker == null) return@remember null
+                // Для уровня TICK_0_1 используем точные цены, для других - округляем
+                if (aggregationLevel == AggregationLevel.TICK_0_1) {
+                    bookTicker
+                } else {
+                    // Создаем копию bookticker с округленными ценами
+                    bookTicker.copy(
+                        bestBid = aggregationLevel.roundDown(bookTicker.bestBid),
+                        bestAsk = aggregationLevel.roundDown(bookTicker.bestAsk)
+                    )
+                }
+            }
+            
             when (domMode) {
                 DomMode.CLASSIC -> {
                     // Классический DOM с раздельными bid/ask потоками
@@ -96,13 +117,14 @@ fun DomWidget(
                             onTradingCommand = onTradingCommand,
                             onCommandResult = onCommandResult,
                             isTradingEnabled = isTradingEnabled,
+                            aggregationLevel = aggregationLevel,
                             modifier = Modifier.weight(1f),
                         )
                     } else {
                         // Fallback к старой логике (для обратной совместимости)
                         DomContentNinja(
                             orderBook = orderBook!!,
-                            bookTicker = bookTicker,
+                            bookTicker = aggregatedBookTicker, // Используем агрегированный bookticker
                             selectedPrice = selectedPrice,
                             onPriceSelected = onPriceSelected,
                             orderQuantity = orderQuantity,

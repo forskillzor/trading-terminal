@@ -11,6 +11,7 @@ import com.aandios.nous.api.market.commands.CommandResult
 import com.aandios.nous.api.market.commands.TradingCommand
 import com.aandios.nous.api.market.model.BookTicker
 import com.aandios.nous.api.market.model.orderbook.OrderBook
+import com.aandios.nous.feature.dom.domain.AggregationLevel
 import com.aandios.nous.feature.dom.domain.UnifiedOrderBook
 import com.aandios.nous.feature.dom.ui.OrderPlacementPanel
 import com.aandios.nous.feature.dom.ui.ninja.DomNinjaTrader
@@ -61,7 +62,7 @@ fun DomContentNinja(
  * Бизнес-логика преобразования уже выполнена в репозитории, UI только отображает готовые данные.
  */
 @Composable
-fun DomContentNinjaUnified(
+fun DomContentNinjaUnified(aggregationLevel: AggregationLevel = AggregationLevel.TICK_0_1, 
     unifiedOrderBook: UnifiedOrderBook,
     selectedPrice: Double?,
     onPriceSelected: (Double?) -> Unit,
@@ -74,7 +75,7 @@ fun DomContentNinjaUnified(
 ) {
     Column(modifier = modifier.fillMaxSize()) {
         // NinjaTrader стиль DOM с унифицированными данными
-        NinjaTraderDomUnified(
+        NinjaTraderDomUnified(aggregationLevel = aggregationLevel, 
             unifiedOrderBook = unifiedOrderBook,
             selectedPrice = selectedPrice,
             onPriceSelected = { price -> onPriceSelected(price) },

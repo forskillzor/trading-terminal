@@ -1,5 +1,7 @@
 package com.aandios.nous.feature.dom.domain
 
+import com.aandios.nous.api.market.model.BookTicker
+import com.aandios.nous.api.market.model.orderbook.OrderBook
 import com.aandios.nous.api.market.model.orderbook.OrderBookLevel
 
 /**
@@ -20,8 +22,8 @@ data class UnifiedOrderBook(
 ) {
     companion object {
         fun fromOrderBook(
-            orderBook: com.aandios.nous.api.market.model.orderbook.OrderBook,
-            bookTicker: com.aandios.nous.api.market.model.BookTicker?
+            orderBook: OrderBook,
+            bookTicker: BookTicker?
         ): UnifiedOrderBook {
             val bids = orderBook.bids
             val asks = orderBook.asks
@@ -95,6 +97,21 @@ data class UnifiedOrderBook(
      */
     fun aggregate(aggregationLevel: AggregationLevel): UnifiedOrderBook {
         val aggregatedLevels = DomAggregator.aggregateUnifiedLevels(levels, aggregationLevel)
-        return copy(levels = aggregatedLevels)
+        
+        // Агрегируем лучшие цены с учетом уровня агрегации
+        val aggregatedBestBid = bestBid?.let { aggregationLevel.roundDown(it) }
+        val aggregatedBestAsk = bestAsk?.let { aggregationLevel.roundDown(it) }
+        val aggregatedSpread = if (aggregatedBestBid != null && aggregatedBestAsk != null) 
+            aggregatedBestAsk - aggregatedBestBid else null
+        val aggregatedSpreadPercent = if (aggregatedBestBid != null && aggregatedSpread != null)
+            (aggregatedSpread / aggregatedBestBid) * 100 else null
+        
+        return copy(
+            levels = aggregatedLevels,
+            bestBid = aggregatedBestBid,
+            bestAsk = aggregatedBestAsk,
+            spread = aggregatedSpread,
+            spreadPercent = aggregatedSpreadPercent
+        )
     }
 }
