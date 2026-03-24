@@ -45,86 +45,90 @@ fun DomHeader(
         tonalElevation = 1.dp,
         modifier = modifier.fillMaxWidth()
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 8.dp, vertical = 4.dp)
         ) {
-            // Левая часть: провайдер и символ
+            // Первая строка: провайдер, символ, время и индикатор Live
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier.weight(1f, fill = false)
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Выбор провайдера
-                TradingProviderDropdown(
-                    currentProvider = tradingProvider,
-                    onProviderChanged = onTradingProviderChanged,
-                    modifier = Modifier
-                )
-                
-                // Вертикальный разделитель
-                Box(
-                    modifier = Modifier
-                        .width(1.dp)
-                        .height(16.dp)
-                        .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-                )
-                
-                // Символ (futures coin-m)
-                Surface(
-                    shape = MaterialTheme.shapes.small,
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 1.dp,
-                    modifier = Modifier.padding(vertical = 2.dp)
+                // Левая часть: провайдер и символ
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Text(
-                        text = symbol,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    // Выбор провайдера
+                    TradingProviderDropdown(
+                        currentProvider = tradingProvider,
+                        onProviderChanged = onTradingProviderChanged,
+                        modifier = Modifier
                     )
-                }
-                
-                // Время обновления
-                if (timestamp > 0) {
-                    val timeStr = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
-                        .format(Date(timestamp))
-                    Text(
-                        text = timeStr,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = 10.sp,
-                        modifier = Modifier.padding(start = 4.dp)
+                    
+                    // Вертикальный разделитель
+                    Box(
+                        modifier = Modifier
+                            .width(1.dp)
+                            .height(16.dp)
+                            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                     )
+                    
+                    // Символ (futures coin-m)
+                    Surface(
+                        shape = MaterialTheme.shapes.small,
+                        color = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 1.dp,
+                        modifier = Modifier.padding(vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = symbol,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                    
+                    // Время обновления
+                    if (timestamp > 0) {
+                        val timeStr = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+                            .format(Date(timestamp))
+                        Text(
+                            text = timeStr,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 10.sp,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                    }
                 }
+
+                // Правая часть: индикатор Live
+                Text(
+                    text = "● Live",
+                    color = Color.Green,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontSize = 11.sp
+                )
             }
 
-            // Центр: индикатор Live
-            Text(
-                text = "● Live",
-                color = Color.Green,
-                style = MaterialTheme.typography.labelSmall,
-                fontSize = 11.sp,
-                modifier = Modifier.padding(horizontal = 4.dp)
-            )
-
-            // Правая часть: управление отображением DOM (компактная версия)
+            // Вторая строка: настройки глубины, агрегации и режима DOM
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier.weight(1.5f, fill = false)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Группа настроек глубины и агрегации (компактная)
+                // Левая часть: настройки глубины и агрегации
                 Surface(
                     shape = MaterialTheme.shapes.small,
                     color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 1.dp,
-                    modifier = Modifier.padding(vertical = 1.dp)
+                    tonalElevation = 1.dp
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -154,16 +158,8 @@ fun DomHeader(
                         )
                     }
                 }
-                
-                // Вертикальный разделитель
-                Box(
-                    modifier = Modifier
-                        .width(1.dp)
-                        .height(18.dp)
-                        .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-                )
-                
-                // Переключатель режимов DOM (компактный)
+
+                // Правая часть: переключатель режимов DOM
                 DomModeDropdown(
                     currentMode = currentMode,
                     onModeChanged = onModeChanged,
