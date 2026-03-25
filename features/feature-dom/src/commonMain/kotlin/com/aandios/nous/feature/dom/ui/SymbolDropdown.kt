@@ -5,6 +5,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.aandios.nous.feature.dom.domain.TradingProvider
 import com.aandios.nous.feature.dom.domain.TradingSymbol
 
@@ -36,7 +37,9 @@ fun SymbolDropdown(
                 .menuAnchor()
                 .fillMaxWidth(),
             singleLine = true,
-            label = { Text("Symbol") }
+            label = { Text("Symbol") },
+            textStyle = LocalTextStyle.current.copy(fontSize = 12.sp)
+
         )
 
         ExposedDropdownMenu(
@@ -46,7 +49,7 @@ fun SymbolDropdown(
         ) {
             symbols.forEach { symbol ->
                 DropdownMenuItem(
-                    text = { Text(symbol.displayName) },
+                    text = { Text(symbol.displayName, fontSize = 12.sp) },
                     onClick = {
                         onSymbolChanged(symbol)
                         expanded = false

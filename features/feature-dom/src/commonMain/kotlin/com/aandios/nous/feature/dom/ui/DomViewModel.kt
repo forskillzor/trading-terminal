@@ -64,8 +64,7 @@ class DomViewModel(
     private val _depthLimit = MutableStateFlow(DepthLimit.default())
     val depthLimit: StateFlow<DepthLimit> = _depthLimit.asStateFlow()
 
-    private val _aggregationTime = MutableStateFlow(AggregationTime.default())
-    val aggregationTime: StateFlow<AggregationTime> = _aggregationTime.asStateFlow()
+
 
     private val _domMode = MutableStateFlow(DomMode.CLASSIC)
     val domMode: StateFlow<DomMode> = _domMode.asStateFlow()
@@ -284,12 +283,7 @@ class DomViewModel(
         }
     }
 
-    fun updateAggregationTime(time: AggregationTime) {
-        if (_aggregationTime.value != time) {
-            println("📊 VM: Aggregation time changed to ${time.displayName}")
-            _aggregationTime.value = time
-        }
-    }
+
 
     fun updateDomMode(mode: DomMode) {
         if (_domMode.value != mode) {

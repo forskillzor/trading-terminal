@@ -20,8 +20,8 @@ fun DomHeader(
     onSymbolChanged: (TradingSymbol) -> Unit,
     depthLimit: DepthLimit,
     onDepthLimitChanged: (DepthLimit) -> Unit,
-    aggregationTime: AggregationTime,
-    onAggregationTimeChanged: (AggregationTime) -> Unit,
+    aggregationLevel: AggregationLevel,
+    onAggregationLevelChanged: (AggregationLevel) -> Unit,
     domMode: DomMode,
     onDomModeChanged: (DomMode) -> Unit,
     isLive: Boolean = true,
@@ -102,14 +102,13 @@ fun DomHeader(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Aggregation time selector
-                AggregationTimeSelector(
-                    currentTime = aggregationTime,
-                    onTimeChanged = onAggregationTimeChanged,
-                    modifier = Modifier.weight(1f)
+                AggregationLevelDropdown(
+                    currentLevel = aggregationLevel,
+                    onLevelChanged = onAggregationLevelChanged,
                 )
                 
-                // DOM style toggle (classic/ninja)
-                DomStyleToggle(
+                // DOM mode dropdown (classic/ninja)
+                DomModeDropdown(
                     currentMode = domMode,
                     onModeChanged = onDomModeChanged,
                     modifier = Modifier.weight(1f)

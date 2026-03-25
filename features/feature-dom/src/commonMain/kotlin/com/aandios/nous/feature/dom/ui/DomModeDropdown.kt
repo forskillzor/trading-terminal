@@ -8,7 +8,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -16,9 +15,9 @@ import com.aandios.nous.feature.dom.domain.DomMode
 
 /**
  * Выпадающий список для выбора режима DOM.
- * Поддерживает текущие режимы Classic и Ninja, с возможностью расширения в будущем.
+ * Отображает текущий режим и позволяет выбрать из доступных значений: Classic и Ninja.
  *
- * @param currentMode текущий выбранный режим
+ * @param currentMode текущий выбранный режим DOM
  * @param onModeChanged callback при изменении режима
  * @param modifier Modifier для контейнера
  */
@@ -29,12 +28,6 @@ fun DomModeDropdown(
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
-
-    // Текстовое представление текущего режима
-    val currentModeText = when (currentMode) {
-        DomMode.CLASSIC -> "Classic DOM"
-        DomMode.NINJA -> "Ninja DOM"
-    }
 
     Box(
         modifier = modifier.wrapContentSize(Alignment.TopStart)
@@ -52,7 +45,7 @@ fun DomModeDropdown(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
             ) {
                 Text(
-                    text = currentModeText,
+                    text = currentMode.displayName,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
@@ -60,7 +53,7 @@ fun DomModeDropdown(
                 )
                 Icon(
                     imageVector = Icons.Default.ArrowDropDown,
-                    contentDescription = "Раскрыть список режимов",
+                    contentDescription = "Раскрыть список режимов DOM",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(16.dp)
                 )
@@ -71,34 +64,23 @@ fun DomModeDropdown(
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.width(140.dp)
+            modifier = Modifier.width(100.dp)
         ) {
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        text = "Classic DOM",
-                        fontSize = 12.sp,
-                        fontWeight = if (currentMode == DomMode.CLASSIC) FontWeight.Bold else FontWeight.Normal
-                    )
-                },
-                onClick = {
-                    onModeChanged(DomMode.CLASSIC)
-                    expanded = false
-                }
-            )
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        text = "Ninja DOM",
-                        fontSize = 12.sp,
-                        fontWeight = if (currentMode == DomMode.NINJA) FontWeight.Bold else FontWeight.Normal
-                    )
-                },
-                onClick = {
-                    onModeChanged(DomMode.NINJA)
-                    expanded = false
-                }
-            )
+            DomMode.values().forEach { mode ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = mode.displayName,
+                            fontSize = 12.sp,
+                            fontWeight = if (currentMode == mode) FontWeight.Bold else FontWeight.Normal
+                        )
+                    },
+                    onClick = {
+                        onModeChanged(mode)
+                        expanded = false
+                    }
+                )
+            }
         }
     }
 }

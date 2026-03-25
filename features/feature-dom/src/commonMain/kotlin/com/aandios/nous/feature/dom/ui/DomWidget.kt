@@ -46,8 +46,8 @@ fun DomWidget(
     onTradingSymbolChanged: (TradingSymbol) -> Unit = {},
     depthLimit: DepthLimit = DepthLimit.default(),
     onDepthLimitChanged: (DepthLimit) -> Unit = {},
-    aggregationTime: AggregationTime = AggregationTime.default(),
-    onAggregationTimeChanged: (AggregationTime) -> Unit = {}) {
+
+    ) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -62,8 +62,8 @@ fun DomWidget(
                 onSymbolChanged = onTradingSymbolChanged,
                 depthLimit = depthLimit,
                 onDepthLimitChanged = onDepthLimitChanged,
-                aggregationTime = aggregationTime,
-                onAggregationTimeChanged = onAggregationTimeChanged,
+                aggregationLevel = aggregationLevel,
+                onAggregationLevelChanged = onAggregationLevelChanged,
                 domMode = domMode,
                 onDomModeChanged = onDomModeChanged
             )
