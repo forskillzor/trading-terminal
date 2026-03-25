@@ -46,8 +46,8 @@ fun TradingProviderDropdown(
             ) {
                 Text(
                     text = currentProvider.displayName,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.inverseOnSurface,
+                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
                     fontWeight = FontWeight.Medium,
                     letterSpacing = 0.2.sp,
                     maxLines = 1

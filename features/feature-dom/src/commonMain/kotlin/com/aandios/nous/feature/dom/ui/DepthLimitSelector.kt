@@ -1,13 +1,26 @@
 package com.aandios.nous.feature.dom.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.aandios.nous.feature.dom.domain.DepthLimit
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Компактный выпадающий список для выбора глубины стакана.
+ * Оптимизирован для десктопного интерфейса с минимальным использованием пространства.
+ *
+ * @param currentLimit текущая выбранная глубина
+ * @param onLimitChanged callback при изменении глубины
+ * @param modifier Modifier для контейнера
+ */
 @Composable
 fun DepthLimitSelector(
     currentLimit: DepthLimit,
@@ -17,48 +30,73 @@ fun DepthLimitSelector(
     var expanded by remember { mutableStateOf(false) }
     val standardValues = DepthLimit.standardValues
 
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
-        modifier = modifier
+    Box(
+        modifier = modifier.wrapContentSize(Alignment.TopStart)
     ) {
-        OutlinedTextField(
-            value = "${currentLimit.value} levels",
-            onValueChange = {},
-            readOnly = true,
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-            modifier = Modifier
-                .menuAnchor()
-                .fillMaxWidth(),
-            singleLine = true,
-            label = { Text("Depth Limit") }
-        )
+        // Кнопка-триггер с текущей глубиной и стрелкой
+        Surface(
+            shape = MaterialTheme.shapes.small,
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            tonalElevation = 2.dp,
+            modifier = Modifier.clickable { expanded = true }
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = "${currentLimit.value}",
+                    color = MaterialTheme.colorScheme.inverseOnSurface,
+                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 0.2.sp,
+                    maxLines = 1
+                )
+                Icon(
+                    imageVector = Icons.Default.ArrowDropDown,
+                    contentDescription = "Раскрыть список глубин",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
 
-        ExposedDropdownMenu(
+        // Выпадающее меню
+        DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.exposedDropdownSize()
+            modifier = Modifier.width(100.dp)
         ) {
             standardValues.forEach { value ->
                 DropdownMenuItem(
-                    text = { Text("$value levels") },
+                    text = {
+                        Text(
+                            text = "$value",
+                            fontSize = 12.sp,
+                            fontWeight = if (currentLimit.value == value) FontWeight.Bold else FontWeight.Normal
+                        )
+                    },
                     onClick = {
                         onLimitChanged(DepthLimit.create(value))
                         expanded = false
-                    },
-                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                    }
                 )
             }
             
             // Кастомное значение
             DropdownMenuItem(
-                text = { Text("Custom...") },
+                text = {
+                    Text(
+                        text = "Custom...",
+                        fontSize = 12.sp,
+                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                    )
+                },
                 onClick = {
                     // TODO: Реализовать диалог для ввода кастомного значения
                     expanded = false
-                },
-                contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                }
             )
         }
     }

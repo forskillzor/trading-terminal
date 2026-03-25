@@ -31,6 +31,7 @@ private val DarkTerminalColorScheme = darkColorScheme(
     onBackground = Color(0xFFE0E0E0),
     onSurface = Color(0xFFCCCCCC),
     onSurfaceVariant = Color(0xFF888888),
+    inverseOnSurface = Color(0xFFFFEB00),
 
     // Состояния
     error = Color(0xFFCF6679),

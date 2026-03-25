@@ -44,8 +44,8 @@ fun DomHeader(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Provider dropdown
-                TradingProviderDropdown(
+                // Provider dropdown с label
+                TradingProviderDropdownWithLabel(
                     currentProvider = tradingProvider,
                     onProviderChanged = onTradingProviderChanged,
                     modifier = Modifier.weight(1f)
@@ -79,36 +79,37 @@ fun DomHeader(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Symbol dropdown
-                SymbolDropdown(
+                // Symbol dropdown с label
+                SymbolDropdownWithLabel(
                     currentSymbol = tradingSymbol,
                     provider = tradingProvider,
                     onSymbolChanged = onSymbolChanged,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1.5f)
                 )
                 
-                // Depth limit selector
-                DepthLimitSelector(
+                // Depth limit selector с label
+                DepthLimitSelectorWithLabel(
                     currentLimit = depthLimit,
                     onLimitChanged = onDepthLimitChanged,
                     modifier = Modifier.weight(1f)
                 )
             }
 
-            // Третья строка: aggregation time selector + DOM style toggle
+            // Третья строка: aggregation level + DOM mode
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Aggregation time selector
-                AggregationLevelDropdown(
+                // Aggregation level dropdown с label
+                AggregationLevelDropdownWithLabel(
                     currentLevel = aggregationLevel,
                     onLevelChanged = onAggregationLevelChanged,
+                    modifier = Modifier.weight(1f)
                 )
                 
-                // DOM mode dropdown (classic/ninja)
-                DomModeDropdown(
+                // DOM mode dropdown с label
+                DomModeDropdownWithLabel(
                     currentMode = domMode,
                     onModeChanged = onDomModeChanged,
                     modifier = Modifier.weight(1f)

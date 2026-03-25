@@ -1,15 +1,28 @@
 package com.aandios.nous.feature.dom.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aandios.nous.feature.dom.domain.TradingProvider
 import com.aandios.nous.feature.dom.domain.TradingSymbol
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Компактный выпадающий список для выбора торгового символа.
+ * Оптимизирован для десктопного интерфейса с минимальным использованием пространства.
+ *
+ * @param currentSymbol текущий выбранный символ
+ * @param provider текущий торговый провайдер
+ * @param onSymbolChanged callback при изменении символа
+ * @param modifier Modifier для контейнера
+ */
 @Composable
 fun SymbolDropdown(
     currentSymbol: TradingSymbol,
@@ -22,39 +35,57 @@ fun SymbolDropdown(
         TradingSymbol.getSymbolsForProvider(provider)
     }
 
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
-        modifier = modifier
+    Box(
+        modifier = modifier.wrapContentSize(Alignment.TopStart)
     ) {
-        OutlinedTextField(
-            value = currentSymbol.displayName,
-            onValueChange = {},
-            readOnly = true,
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-            modifier = Modifier
-                .menuAnchor()
-                .fillMaxWidth(),
-            singleLine = true,
-            label = { Text("Symbol") },
-            textStyle = LocalTextStyle.current.copy(fontSize = 12.sp)
+        // Кнопка-триггер с текущим символом и стрелкой
+        Surface(
+            shape = MaterialTheme.shapes.small,
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            tonalElevation = 2.dp,
+            modifier = Modifier.clickable { expanded = true }
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = currentSymbol.displayName,
+                    color = MaterialTheme.colorScheme.inverseOnSurface,
+                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 0.2.sp,
+                    maxLines = 1
+                )
+                Icon(
+                    imageVector = Icons.Default.ArrowDropDown,
+                    contentDescription = "Раскрыть список символов",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
 
-        )
-
-        ExposedDropdownMenu(
+        // Выпадающее меню
+        DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.exposedDropdownSize()
+            modifier = Modifier.width(120.dp)
         ) {
             symbols.forEach { symbol ->
                 DropdownMenuItem(
-                    text = { Text(symbol.displayName, fontSize = 12.sp) },
+                    text = {
+                        Text(
+                            text = symbol.displayName,
+                            fontSize = 12.sp,
+                            fontWeight = if (currentSymbol == symbol) FontWeight.Bold else FontWeight.Normal
+                        )
+                    },
                     onClick = {
                         onSymbolChanged(symbol)
                         expanded = false
-                    },
-                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                    }
                 )
             }
         }
