@@ -174,7 +174,7 @@ fun DomModeDropdownWithLabel(
     ) {
         TerminalDropdown(
             currentValue = currentMode,
-            items = DomMode.values().toList(),
+            items = DomMode.entries,
             onValueChanged = onModeChanged,
             displayText = { it.displayName },
             menuWidth = 100.dp
