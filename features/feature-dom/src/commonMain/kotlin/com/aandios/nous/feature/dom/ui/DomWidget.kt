@@ -46,7 +46,8 @@ fun DomWidget(
     onTradingSymbolChanged: (TradingSymbol) -> Unit = {},
     depthLimit: DepthLimit = DepthLimit.default(),
     onDepthLimitChanged: (DepthLimit) -> Unit = {},
-
+    collapsed: Boolean = false,
+    onToggleCollapsed: () -> Unit = {},
     ) {
     Column(
         modifier = modifier
@@ -65,7 +66,9 @@ fun DomWidget(
                 aggregationLevel = aggregationLevel,
                 onAggregationLevelChanged = onAggregationLevelChanged,
                 domMode = domMode,
-                onDomModeChanged = onDomModeChanged
+                onDomModeChanged = onDomModeChanged,
+                collapsed = collapsed,
+                onToggleCollapsed = onToggleCollapsed
             )
         }
 

@@ -64,7 +64,8 @@ class DomViewModel(
     private val _depthLimit = MutableStateFlow(DepthLimit.default())
     val depthLimit: StateFlow<DepthLimit> = _depthLimit.asStateFlow()
 
-
+    private val _collapsed = MutableStateFlow(false)
+    val collapsed: StateFlow<Boolean> = _collapsed.asStateFlow()
 
     private val _domMode = MutableStateFlow(DomMode.CLASSIC)
     val domMode: StateFlow<DomMode> = _domMode.asStateFlow()
@@ -290,6 +291,11 @@ class DomViewModel(
             println("📊 VM: DOM mode changed to ${mode.displayName}")
             _domMode.value = mode
         }
+    }
+
+    fun toggleCollapsed() {
+        _collapsed.value = !_collapsed.value
+        println("📊 VM: Header collapsed state changed to ${_collapsed.value}")
     }
 
     /**

@@ -30,6 +30,7 @@ fun DomPreview() {
     val tradingProvider by domViewModel.tradingProvider.collectAsState()
     val tradingSymbol by domViewModel.tradingSymbol.collectAsState()
     val depthLimit by domViewModel.depthLimit.collectAsState()
+    val collapsed by domViewModel.collapsed.collectAsState()
 
     var domMode by remember { mutableStateOf(DomMode.NINJA) }
 
@@ -67,7 +68,8 @@ fun DomPreview() {
         onTradingSymbolChanged = { symbol -> domViewModel.updateTradingSymbol(symbol) },
         depthLimit = depthLimit,
         onDepthLimitChanged = { limit -> domViewModel.updateDepthLimit(limit) },
-
+        collapsed = collapsed,
+        onToggleCollapsed = { domViewModel.toggleCollapsed() }
     )
 }
 
