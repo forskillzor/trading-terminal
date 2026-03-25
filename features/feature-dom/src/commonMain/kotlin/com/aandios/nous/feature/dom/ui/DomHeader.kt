@@ -155,7 +155,7 @@ private fun ExpandedDomHeader(
                     currentSymbol = tradingSymbol,
                     provider = tradingProvider,
                     onSymbolChanged = onSymbolChanged,
-                    modifier = Modifier.weight(1.5f)
+                    modifier = Modifier.weight(1.4f)
                 )
                 
                 // Depth limit selector с label

@@ -42,7 +42,7 @@ fun TradingProviderDropdown(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                modifier = Modifier.padding(horizontal = 0.dp, vertical = 0.dp)
             ) {
                 Text(
                     text = currentProvider.displayName,
