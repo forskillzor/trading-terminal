@@ -59,6 +59,7 @@ fun <T> TerminalDropdown(
                     letterSpacing = 0.2.sp,
                     maxLines = 1
                 )
+                Spacer(Modifier.weight(1f))
                 Icon(
                     imageVector = Icons.Default.ArrowDropDown,
                     contentDescription = "Раскрыть список",
