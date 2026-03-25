@@ -82,9 +82,12 @@ fun TradingProviderDropdownWithLabel(
         label = "Provider",
         modifier = modifier
     ) {
-        TradingProviderDropdown(
-            currentProvider = currentProvider,
-            onProviderChanged = onProviderChanged
+        TerminalDropdown(
+            currentValue = currentProvider,
+            items = TradingProvider.all(),
+            onValueChanged = onProviderChanged,
+            displayText = { it.displayName },
+            menuWidth = 180.dp
         )
     }
 }
@@ -103,10 +106,12 @@ fun SymbolDropdownWithLabel(
         label = "Sym",
         modifier = modifier
     ) {
-        SymbolDropdown(
-            currentSymbol = currentSymbol,
-            provider = provider,
-            onSymbolChanged = onSymbolChanged
+        TerminalDropdown(
+            currentValue = currentSymbol,
+            items = TradingSymbol.getSymbolsForProvider(provider),
+            onValueChanged = onSymbolChanged,
+            displayText = { it.displayName },
+            menuWidth = 120.dp
         )
     }
 }
@@ -144,9 +149,12 @@ fun AggregationLevelDropdownWithLabel(
         label = "Agg",
         modifier = modifier
     ) {
-        AggregationLevelDropdown(
-            currentLevel = currentLevel,
-            onLevelChanged = onLevelChanged
+        TerminalDropdown(
+            currentValue = currentLevel,
+            items = AggregationLevel.all(),
+            onValueChanged = onLevelChanged,
+            displayText = { it.displayName() },
+            menuWidth = 100.dp
         )
     }
 }
@@ -164,9 +172,12 @@ fun DomModeDropdownWithLabel(
         label = "Mode",
         modifier = modifier
     ) {
-        DomModeDropdown(
-            currentMode = currentMode,
-            onModeChanged = onModeChanged
+        TerminalDropdown(
+            currentValue = currentMode,
+            items = DomMode.values().toList(),
+            onValueChanged = onModeChanged,
+            displayText = { it.displayName },
+            menuWidth = 100.dp
         )
     }
 }

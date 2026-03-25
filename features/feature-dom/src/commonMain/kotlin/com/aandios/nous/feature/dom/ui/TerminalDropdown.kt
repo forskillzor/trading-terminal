@@ -9,22 +9,29 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.aandios.nous.feature.dom.domain.SubscriptionDepth
 
 /**
- * Выпадающий список для выбора количества уровней подписки на стакан заявок.
- * Отображает текущее количество уровней и позволяет выбрать из предопределённых значений.
+ * Универсальный выпадающий список для терминального интерфейса.
+ * Заменяет все специализированные dropdown-компоненты (DomModeDropdown, SymbolDropdown и т.д.).
  *
- * @param currentDepth текущий выбранный уровень глубины
- * @param onDepthChanged callback при изменении глубины
+ * @param T тип значения в dropdown
+ * @param currentValue текущее выбранное значение
+ * @param items список доступных значений
+ * @param onValueChanged callback при изменении значения
+ * @param displayText функция для преобразования значения в отображаемый текст
+ * @param menuWidth ширина выпадающего меню (по умолчанию 120.dp)
  * @param modifier Modifier для контейнера
  */
 @Composable
-fun SubscriptionDepthDropdown(
-    currentDepth: SubscriptionDepth,
-    onDepthChanged: (SubscriptionDepth) -> Unit,
+fun <T> TerminalDropdown(
+    currentValue: T,
+    items: List<T>,
+    onValueChanged: (T) -> Unit,
+    displayText: (T) -> String,
+    menuWidth: Dp = 120.dp,
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -32,7 +39,7 @@ fun SubscriptionDepthDropdown(
     Box(
         modifier = modifier.wrapContentSize(Alignment.TopStart)
     ) {
-        // Кнопка-триггер с текущим уровнем и стрелкой
+        // Кнопка-триггер с текущим значением и стрелкой
         Surface(
             shape = MaterialTheme.shapes.small,
             color = MaterialTheme.colorScheme.surfaceVariant,
@@ -45,15 +52,16 @@ fun SubscriptionDepthDropdown(
                 modifier = Modifier.padding(horizontal = 0.dp, vertical = 0.dp)
             ) {
                 Text(
-                    text = currentDepth.displayName,
+                    text = displayText(currentValue),
                     color = MaterialTheme.colorScheme.inverseOnSurface,
                     fontSize = MaterialTheme.typography.labelSmall.fontSize,
                     fontWeight = FontWeight.Medium,
-                    letterSpacing = 0.2.sp
+                    letterSpacing = 0.2.sp,
+                    maxLines = 1
                 )
                 Icon(
                     imageVector = Icons.Default.ArrowDropDown,
-                    contentDescription = "Раскрыть список уровней глубины",
+                    contentDescription = "Раскрыть список",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(16.dp)
                 )
@@ -64,19 +72,19 @@ fun SubscriptionDepthDropdown(
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.width(120.dp)
+            modifier = Modifier.width(menuWidth)
         ) {
-            SubscriptionDepth.all().forEach { depth ->
+            items.forEach { item ->
                 DropdownMenuItem(
                     text = {
                         Text(
-                            text = depth.displayName,
+                            text = displayText(item),
                             fontSize = 12.sp,
-                            fontWeight = if (currentDepth == depth) FontWeight.Bold else FontWeight.Normal
+                            fontWeight = if (currentValue == item) FontWeight.Bold else FontWeight.Normal
                         )
                     },
                     onClick = {
-                        onDepthChanged(depth)
+                        onValueChanged(item)
                         expanded = false
                     }
                 )
