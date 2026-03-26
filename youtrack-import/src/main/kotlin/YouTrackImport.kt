@@ -527,17 +527,17 @@ object DataGenerator {
         var currentDate = Config.SPRINT_START
 
         val sprintData = listOf(
-            "Sprint 1" to "KMP Foundation" to "Базовая архитектура KMP + Gradle + DI",
-            "Sprint 2" to "Binance Integration" to "Подключение к Binance WebSocket + REST",
-            "Sprint 3" to "DOM Widget" to "Стакан заявок с визуализацией",
-            "Sprint 4" to "Chart & Trades" to "График + лента сделок",
-            "Sprint 5" to "Terminal Layout" to "Терминальный интерфейс + панели",
-            "Sprint 6" to "Portfolio & Trading" to "Портфель + размещение ордеров",
-            "Sprint 7" to "Launch Prep" to "Подготовка к публичному запуску",
-            "Sprint 8" to "User Growth" to "Первые 100 пользователей",
-            "Sprint 9" to "Monetization" to "Pro подписка + первые платящие",
-            "Sprint 10" to "Marketplace" to "Маркетплейс плагинов",
-            "Sprint 11" to "Scale" to "DSL + бэктестинг + масштабирование"
+            Triple("Sprint 1", "KMP Foundation", "Базовая архитектура KMP + Gradle + DI"),
+            Triple("Sprint 2", "Binance Integration", "Подключение к Binance WebSocket + REST"),
+            Triple("Sprint 3", "DOM Widget", "Стакан заявок с визуализацией"),
+            Triple("Sprint 4", "Chart & Trades", "График + лента сделок"),
+            Triple("Sprint 5", "Terminal Layout", "Терминальный интерфейс + панели"),
+            Triple("Sprint 6", "Portfolio & Trading", "Портфель + размещение ордеров"),
+            Triple("Sprint 7", "Launch Prep", "Подготовка к публичному запуску"),
+            Triple("Sprint 8", "User Growth", "Первые 100 пользователей"),
+            Triple("Sprint 9", "Monetization", "Pro подписка + первые платящие"),
+            Triple("Sprint 10", "Marketplace", "Маркетплейс плагинов"),
+            Triple("Sprint 11", "Scale", "DSL + бэктестинг + масштабирование")
         )
 
         for ((i, data) in sprintData.withIndex()) {
