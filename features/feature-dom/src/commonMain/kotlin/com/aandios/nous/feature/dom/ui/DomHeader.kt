@@ -23,6 +23,8 @@ fun DomHeader(
     onDepthLimitChanged: (DepthLimit) -> Unit,
     aggregationLevel: AggregationLevel,
     onAggregationLevelChanged: (AggregationLevel) -> Unit,
+    subscriptionDepth: SubscriptionDepth,
+    onSubscriptionDepthChanged: (SubscriptionDepth) -> Unit,
     domMode: DomMode,
     onDomModeChanged: (DomMode) -> Unit,
     isLive: Boolean = true,
@@ -51,6 +53,8 @@ fun DomHeader(
             onDepthLimitChanged = onDepthLimitChanged,
             aggregationLevel = aggregationLevel,
             onAggregationLevelChanged = onAggregationLevelChanged,
+            subscriptionDepth = subscriptionDepth,
+            onSubscriptionDepthChanged = onSubscriptionDepthChanged,
             domMode = domMode,
             onDomModeChanged = onDomModeChanged,
             isLive = isLive,
@@ -73,6 +77,9 @@ private fun ExpandedDomHeader(
     onDepthLimitChanged: (DepthLimit) -> Unit,
     aggregationLevel: AggregationLevel,
     onAggregationLevelChanged: (AggregationLevel) -> Unit,
+    // todo пробросить до viewModel переподписаться на orderbook с новой глубиной
+    subscriptionDepth: SubscriptionDepth,
+    onSubscriptionDepthChanged: (SubscriptionDepth) -> Unit,
     domMode: DomMode,
     onDomModeChanged: (DomMode) -> Unit,
     isLive: Boolean = true,
@@ -166,7 +173,7 @@ private fun ExpandedDomHeader(
                 )
             }
 
-            // Третья строка: aggregation level + DOM mode
+            // Третья строка: aggregation level + subscription depth + DOM mode
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -178,7 +185,7 @@ private fun ExpandedDomHeader(
                     onLevelChanged = onAggregationLevelChanged,
                     modifier = Modifier.weight(1f)
                 )
-                
+
                 // DOM mode dropdown с label
                 DomModeDropdownWithLabel(
                     currentMode = domMode,

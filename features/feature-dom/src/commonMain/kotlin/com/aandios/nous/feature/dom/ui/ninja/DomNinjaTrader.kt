@@ -78,7 +78,7 @@ fun DomNinjaTrader(
             )
         } ?: 1.0
     }
-
+    // todo auto-scroll реально кривой. надо сделать красиво как в ninja trader
     // Состояние скролла для автоматического скролла до цен из bookticker
     val lazyListState = rememberLazyListState()
 

@@ -248,6 +248,11 @@ class DomViewModel(
         if (_subscriptionDepth.value != depth) {
             println("📊 VM: Subscription depth changed to ${depth.displayName}")
             _subscriptionDepth.value = depth
+            
+            // При смене глубины подписки перезапускаем подписку
+            val currentSymbol = _tradingSymbol.value
+            subscribeToOrderBook(currentSymbol.symbol, depth.levels)
+            subscribeToUnifiedOrderBook(currentSymbol.symbol, depth.levels)
         }
     }
 

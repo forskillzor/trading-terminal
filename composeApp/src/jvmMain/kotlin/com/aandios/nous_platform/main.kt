@@ -34,8 +34,6 @@ fun main() = application {
             val tradesViewModel: TradesViewModel = koinInject()
             val terminalStateViewModel: TerminalStateViewModel = koinInject()
 
-            // todo here should be TerminalLayout
-
             TerminalLayout(
 
                 modifier = Modifier.fillMaxHeight(),

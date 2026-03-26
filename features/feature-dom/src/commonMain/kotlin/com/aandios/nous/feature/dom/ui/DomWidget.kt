@@ -65,6 +65,8 @@ fun DomWidget(
                 onDepthLimitChanged = onDepthLimitChanged,
                 aggregationLevel = aggregationLevel,
                 onAggregationLevelChanged = onAggregationLevelChanged,
+                subscriptionDepth = subscriptionDepth,
+                onSubscriptionDepthChanged = onSubscriptionDepthChanged,
                 domMode = domMode,
                 onDomModeChanged = onDomModeChanged,
                 collapsed = collapsed,
