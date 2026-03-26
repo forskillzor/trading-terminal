@@ -15,11 +15,11 @@ import java.util.concurrent.TimeUnit
 // ==================== КОНФИГУРАЦИЯ ====================
 
 object Config {
-    val YOUTRACK_URL = System.getenv("YOUTRACK_URL") ?: "http://localhost:8080"
+    val YOUTRACK_URL = System.getenv("YOUTRACK_URL") ?: "http://localhost:8081"
     val PROJECT_ID = System.getenv("YOUTRACK_PROJECT") ?: "NOUS"
-    val TOKEN = System.getenv("YOUTRACK_TOKEN")
-    val USER = System.getenv("YOUTRACK_USER")
-    val PASS = System.getenv("YOUTRACK_PASS")
+    val TOKEN = System.getenv("YOUTRACK_TOKEN")?: "perm-YWRtaW4=.NDItMQ==.LLbeWWAZFVOXicroCXshF8D2sPvAm8"
+    val USER = System.getenv("YOUTRACK_USER") ?: "admin"
+    val PASS = System.getenv("YOUTRACK_PASS")?: "ZzXx1221"
 
     // Даты спринтов (начиная с сегодняшнего дня + 1 день)
     val SPRINT_START = Clock.System.todayAt(TimeZone.currentSystemDefault()).plus(1, DateTimeUnit.DAY)

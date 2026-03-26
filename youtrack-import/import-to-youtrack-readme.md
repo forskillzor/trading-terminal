@@ -2,7 +2,7 @@
 # Для локального YouTrack
 export YOUTRACK_URL="http://localhost:8080"
 export YOUTRACK_PROJECT="NOUS"
-export YOUTRACK_TOKEN="perm:YOUR_TOKEN_HERE"
+export YOUTRACK_TOKEN="perm:xc7RMoyXkFLG9yhiBEnu"
 
 # ИЛИ для YouTrack InCloud
 export YOUTRACK_URL="https://your-company.myjetbrains.com/youtrack"
