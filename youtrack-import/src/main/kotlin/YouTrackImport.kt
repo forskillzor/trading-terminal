@@ -9,14 +9,13 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.logging.HttpLoggingInterceptor
-import java.io.File
 import java.util.concurrent.TimeUnit
 
 // ==================== КОНФИГУРАЦИЯ ====================
 
 object Config {
     val YOUTRACK_URL = System.getenv("YOUTRACK_URL") ?: "http://localhost:8081"
-    val PROJECT_ID = System.getenv("YOUTRACK_PROJECT") ?: "NOUS"
+    val PROJECT_ID = System.getenv("YOUTRACK_PROJECT") ?: "0-2"
     val TOKEN = System.getenv("YOUTRACK_TOKEN")?: "perm-YWRtaW4=.NDItMQ==.LLbeWWAZFVOXicroCXshF8D2sPvAm8"
     val USER = System.getenv("YOUTRACK_USER") ?: "admin"
     val PASS = System.getenv("YOUTRACK_PASS")?: "ZzXx1221"
@@ -317,7 +316,7 @@ object DataGenerator {
     fun generateImportData(): YouTrackImport {
         return YouTrackImport(
             project = ProjectConfig(
-                id = "NOUS",
+                id = "0-2",
                 name = "Nous Platform",
                 description = "Kotlin Multiplatform trading platform with plugin system"
             ),
