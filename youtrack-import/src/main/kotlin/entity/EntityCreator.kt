@@ -71,6 +71,19 @@ abstract class EntityCreator(
     protected fun buildTaskDescription(task: models.Task): String {
         return buildString {
             append("**Описание:** ${task.description}\n\n")
+            
+            if (task.component.isNotEmpty()) {
+                append("**Компонент:** ${task.component}\n\n")
+            }
+            
+            if (task.estimate > 0) {
+                append("**Оценка:** ${task.estimate} story points\n\n")
+            }
+            
+            if (task.tags.isNotEmpty()) {
+                append("**Теги:** ${task.tags.joinToString(", ")}\n\n")
+            }
+            
             if (task.acceptanceCriteria.isNotEmpty()) {
                 append("**Критерии приемки:**\n")
                 task.acceptanceCriteria.forEach { append("- $it\n") }

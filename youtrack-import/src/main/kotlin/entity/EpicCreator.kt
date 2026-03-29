@@ -12,10 +12,10 @@ class EpicCreator(
 ) : EntityCreator(httpClient, fields, componentsFieldId) {
 
     suspend fun createEpic(epic: Epic): String? {
-        println("📦 Создание эпика: ${epic.name}")
+        println("📦 Создание эпика: ${epic.summary}")
 
         val customFields = mutableMapOf<String, Any?>(
-            "Epic" to epic.name,
+            "Epic" to epic.summary,
             "Priority" to epic.priority,
             "Type" to "Epic",
             "Status" to "To Do"
@@ -27,14 +27,14 @@ class EpicCreator(
 
         val body = mapOf(
             "project" to mapOf("id" to Config.EXISTING_PROJECT_ID),
-            "summary" to epic.name,
+            "summary" to epic.summary,
             "description" to epic.description,
             "customFields" to buildCustomFields(customFields)
         )
 
         val response = httpClient.post("issues", body)
         if (response == null) {
-            println("❌ Не удалось создать эпик: ${epic.name}")
+            println("❌ Не удалось создать эпик: ${epic.summary}")
             return null
         }
 

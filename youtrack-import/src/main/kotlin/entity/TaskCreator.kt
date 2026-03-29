@@ -12,7 +12,7 @@ class TaskCreator(
 ) : EntityCreator(httpClient, fields, componentsFieldId) {
 
     suspend fun createTask(task: Task, epicId: String? = null): String? {
-        println("📝 Создание задачи: ${task.name}")
+        println("📝 Создание задачи: ${task.summary}")
 
         val customFields = mutableMapOf<String, Any?>(
             "Priority" to task.priority,
@@ -28,20 +28,31 @@ class TaskCreator(
             customFields["Assignee"] = task.assignee
         }
 
-        if (componentsFieldId != null && task.components.isNotEmpty()) {
-            customFields["Components"] = task.components
+        if (task.estimate > 0) {
+            customFields["Story Points"] = task.estimate.toString()
         }
 
-        val body = mapOf(
+        if (task.sprint.isNotEmpty()) {
+            customFields["Sprint"] = task.sprint
+        }
+
+        val body = mutableMapOf<String, Any>(
             "project" to mapOf("id" to Config.EXISTING_PROJECT_ID),
-            "summary" to task.name,
+            "summary" to task.summary,
             "description" to buildTaskDescription(task),
             "customFields" to buildCustomFields(customFields)
         )
 
+        // Добавляем компоненты, если они указаны
+        if (task.component.isNotEmpty()) {
+            body["components"] = listOf(
+                mapOf("name" to task.component)
+            )
+        }
+
         val response = httpClient.post("issues", body)
         if (response == null) {
-            println("❌ Не удалось создать задачу: ${task.name}")
+            println("❌ Не удалось создать задачу: ${task.summary}")
             return null
         }
 

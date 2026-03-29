@@ -35,12 +35,14 @@ data class Component(
 
 data class Epic(
     val id: String,
-    val name: String,
+    val summary: String,
     val description: String,
     val priority: String,
     val assignee: String = "",
     val sprints: List<String> = emptyList()
-)
+) {
+    val name: String get() = summary
+}
 
 data class Sprint(
     val id: String,
@@ -55,18 +57,24 @@ data class Sprint(
 
 data class Task(
     val id: String,
-    val name: String,
+    val summary: String,
     val description: String,
     val type: String,
     val priority: String,
     val assignee: String = "",
     val epic: String = "",
+    val component: String = "",
+    val estimate: Int = 0,
+    val sprint: String = "",
+    val tags: List<String> = emptyList(),
     val components: List<String> = emptyList(),
     val acceptanceCriteria: List<String> = emptyList(),
     val notes: List<String> = emptyList(),
     val relatedFiles: List<String> = emptyList(),
     val dependencies: List<String> = emptyList()
-)
+) {
+    val name: String get() = summary
+}
 
 data class Tag(
     val name: String,

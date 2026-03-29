@@ -16,7 +16,7 @@ class HttpClient {
     }
 
     private val client = OkHttpClient.Builder()
-        .addInterceptor(logging)
+//        .addInterceptor(logging)
         .connectTimeout(60, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)
         .writeTimeout(60, TimeUnit.SECONDS)

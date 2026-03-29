@@ -7,7 +7,7 @@ object Config {
     val PROJECT_JSON_PATH = "src/main/kotlin/project.json"
 
     // Эти значения нужно получить после ручной настройки (см. README.md)
-    val EXISTING_PROJECT_ID = "0-10"
+    val EXISTING_PROJECT_ID = "0-11"
     val EXISTING_PROJECT_SHORTNAME = "NOUS"
     val AGILE_BOARD_ID = "1"  // ID Agile Board (найти в UI)
 
