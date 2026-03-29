@@ -20,7 +20,7 @@ object Config {
 
     // Эти значения нужно получить после ручной настройки (см. README.md)
     val EXISTING_PROJECT_ID = "0-8"
-    val EXISTING_PROJECT_SHORTNAME = "NOUS"
+    val EXISTING_PROJECT_SHORTNAME = "NOUSClone"
     val AGILE_BOARD_ID = "1"  // ID Agile Board (найти в UI)
 
     // Field IDs (найти через UI или API)
