@@ -38,11 +38,21 @@ class EpicCreator(
             return null
         }
 
-        val issueNode = mapper.readTree(response)
-        val issueId = issueNode["idReadable"].asText()
-        println("✅ Создан эпик: $issueId")
-
-        delay(Config.EPIC_DELAY_MS)
-        return issueId
+        try {
+            val issueNode = mapper.readTree(response)
+            val idReadableNode = issueNode["idReadable"]
+            if (idReadableNode != null) {
+                val issueId = idReadableNode.asText()
+                println("✅ Создан эпик: $issueId")
+                delay(Config.EPIC_DELAY_MS)
+                return issueId
+            } else {
+                println("❌ Ответ не содержит idReadable: $response")
+                return null
+            }
+        } catch (e: Exception) {
+            println("❌ Ошибка при разборе ответа: ${e.message}")
+            return null
+        }
     }
 }

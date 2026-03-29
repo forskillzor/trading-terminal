@@ -20,21 +20,38 @@ class FieldDiscovery(private val httpClient: HttpClient) {
             return emptyMap()
         }
 
-        val fields = mapper.readTree(response)
-        val result = mutableMapOf<String, FieldInfo>()
+        try {
+            val fields = mapper.readTree(response)
+            val result = mutableMapOf<String, FieldInfo>()
 
-        fields.forEach { field ->
-            val id = field["id"].asText()
-            val name = field["name"].asText()
-            val fieldType = field["field"]["id"].asText()
-            val localizedName = field["field"]["localizedName"].asText()
+            fields.forEach { field ->
+                val idNode = field["id"]
+                val nameNode = field["name"]
+                val fieldNode = field["field"]
+                
+                if (idNode != null && nameNode != null && fieldNode != null) {
+                    val id = idNode.asText()
+                    val name = nameNode.asText()
+                    val fieldTypeNode = fieldNode["id"]
+                    val localizedNameNode = fieldNode["localizedName"]
+                    
+                    val fieldType = fieldTypeNode?.asText() ?: "unknown"
+                    val localizedName = localizedNameNode?.asText() ?: name
+                    
+                    result[name] = FieldInfo(id, name, fieldType, localizedName)
+                } else {
+                    println("⚠️ Пропущено поле с неполными данными: $field")
+                }
+            }
 
-            result[name] = FieldInfo(id, name, fieldType, localizedName)
+            println("✅ Найдено ${result.size} полей:")
+            result.values.forEach { println("   - ${it.name} (${it.id})") }
+            return result
+        } catch (e: Exception) {
+            println("❌ Ошибка при разборе ответа: ${e.message}")
+            e.printStackTrace()
+            return emptyMap()
         }
-
-        println("✅ Найдено ${result.size} полей:")
-        result.values.forEach { println("   - ${it.name} (${it.id})") }
-        return result
     }
 
     fun discoverComponentsFieldId(fields: Map<String, FieldInfo>): String? {
@@ -51,14 +68,21 @@ class FieldDiscovery(private val httpClient: HttpClient) {
             return null
         }
 
-        val allFields = mapper.readTree(response)
-        for (field in allFields) {
-            val name = field["name"].asText()
-            if (name == "Components") {
-                val id = field["id"].asText()
-                println("✅ Найдено поле Components: $id")
-                return id
+        try {
+            val allFields = mapper.readTree(response)
+            for (field in allFields) {
+                val nameNode = field["name"]
+                if (nameNode != null && nameNode.asText() == "Components") {
+                    val idNode = field["id"]
+                    if (idNode != null) {
+                        val id = idNode.asText()
+                        println("✅ Найдено поле Components: $id")
+                        return id
+                    }
+                }
             }
+        } catch (e: Exception) {
+            println("❌ Ошибка при поиске поля Components: ${e.message}")
         }
 
         println("❌ Поле Components не найдено")

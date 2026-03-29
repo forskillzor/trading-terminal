@@ -18,7 +18,7 @@ abstract class EntityCreator(
     }
 
     protected suspend fun delay(ms: Long) {
-        delay(ms)
+        kotlinx.coroutines.delay(ms)
     }
 
     protected fun buildCustomFields(customFields: Map<String, Any?>): List<Map<String, Any>> {

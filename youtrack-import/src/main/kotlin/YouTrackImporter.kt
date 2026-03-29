@@ -28,8 +28,13 @@ class YouTrackImporter {
 
     private fun loadProjectConfig(): ProjectConfig {
         println("📄 Загрузка конфигурации проекта из ${Config.PROJECT_JSON_PATH}")
-        val json = java.io.File(Config.PROJECT_JSON_PATH).readText()
-        return mapper.readValue(json, ProjectConfig::class.java)
+        try {
+            val json = java.io.File(Config.PROJECT_JSON_PATH).readText()
+            return mapper.readValue(json, ProjectConfig::class.java)
+        } catch (e: Exception) {
+            println("❌ Ошибка загрузки конфигурации: ${e.message}")
+            throw e
+        }
     }
 
     private fun initializeCreators() {

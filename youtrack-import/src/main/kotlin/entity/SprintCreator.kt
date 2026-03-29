@@ -28,12 +28,22 @@ class SprintCreator(
             return null
         }
 
-        val sprintNode = mapper.readTree(response)
-        val sprintId = sprintNode["id"].asText()
-        println("✅ Создан спринт: $sprintId")
-
-        delay(Config.SPRINT_DELAY_MS)
-        return sprintId
+        try {
+            val sprintNode = mapper.readTree(response)
+            val idNode = sprintNode["id"]
+            if (idNode != null) {
+                val sprintId = idNode.asText()
+                println("✅ Создан спринт: $sprintId")
+                delay(Config.SPRINT_DELAY_MS)
+                return sprintId
+            } else {
+                println("❌ Ответ не содержит id: $response")
+                return null
+            }
+        } catch (e: Exception) {
+            println("❌ Ошибка при разборе ответа: ${e.message}")
+            return null
+        }
     }
 
     suspend fun addIssueToSprint(sprintId: String, issueId: String): Boolean {
