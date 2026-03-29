@@ -23,67 +23,85 @@ abstract class EntityCreator(
 
     protected fun buildCustomFields(customFields: Map<String, Any?>): List<Map<String, Any>> {
         val result = mutableListOf<Map<String, Any>>()
-
         customFields.forEach { (fieldName, value) ->
             val fieldInfo = fields[fieldName]
             if (fieldInfo != null && value != null) {
+                println("   🛠️  Построение поля '$fieldName' (тип: ${fieldInfo.fieldType}, значение: $value)")
                 val fieldMap = mutableMapOf<String, Any>()
-                fieldMap["name"] = fieldName
+                fieldMap["id"] = fieldInfo.id
                 fieldMap["\$type"] = "SingleCustomField"
 
-                when (fieldInfo.fieldType) {
-                    "state" -> {
+                when {
+                    // State поля (Status, Sprint)
+                    fieldInfo.fieldType.startsWith("state") -> {
                         fieldMap["value"] = mapOf(
-                            "name" to value,
-                            "\$type" to "StateBundleElement"
+                            "name" to value.toString(),
+                            "\$type" to "StateIssueCustomFieldElement"
                         )
                     }
-                    "user" -> {
+                    // Enum поля (Priority, Type, Story Points)
+                    fieldInfo.fieldType.startsWith("enum") -> {
+                        if (fieldInfo.fieldType == "enum[*]" && value is List<*>) {
+                            // Multi-select (Components)
+                            fieldMap["value"] = value.map { item ->
+                                mapOf(
+                                    "name" to item.toString(),
+                                    "\$type" to "EnumIssueCustomFieldElement"
+                                )
+                            }
+                            fieldMap["\$type"] = "MultiEnumIssueCustomField"
+                        } else {
+                            // Single enum
+                            fieldMap["value"] = mapOf(
+                                "name" to value.toString(),
+                                "\$type" to "EnumIssueCustomFieldElement"
+                            )
+                        }
+                    }
+                    // User поля (Assignee)
+                    fieldInfo.fieldType.startsWith("user") -> {
                         fieldMap["value"] = mapOf(
                             "login" to value,
                             "\$type" to "User"
                         )
                     }
-                    "enum" -> {
+                    // Epic field - это ссылка на задачу, а не enum!
+                    fieldName == "Epic" -> {
                         fieldMap["value"] = mapOf(
-                            "name" to value,
-                            "\$type" to "EnumBundleElement"
+                            "id" to value,
+                            "\$type" to "Issue"
                         )
                     }
-                    "ownedField" -> {
-                        fieldMap["value"] = mapOf(
-                            "name" to value,
-                            "\$type" to "OwnedBundleElement"
-                        )
-                    }
+
                     else -> {
                         fieldMap["value"] = value
                     }
                 }
-
                 result.add(fieldMap)
+            } else if (value != null) {
+                println("   ⚠️  Поле '$fieldName' не найдено в списке полей, пропускаем")
             }
         }
-
+        println("   📋 Построено ${result.size} кастомных полей")
         return result
     }
 
     protected fun buildTaskDescription(task: models.Task): String {
         return buildString {
             append("**Описание:** ${task.description}\n\n")
-            
+
             if (task.component.isNotEmpty()) {
                 append("**Компонент:** ${task.component}\n\n")
             }
-            
+
             if (task.estimate > 0) {
                 append("**Оценка:** ${task.estimate} story points\n\n")
             }
-            
+
             if (task.tags.isNotEmpty()) {
                 append("**Теги:** ${task.tags.joinToString(", ")}\n\n")
             }
-            
+
             if (task.acceptanceCriteria.isNotEmpty()) {
                 append("**Критерии приемки:**\n")
                 task.acceptanceCriteria.forEach { append("- $it\n") }

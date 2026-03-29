@@ -13,12 +13,14 @@ class SprintCreator(
 
     suspend fun createSprint(sprint: Sprint): String? {
         println("🏃 Создание спринта: ${sprint.name}")
+        val startDateMillis = parseDateToMillis(sprint.startDate)
+        val endDateMillis = parseDateToMillis(sprint.endDate)
 
         val body = mapOf(
             "name" to sprint.name,
             "goal" to sprint.goal,
-            "start" to sprint.startDate,
-            "finish" to sprint.endDate,
+            "start" to startDateMillis,
+            "finish" to endDateMillis,
             "archived" to false
         )
 
@@ -59,5 +61,15 @@ class SprintCreator(
 
         println("✅ Задача $issueId добавлена в спринт $sprintId")
         return true
+    }
+    private fun parseDateToMillis(dateString: String): Long {
+        return try {
+            val format = java.time.format.DateTimeFormatter.ISO_LOCAL_DATE
+            val localDate = java.time.LocalDate.parse(dateString, format)
+            localDate.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+        } catch (e: Exception) {
+            println("⚠️ Ошибка парсинга даты $dateString: ${e.message}")
+            System.currentTimeMillis()
+        }
     }
 }

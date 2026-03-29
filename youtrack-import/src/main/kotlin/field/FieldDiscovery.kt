@@ -14,7 +14,7 @@ class FieldDiscovery(private val httpClient: HttpClient) {
 
     fun discoverAllFields(): Map<String, FieldInfo> {
         println("🔍 Получение всех полей проекта...")
-        val response = httpClient.get("admin/projects/${Config.EXISTING_PROJECT_ID}/customFields?fields=id,name,field(id,name,localizedName)")
+        val response = httpClient.get("admin/projects/${Config.EXISTING_PROJECT_ID}/customFields?fields=id,name,field(id,name,localizedName,fieldType(id))")
         if (response == null) {
             println("❌ Не удалось получить список полей")
             return emptyMap()
@@ -31,13 +31,15 @@ class FieldDiscovery(private val httpClient: HttpClient) {
                 if (idNode != null && fieldNode != null) {
                     val id = idNode.asText()
                     val fieldNameNode = fieldNode["name"]
-                    val fieldTypeNode = fieldNode["id"]
+                    val fieldTypeObj = fieldNode["fieldType"]
+                    val fieldTypeIdNode = if (fieldTypeObj != null && !fieldTypeObj.isNull) fieldTypeObj["id"] else null
                     val localizedNameNode = fieldNode["localizedName"]
                     
                     val name = fieldNameNode?.asText() ?: "unknown"
-                    val fieldType = fieldTypeNode?.asText() ?: "unknown"
+                    val fieldType = fieldTypeIdNode?.asText() ?: "unknown"
                     val localizedName = localizedNameNode?.asText() ?: name
                     
+                    println("   🔎 Обнаружено поле: '$name' (id: $id, тип: $fieldType)")
                     result[name] = FieldInfo(id, name, fieldType, localizedName)
                 } else {
                     println("⚠️ Пропущено поле с неполными данными: $field")
@@ -45,7 +47,7 @@ class FieldDiscovery(private val httpClient: HttpClient) {
             }
 
             println("✅ Найдено ${result.size} полей:")
-            result.values.forEach { println("   - ${it.name} (${it.id})") }
+            result.values.forEach { println("   - ${it.name} (${it.id}, тип: ${it.fieldType})") }
             return result
         } catch (e: Exception) {
             println("❌ Ошибка при разборе ответа: ${e.message}")

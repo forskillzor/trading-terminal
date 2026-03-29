@@ -9,7 +9,7 @@ object Config {
     // Эти значения нужно получить после ручной настройки (см. README.md)
     val EXISTING_PROJECT_ID = "0-11"
     val EXISTING_PROJECT_SHORTNAME = "NOUS"
-    val AGILE_BOARD_ID = "1"  // ID Agile Board (найти в UI)
+    val AGILE_BOARD_ID = "192-5"  // ID Agile Board "Разработка проекта Clone of Nous platform"
 
     // Delays
     val EPIC_DELAY_MS = 500L

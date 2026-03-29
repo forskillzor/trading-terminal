@@ -15,7 +15,6 @@ class EpicCreator(
         println("📦 Создание эпика: ${epic.summary}")
 
         val customFields = mutableMapOf<String, Any?>(
-            "Epic" to epic.summary,
             "Priority" to epic.priority,
             "Type" to "Epic",
             "Status" to "To Do"
