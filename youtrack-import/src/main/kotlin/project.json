@@ -1,0 +1,350 @@
+{
+  "project": {
+    "id": "NOUS",
+    "name": "Nous Platform",
+    "description": "Kotlin Multiplatform trading platform with plugin system",
+    "lead": "skillzor",
+    "template": "Scrum"
+  },
+
+  "customFields": {
+    "StoryPoints": {
+      "name": "Story Points",
+      "type": "enum",
+      "values": ["1", "2", "3", "5", "8", "13", "21", "34", "55"],
+      "default": "3"
+    },
+    "Priority": {
+      "name": "Priority",
+      "type": "enum",
+      "values": ["Low", "Medium", "High", "Critical"],
+      "default": "Medium"
+    },
+    "Type": {
+      "name": "Type",
+      "type": "enum",
+      "values": ["Task", "Feature", "Bug", "Epic", "Spike", "Improvement"],
+      "default": "Task"
+    },
+    "Status": {
+      "name": "Status",
+      "type": "state",
+      "values": ["Backlog", "To Do", "In Progress", "Code Review", "Testing", "Done"]
+    }
+  },
+
+  "workflow": {
+    "name": "Development Workflow",
+    "states": ["Backlog", "To Do", "In Progress", "Code Review", "Testing", "Done"],
+    "transitions": [
+      {"from": "Backlog", "to": "To Do", "name": "Ready for work"},
+      {"from": "To Do", "to": "In Progress", "name": "Start work"},
+      {"from": "In Progress", "to": "Code Review", "name": "Submit for review"},
+      {"from": "Code Review", "to": "Testing", "name": "Approve"},
+      {"from": "Code Review", "to": "In Progress", "name": "Request changes"},
+      {"from": "Testing", "to": "Done", "name": "Pass testing"},
+      {"from": "Testing", "to": "In Progress", "name": "Fail testing"},
+      {"from": "Backlog", "to": "In Progress", "name": "Start immediately"}
+    ]
+  },
+
+  "components": [
+    {"id": "Core-Base", "name": "Core-Base", "description": "utils, extensions, math"},
+    {"id": "Core-Domain", "name": "Core-Domain", "description": "entities, repositories, usecases"},
+    {"id": "Core-Network", "name": "Core-Network", "description": "http, websocket, client"},
+    {"id": "Core-DI", "name": "Core-DI", "description": "CoreModule, DI"},
+    {"id": "Core-Theme", "name": "Core-Theme", "description": "Colors, Typography, Theme"},
+    {"id": "Feature-Chart", "name": "Feature-Chart", "description": "графики, свечи, индикаторы"},
+    {"id": "Feature-DOM", "name": "Feature-DOM", "description": "стакан заявок"},
+    {"id": "Feature-Trades", "name": "Feature-Trades", "description": "лента сделок"},
+    {"id": "Feature-Terminal", "name": "Feature-Terminal", "description": "лейаут, панели"},
+    {"id": "Feature-Portfolio", "name": "Feature-Portfolio", "description": "портфель, позиции"},
+    {"id": "Feature-Indicators", "name": "Feature-Indicators", "description": "индикаторы"},
+    {"id": "Feature-Strategies", "name": "Feature-Strategies", "description": "стратегии"},
+    {"id": "Feature-Backtest", "name": "Feature-Backtest", "description": "бэктестинг"},
+    {"id": "Feature-Editor", "name": "Feature-Editor", "description": "редактор кода"},
+    {"id": "Feature-REPL", "name": "Feature-REPL", "description": "REPL консоли"},
+    {"id": "Plugin-Loader", "name": "Plugin-Loader", "description": "сканирование JAR"},
+    {"id": "ClassLoader", "name": "ClassLoader", "description": "изолированные ClassLoader'ы"},
+    {"id": "Security", "name": "Security", "description": "подписи, разрешения"},
+    {"id": "Registry", "name": "Registry", "description": "PluginRegistry, PluginManifest"},
+    {"id": "Market-API", "name": "Market-API", "description": "MarketDataProvider"},
+    {"id": "Trading-API", "name": "Trading-API", "description": "TradingProvider"},
+    {"id": "Account-API", "name": "Account-API", "description": "AccountProvider"},
+    {"id": "Indicators-API", "name": "Indicators-API", "description": "Indicator"},
+    {"id": "Strategies-API", "name": "Strategies-API", "description": "Strategy"},
+    {"id": "Robots-API", "name": "Robots-API", "description": "TradingRobot"},
+    {"id": "UI-API", "name": "UI-API", "description": "Widget, ChartWidget"},
+    {"id": "Binance-Provider", "name": "Binance-Provider", "description": "Binance провайдер"},
+    {"id": "Bybit-Provider", "name": "Bybit-Provider", "description": "Bybit провайдер"},
+    {"id": "Build-System", "name": "Build-System", "description": "Gradle, KMP"},
+    {"id": "CI-CD", "name": "CI-CD", "description": "GitHub Actions"},
+    {"id": "Database", "name": "Database", "description": "SQLite"},
+    {"id": "Monitoring-Logging", "name": "Monitoring-Logging", "description": "логирование"}
+  ],
+
+  "epics": [
+    {
+      "id": "NOUS-EPIC-1",
+      "summary": "Этап 1: Фундамент и MVP Read-Only",
+      "description": "Базовая архитектура + подключение к Binance/Bybit + базовый UI (DOM, Chart, Trades)",
+      "priority": "High",
+      "sprints": ["Sprint 1", "Sprint 2"]
+    },
+    {
+      "id": "NOUS-EPIC-2",
+      "summary": "Этап 2: IDE и плагинная система",
+      "description": "Monaco Editor, REPL (Python/JS/Kotlin), загрузка плагинов, SDK",
+      "priority": "High",
+      "sprints": ["Sprint 3", "Sprint 4"]
+    },
+    {
+      "id": "NOUS-EPIC-3",
+      "summary": "Этап 3: DSL и бэктестинг",
+      "description": "DSL для индикаторов/стратегий, бэктестинг, торговый дневник",
+      "priority": "Medium",
+      "sprints": ["Sprint 5", "Sprint 6"]
+    },
+    {
+      "id": "NOUS-EPIC-4",
+      "summary": "Этап 4: Live Trading и монетизация",
+      "description": "Real trading, управление рисками, маркетплейс плагинов, Pro подписка",
+      "priority": "High",
+      "sprints": ["Sprint 7", "Sprint 8"]
+    },
+    {
+      "id": "NOUS-EPIC-5",
+      "summary": "Этап 5: Масштабирование и экосистема",
+      "description": "Новые биржи через плагины, мобильные приложения, корпоративные лицензии",
+      "priority": "Low",
+      "sprints": ["Sprint 9", "Sprint 10", "Sprint 11"]
+    }
+  ],
+
+  "sprints": [
+    {
+      "id": "Sprint 1",
+      "name": "Sprint 1 - KMP Foundation",
+      "goal": "Базовая архитектура KMP + Gradle + DI + тема",
+      "startDate": "2026-03-15",
+      "endDate": "2026-03-28",
+      "taskIds": ["NOUS-1", "NOUS-2", "NOUS-3", "NOUS-4", "NOUS-5"],
+      "epic": "NOUS-EPIC-1",
+      "capacity": 40
+    },
+    {
+      "id": "Sprint 2",
+      "name": "Sprint 2 - Binance Integration",
+      "goal": "Подключение к Binance WebSocket + REST API",
+      "startDate": "2026-03-29",
+      "endDate": "2026-04-11",
+      "taskIds": ["NOUS-6", "NOUS-7", "NOUS-8", "NOUS-9", "NOUS-10", "NOUS-11"],
+      "epic": "NOUS-EPIC-1",
+      "capacity": 45
+    },
+    {
+      "id": "Sprint 3",
+      "name": "Sprint 3 - DOM Widget",
+      "goal": "Стакан заявок с визуализацией и настройками",
+      "startDate": "2026-04-12",
+      "endDate": "2026-04-25",
+      "taskIds": ["NOUS-12", "NOUS-13", "NOUS-14", "NOUS-15", "NOUS-16", "NOUS-17"],
+      "epic": "NOUS-EPIC-2",
+      "capacity": 50
+    },
+    {
+      "id": "Sprint 4",
+      "name": "Sprint 4 - Chart & Trades",
+      "goal": "График свечей + лента сделок в реальном времени",
+      "startDate": "2026-04-26",
+      "endDate": "2026-05-09",
+      "taskIds": ["NOUS-18", "NOUS-19", "NOUS-20", "NOUS-21", "NOUS-22", "NOUS-23"],
+      "epic": "NOUS-EPIC-2",
+      "capacity": 50
+    },
+    {
+      "id": "Sprint 5",
+      "name": "Sprint 5 - Terminal Layout",
+      "goal": "Терминальный интерфейс с перетаскиваемыми панелями",
+      "startDate": "2026-05-10",
+      "endDate": "2026-05-23",
+      "taskIds": ["NOUS-24", "NOUS-25", "NOUS-26", "NOUS-27"],
+      "epic": "NOUS-EPIC-3",
+      "capacity": 55
+    },
+    {
+      "id": "Sprint 6",
+      "name": "Sprint 6 - Portfolio & Trading",
+      "goal": "Портфель + размещение ордеров + Paper Trading",
+      "startDate": "2026-05-24",
+      "endDate": "2026-06-06",
+      "taskIds": ["NOUS-28", "NOUS-29", "NOUS-30", "NOUS-31", "NOUS-32"],
+      "epic": "NOUS-EPIC-3",
+      "capacity": 50
+    },
+    {
+      "id": "Sprint 7",
+      "name": "Sprint 7 - Launch Prep",
+      "goal": "Подготовка к публичному запуску + waitlist",
+      "startDate": "2026-06-07",
+      "endDate": "2026-06-20",
+      "taskIds": ["NOUS-33", "NOUS-34", "NOUS-35", "NOUS-36", "NOUS-37"],
+      "epic": "NOUS-EPIC-4",
+      "capacity": 45
+    },
+    {
+      "id": "Sprint 8",
+      "name": "Sprint 8 - User Growth",
+      "goal": "Первые 100 пользователей + контент-маркетинг",
+      "startDate": "2026-06-21",
+      "endDate": "2026-07-04",
+      "taskIds": ["NOUS-38", "NOUS-39", "NOUS-40", "NOUS-41", "NOUS-42"],
+      "epic": "NOUS-EPIC-4",
+      "capacity": 45
+    },
+    {
+      "id": "Sprint 9",
+      "name": "Sprint 9 - Monetization",
+      "goal": "Pro подписка + первые платящие + Plugin SDK",
+      "startDate": "2026-07-05",
+      "endDate": "2026-07-18",
+      "taskIds": ["NOUS-43", "NOUS-44", "NOUS-45", "NOUS-46"],
+      "epic": "NOUS-EPIC-5",
+      "capacity": 50
+    },
+    {
+      "id": "Sprint 10",
+      "name": "Sprint 10 - Marketplace",
+      "goal": "Маркетплейс плагинов + Bybit Provider + Security",
+      "startDate": "2026-07-19",
+      "endDate": "2026-08-01",
+      "taskIds": ["NOUS-47", "NOUS-48", "NOUS-49", "NOUS-50"],
+      "epic": "NOUS-EPIC-5",
+      "capacity": 50
+    },
+    {
+      "id": "Sprint 11",
+      "name": "Sprint 11 - Scale",
+      "goal": "DSL + бэктестинг + масштабирование + релизный пайплайн",
+      "startDate": "2026-08-02",
+      "endDate": "2026-08-15",
+      "taskIds": ["NOUS-51", "NOUS-52", "NOUS-53", "NOUS-54", "NOUS-55"],
+      "epic": "NOUS-EPIC-5",
+      "capacity": 40
+    }
+  ],
+
+  "tasks": [
+    {"id": "NOUS-1", "summary": "Настроить KMP проект с Gradle", "description": "Создать базовую структуру KMP проекта с поддержкой JVM", "component": "Build-System", "type": "Task", "priority": "High", "estimate": 5, "epic": "NOUS-EPIC-1", "sprint": "Sprint 1", "tags": ["foundation", "setup"]},
+    {"id": "NOUS-2", "summary": "Создать Clean Architecture слои", "description": "Реализовать domain, data, presentation слои", "component": "Core-Domain", "type": "Task", "priority": "High", "estimate": 8, "epic": "NOUS-EPIC-1", "sprint": "Sprint 1", "tags": ["architecture", "clean-architecture"]},
+    {"id": "NOUS-3", "summary": "Реализовать Core-Network", "description": "HTTP клиент, WebSocket клиент, обработка ошибок", "component": "Core-Network", "type": "Feature", "priority": "High", "estimate": 13, "epic": "NOUS-EPIC-1", "sprint": "Sprint 1", "tags": ["network", "websocket"]},
+    {"id": "NOUS-4", "summary": "Настроить DI с Koin", "description": "Dependency injection для всех слоев", "component": "Core-DI", "type": "Task", "priority": "Medium", "estimate": 5, "epic": "NOUS-EPIC-1", "sprint": "Sprint 1", "tags": ["di", "koin"]},
+    {"id": "NOUS-5", "summary": "Создать тему приложения", "description": "Compose Desktop тема с цветами и типографикой", "component": "Core-Theme", "type": "Feature", "priority": "Medium", "estimate": 8, "epic": "NOUS-EPIC-1", "sprint": "Sprint 1", "tags": ["ui", "theme"]},
+
+    {"id": "NOUS-6", "summary": "BinanceMarketProvider", "description": "Получение рыночных данных с Binance", "component": "Binance-Provider", "type": "Feature", "priority": "High", "estimate": 13, "epic": "NOUS-EPIC-1", "sprint": "Sprint 2", "tags": ["binance", "market-data"]},
+    {"id": "NOUS-7", "summary": "WebSocket подключение к Binance", "description": "Стабильное подключение с реконнектами", "component": "Binance-Provider", "type": "Feature", "priority": "High", "estimate": 8, "epic": "NOUS-EPIC-1", "sprint": "Sprint 2", "tags": ["websocket", "binance"]},
+    {"id": "NOUS-8", "summary": "Адаптеры моделей Binance", "description": "Преобразование моделей Binance", "component": "Binance-Provider", "type": "Task", "priority": "Medium", "estimate": 5, "epic": "NOUS-EPIC-1", "sprint": "Sprint 2", "tags": ["mapping", "models"]},
+    {"id": "NOUS-9", "summary": "Создать Market-API", "description": "Интерфейсы для рыночных данных", "component": "Market-API", "type": "Task", "priority": "High", "estimate": 5, "epic": "NOUS-EPIC-1", "sprint": "Sprint 2", "tags": ["api", "market"]},
+    {"id": "NOUS-10", "summary": "Аутентификация API ключей", "description": "Безопасное хранение API ключей", "component": "Security", "type": "Feature", "priority": "High", "estimate": 8, "epic": "NOUS-EPIC-1", "sprint": "Sprint 2", "tags": ["security", "auth"]},
+    {"id": "NOUS-11", "summary": "Unit тесты Core", "description": "Тесты для domain слоя", "component": "Core-Domain", "type": "Task", "priority": "Medium", "estimate": 5, "epic": "NOUS-EPIC-1", "sprint": "Sprint 2", "tags": ["testing", "unit-tests"]},
+
+    {"id": "NOUS-12", "summary": "Реализовать DomWidget", "description": "Виджет стакана заявок с анимацией", "component": "Feature-DOM", "type": "Feature", "priority": "High", "estimate": 13, "epic": "NOUS-EPIC-2", "sprint": "Sprint 3", "tags": ["ui", "dom"]},
+    {"id": "NOUS-13", "summary": "Создать DomViewModel", "description": "ViewModel для DOM с состоянием", "component": "Feature-DOM", "type": "Feature", "priority": "High", "estimate": 8, "epic": "NOUS-EPIC-2", "sprint": "Sprint 3", "tags": ["viewmodel", "dom"]},
+    {"id": "NOUS-14", "summary": "Реализовать DomSectionNinja", "description": "Расширенный вид DOM с объемами", "component": "Feature-DOM", "type": "Feature", "priority": "Medium", "estimate": 13, "epic": "NOUS-EPIC-2", "sprint": "Sprint 3", "tags": ["ui", "ninja"]},
+    {"id": "NOUS-15", "summary": "Добавить DepthLimitSelector", "description": "Выбор глубины стакана (5-500 уровней)", "component": "Feature-DOM", "type": "Feature", "priority": "Low", "estimate": 3, "epic": "NOUS-EPIC-2", "sprint": "Sprint 3", "tags": ["ui", "settings"]},
+    {"id": "NOUS-16", "summary": "Создать DomHeader", "description": "Заголовок DOM со спредом", "component": "Feature-DOM", "type": "Feature", "priority": "Medium", "estimate": 5, "epic": "NOUS-EPIC-2", "sprint": "Sprint 3", "tags": ["ui", "dom"]},
+    {"id": "NOUS-17", "summary": "Полировка DOM визуализации", "description": "Улучшение производительности DOM", "component": "Feature-DOM", "type": "Improvement", "priority": "Medium", "estimate": 8, "epic": "NOUS-EPIC-2", "sprint": "Sprint 3", "tags": ["performance", "ui"]},
+
+    {"id": "NOUS-18", "summary": "CandleStickChartWidget", "description": "Свечной график с таймфреймами", "component": "Feature-Chart", "type": "Feature", "priority": "High", "estimate": 21, "epic": "NOUS-EPIC-2", "sprint": "Sprint 4", "tags": ["ui", "chart"]},
+    {"id": "NOUS-19", "summary": "Создать ChartViewModel", "description": "ViewModel для графика с историческими данными", "component": "Feature-Chart", "type": "Feature", "priority": "High", "estimate": 13, "epic": "NOUS-EPIC-2", "sprint": "Sprint 4", "tags": ["viewmodel", "chart"]},
+    {"id": "NOUS-20", "summary": "Поддержка таймфреймов", "description": "1m, 5m, 15m, 1h, 4h, 1d", "component": "Feature-Chart", "type": "Feature", "priority": "Medium", "estimate": 8, "epic": "NOUS-EPIC-2", "sprint": "Sprint 4", "tags": ["chart", "timeframes"]},
+    {"id": "NOUS-21", "summary": "TradesWidget", "description": "Лента сделок в реальном времени", "component": "Feature-Trades", "type": "Feature", "priority": "High", "estimate": 13, "epic": "NOUS-EPIC-2", "sprint": "Sprint 4", "tags": ["ui", "trades"]},
+    {"id": "NOUS-22", "summary": "Создать TradesViewModel", "description": "ViewModel для ленты сделок", "component": "Feature-Trades", "type": "Feature", "priority": "High", "estimate": 8, "epic": "NOUS-EPIC-2", "sprint": "Sprint 4", "tags": ["viewmodel", "trades"]},
+    {"id": "NOUS-23", "summary": "Базовые индикаторы", "description": "SMA, EMA, VWAP на графике", "component": "Feature-Indicators", "type": "Feature", "priority": "Medium", "estimate": 8, "epic": "NOUS-EPIC-2", "sprint": "Sprint 4", "tags": ["indicators", "chart"]},
+
+    {"id": "NOUS-24", "summary": "Создать TerminalLayout", "description": "Основной layout с перетаскиваемыми панелями", "component": "Feature-Terminal", "type": "Feature", "priority": "High", "estimate": 21, "epic": "NOUS-EPIC-3", "sprint": "Sprint 5", "tags": ["ui", "layout"]},
+    {"id": "NOUS-25", "summary": "Реализовать панели", "description": "Chart, DOM, Trades панели", "component": "Feature-Terminal", "type": "Feature", "priority": "High", "estimate": 13, "epic": "NOUS-EPIC-3", "sprint": "Sprint 5", "tags": ["ui", "panels"]},
+    {"id": "NOUS-26", "summary": "Авторизация по API-ключам", "description": "UI для ввода и хранения ключей", "component": "Security", "type": "Feature", "priority": "High", "estimate": 8, "epic": "NOUS-EPIC-3", "sprint": "Sprint 5", "tags": ["security", "auth"]},
+    {"id": "NOUS-27", "summary": "Размещение ордеров", "description": "Limit/Market ордера через UI", "component": "Feature-Portfolio", "type": "Feature", "priority": "High", "estimate": 13, "epic": "NOUS-EPIC-3", "sprint": "Sprint 5", "tags": ["trading", "orders"]},
+
+    {"id": "NOUS-28", "summary": "Отображение баланса", "description": "Баланс и позиции в реальном времени", "component": "Feature-Portfolio", "type": "Feature", "priority": "High", "estimate": 8, "epic": "NOUS-EPIC-3", "sprint": "Sprint 6", "tags": ["portfolio", "ui"]},
+    {"id": "NOUS-29", "summary": "Базовый риск-менеджмент", "description": "Stop-loss, take-profit", "component": "Feature-Portfolio", "type": "Feature", "priority": "High", "estimate": 13, "epic": "NOUS-EPIC-3", "sprint": "Sprint 6", "tags": ["risk", "trading"]},
+    {"id": "NOUS-30", "summary": "Paper trading режим", "description": "Торговля на демо-счете", "component": "Feature-Portfolio", "type": "Feature", "priority": "Medium", "estimate": 13, "epic": "NOUS-EPIC-3", "sprint": "Sprint 6", "tags": ["paper-trading", "testing"]},
+    {"id": "NOUS-31", "summary": "OrdersList панель", "description": "Список активных ордеров", "component": "Feature-Portfolio", "type": "Feature", "priority": "Medium", "estimate": 8, "epic": "NOUS-EPIC-3", "sprint": "Sprint 6", "tags": ["ui", "orders"]},
+    {"id": "NOUS-32", "summary": "PositionsList панель", "description": "Список открытых позиций", "component": "Feature-Portfolio", "type": "Feature", "priority": "Medium", "estimate": 8, "epic": "NOUS-EPIC-3", "sprint": "Sprint 6", "tags": ["ui", "positions"]},
+
+    {"id": "NOUS-33", "summary": "Публичный релиз", "description": "Подготовка к публичному запуску", "component": "CI-CD", "type": "Task", "priority": "High", "estimate": 13, "epic": "NOUS-EPIC-4", "sprint": "Sprint 7", "tags": ["release", "launch"]},
+    {"id": "NOUS-34", "summary": "Waitlist лендинг", "description": "Страница для сбора email", "component": "Feature-Terminal", "type": "Feature", "priority": "Medium", "estimate": 8, "epic": "NOUS-EPIC-4", "sprint": "Sprint 7", "tags": ["marketing", "landing"]},
+    {"id": "NOUS-35", "summary": "Сбор фидбека", "description": "Интеграция с системой фидбека", "component": "Monitoring-Logging", "type": "Feature", "priority": "Medium", "estimate": 8, "epic": "NOUS-EPIC-4", "sprint": "Sprint 7", "tags": ["feedback", "analytics"]},
+    {"id": "NOUS-36", "summary": "Быстрые итерации", "description": "Процесс быстрых исправлений", "component": "Build-System", "type": "Task", "priority": "High", "estimate": 13, "epic": "NOUS-EPIC-4", "sprint": "Sprint 7", "tags": ["process", "iteration"]},
+    {"id": "NOUS-37", "summary": "Документация API", "description": "Полная документация public-api", "component": "Market-API", "type": "Task", "priority": "Medium", "estimate": 8, "epic": "NOUS-EPIC-4", "sprint": "Sprint 7", "tags": ["documentation", "api"]},
+
+    {"id": "NOUS-38", "summary": "Контент-маркетинг", "description": "YouTube, Telegram, Twitter", "component": "Monitoring-Logging", "type": "Task", "priority": "Medium", "estimate": 8, "epic": "NOUS-EPIC-4", "sprint": "Sprint 8", "tags": ["marketing", "content"]},
+    {"id": "NOUS-39", "summary": "Первые 100 пользователей", "description": "Онбординг и поддержка", "component": "Feature-Terminal", "type": "Feature", "priority": "High", "estimate": 13, "epic": "NOUS-EPIC-4", "sprint": "Sprint 8", "tags": ["users", "onboarding"]},
+    {"id": "NOUS-40", "summary": "Приоритизация фидбека", "description": "Система приоритизации задач", "component": "Monitoring-Logging", "type": "Task", "priority": "Medium", "estimate": 8, "epic": "NOUS-EPIC-4", "sprint": "Sprint 8", "tags": ["feedback", "priority"]},
+    {"id": "NOUS-41", "summary": "Финальный рефакторинг", "description": "Рефакторинг перед запуском", "component": "Core-Domain", "type": "Improvement", "priority": "High", "estimate": 13, "epic": "NOUS-EPIC-4", "sprint": "Sprint 8", "tags": ["refactoring", "quality"]},
+    {"id": "NOUS-42", "summary": "CI/CD пайплайн", "description": "GitHub Actions для сборки", "component": "CI-CD", "type": "Task", "priority": "Medium", "estimate": 8, "epic": "NOUS-EPIC-4", "sprint": "Sprint 8", "tags": ["ci-cd", "automation"]},
+
+    {"id": "NOUS-43", "summary": "Pro подписка", "description": "Система подписки $29.9/мес", "component": "Feature-Portfolio", "type": "Feature", "priority": "High", "estimate": 21, "epic": "NOUS-EPIC-5", "sprint": "Sprint 9", "tags": ["monetization", "subscription"]},
+    {"id": "NOUS-44", "summary": "Первые платящие", "description": "Конверсия 20-50 пользователей", "component": "Monitoring-Logging", "type": "Task", "priority": "High", "estimate": 13, "epic": "NOUS-EPIC-5", "sprint": "Sprint 9", "tags": ["monetization", "conversion"]},
+    {"id": "NOUS-45", "summary": "Plugin SDK", "description": "SDK для разработчиков плагинов", "component": "Plugin-Loader", "type": "Feature", "priority": "High", "estimate": 21, "epic": "NOUS-EPIC-5", "sprint": "Sprint 9", "tags": ["sdk", "plugins"]},
+    {"id": "NOUS-46", "summary": "Загрузка плагинов JAR", "description": "Динамическая загрузка из /plugins", "component": "Plugin-Loader", "type": "Feature", "priority": "High", "estimate": 13, "epic": "NOUS-EPIC-5", "sprint": "Sprint 9", "tags": ["plugins", "jar"]},
+
+    {"id": "NOUS-47", "summary": "Маркетплейс плагинов", "description": "Система рейтингов и продаж", "component": "Registry", "type": "Feature", "priority": "High", "estimate": 21, "epic": "NOUS-EPIC-5", "sprint": "Sprint 10", "tags": ["marketplace", "plugins"]},
+    {"id": "NOUS-48", "summary": "SandboxClassLoader", "description": "Изоляция плагинов", "component": "Security", "type": "Feature", "priority": "High", "estimate": 13, "epic": "NOUS-EPIC-5", "sprint": "Sprint 10", "tags": ["security", "sandbox"]},
+    {"id": "NOUS-49", "summary": "SignatureVerifier", "description": "Проверка цифровых подписей", "component": "Security", "type": "Feature", "priority": "Medium", "estimate": 8, "epic": "NOUS-EPIC-5", "sprint": "Sprint 10", "tags": ["security", "signatures"]},
+    {"id": "NOUS-50", "summary": "Bybit Provider", "description": "Поддержка Bybit биржи", "component": "Bybit-Provider", "type": "Feature", "priority": "High", "estimate": 21, "epic": "NOUS-EPIC-5", "sprint": "Sprint 10", "tags": ["bybit", "provider"]},
+
+    {"id": "NOUS-51", "summary": "DSL для индикаторов", "description": "Предметно-ориентированный язык", "component": "Indicators-API", "type": "Feature", "priority": "High", "estimate": 21, "epic": "NOUS-EPIC-5", "sprint": "Sprint 11", "tags": ["dsl", "indicators"]},
+    {"id": "NOUS-52", "summary": "Бэктестинг движок", "description": "Запуск стратегий на истории", "component": "Feature-Backtest", "type": "Feature", "priority": "High", "estimate": 21, "epic": "NOUS-EPIC-5", "sprint": "Sprint 11", "tags": ["backtest", "strategies"]},
+    {"id": "NOUS-53", "summary": "Визуализация бэктеста", "description": "Отображение сделок на графике", "component": "Feature-Backtest", "type": "Feature", "priority": "Medium", "estimate": 13, "epic": "NOUS-EPIC-5", "sprint": "Sprint 11", "tags": ["backtest", "visualization"]},
+    {"id": "NOUS-54", "summary": "Торговый дневник", "description": "SQLDelight для истории сделок", "component": "Database", "type": "Feature", "priority": "Medium", "estimate": 13, "epic": "NOUS-EPIC-5", "sprint": "Sprint 11", "tags": ["database", "journal"]},
+    {"id": "NOUS-55", "summary": "Релизный пайплайн", "description": "Автоматические релизы", "component": "CI-CD", "type": "Task", "priority": "Medium", "estimate": 8, "epic": "NOUS-EPIC-5", "sprint": "Sprint 11", "tags": ["ci-cd", "release"]}
+  ],
+
+  "tags": [
+    {"name": "foundation", "color": "#4CAF50"},
+    {"name": "architecture", "color": "#2196F3"},
+    {"name": "ui", "color": "#FF9800"},
+    {"name": "network", "color": "#9C27B0"},
+    {"name": "websocket", "color": "#673AB7"},
+    {"name": "binance", "color": "#FBC02D"},
+    {"name": "security", "color": "#F44336"},
+    {"name": "testing", "color": "#00BCD4"},
+    {"name": "trading", "color": "#E91E63"},
+    {"name": "plugins", "color": "#795548"},
+    {"name": "marketplace", "color": "#607D8B"},
+    {"name": "monetization", "color": "#8BC34A"},
+    {"name": "documentation", "color": "#FFC107"},
+    {"name": "ci-cd", "color": "#3F51B5"},
+    {"name": "refactoring", "color": "#9E9E9E"},
+    {"name": "performance", "color": "#009688"},
+    {"name": "backtest", "color": "#FF5722"},
+    {"name": "dsl", "color": "#607D8B"},
+    {"name": "release", "color": "#4CAF50"},
+    {"name": "marketing", "color": "#E91E63"}
+  ],
+
+  "agileBoard": {
+    "name": "Nous Platform Board",
+    "type": "Scrum",
+    "columns": [
+      {"name": "Backlog", "states": ["Backlog"]},
+      {"name": "To Do", "states": ["To Do"]},
+      {"name": "In Progress", "states": ["In Progress"]},
+      {"name": "Code Review", "states": ["Code Review"]},
+      {"name": "Testing", "states": ["Testing"]},
+      {"name": "Done", "states": ["Done"]}
+    ],
+    "swimlanes": [
+      {"name": "Epic 1", "query": "Epic: NOUS-EPIC-1"},
+      {"name": "Epic 2", "query": "Epic: NOUS-EPIC-2"},
+      {"name": "Epic 3", "query": "Epic: NOUS-EPIC-3"},
+      {"name": "Epic 4", "query": "Epic: NOUS-EPIC-4"},
+      {"name": "Epic 5", "query": "Epic: NOUS-EPIC-5"}
+    ],
+    "cardLayout": {
+      "fields": ["summary", "assignee", "priority", "estimate", "sprint"]
+    }
+  }
+}
