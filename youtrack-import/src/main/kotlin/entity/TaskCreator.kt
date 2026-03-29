@@ -17,7 +17,7 @@ class TaskCreator(
         val customFields = mutableMapOf<String, Any?>(
             "Priority" to task.priority,
             "Type" to task.type,
-            "State" to "To Do"
+            "Status" to "To Do"
         )
 
         if (epicId != null) {

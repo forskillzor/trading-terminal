@@ -29,7 +29,28 @@ class YouTrackImporter {
     private fun loadProjectConfig(): ProjectConfig {
         println("📄 Загрузка конфигурации проекта из ${Config.PROJECT_JSON_PATH}")
         try {
-            val json = java.io.File(Config.PROJECT_JSON_PATH).readText()
+            // Используем путь относительно текущей директории
+            val file = java.io.File(Config.PROJECT_JSON_PATH)
+            if (!file.exists()) {
+                // Пробуем найти файл в разных местах
+                val alternativePaths = listOf(
+                    "project.json",
+                    "src/main/kotlin/project.json",
+                    "youtrack-import/src/main/kotlin/project.json"
+                )
+                
+                for (path in alternativePaths) {
+                    val altFile = java.io.File(path)
+                    if (altFile.exists()) {
+                        println("   Найден файл по альтернативному пути: $path")
+                        val json = altFile.readText()
+                        return mapper.readValue(json, ProjectConfig::class.java)
+                    }
+                }
+                throw java.io.FileNotFoundException("Файл не найден: ${Config.PROJECT_JSON_PATH}. Проверенные пути: ${alternativePaths.joinToString(", ")}")
+            }
+            
+            val json = file.readText()
             return mapper.readValue(json, ProjectConfig::class.java)
         } catch (e: Exception) {
             println("❌ Ошибка загрузки конфигурации: ${e.message}")

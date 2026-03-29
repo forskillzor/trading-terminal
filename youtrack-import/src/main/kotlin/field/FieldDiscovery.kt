@@ -26,15 +26,15 @@ class FieldDiscovery(private val httpClient: HttpClient) {
 
             fields.forEach { field ->
                 val idNode = field["id"]
-                val nameNode = field["name"]
                 val fieldNode = field["field"]
                 
-                if (idNode != null && nameNode != null && fieldNode != null) {
+                if (idNode != null && fieldNode != null) {
                     val id = idNode.asText()
-                    val name = nameNode.asText()
+                    val fieldNameNode = fieldNode["name"]
                     val fieldTypeNode = fieldNode["id"]
                     val localizedNameNode = fieldNode["localizedName"]
                     
+                    val name = fieldNameNode?.asText() ?: "unknown"
                     val fieldType = fieldTypeNode?.asText() ?: "unknown"
                     val localizedName = localizedNameNode?.asText() ?: name
                     
@@ -71,13 +71,16 @@ class FieldDiscovery(private val httpClient: HttpClient) {
         try {
             val allFields = mapper.readTree(response)
             for (field in allFields) {
-                val nameNode = field["name"]
-                if (nameNode != null && nameNode.asText() == "Components") {
-                    val idNode = field["id"]
-                    if (idNode != null) {
-                        val id = idNode.asText()
-                        println("✅ Найдено поле Components: $id")
-                        return id
+                val fieldNode = field["field"]
+                if (fieldNode != null) {
+                    val nameNode = fieldNode["name"]
+                    if (nameNode != null && nameNode.asText() == "Components") {
+                        val idNode = field["id"]
+                        if (idNode != null) {
+                            val id = idNode.asText()
+                            println("✅ Найдено поле Components: $id")
+                            return id
+                        }
                     }
                 }
             }
@@ -90,7 +93,8 @@ class FieldDiscovery(private val httpClient: HttpClient) {
     }
 
     fun verifyRequiredFields(fields: Map<String, FieldInfo>): Boolean {
-        val required = listOf("Epic", "Sprint", "Priority", "Type", "State", "Assignee")
+        // В проекте YouTrack поле состояния называется "Status", а не "State"
+        val required = listOf("Epic", "Sprint", "Priority", "Type", "Status", "Assignee")
         val missing = mutableListOf<String>()
 
         required.forEach { fieldName ->
@@ -102,6 +106,7 @@ class FieldDiscovery(private val httpClient: HttpClient) {
         if (missing.isNotEmpty()) {
             println("❌ Отсутствуют обязательные поля: ${missing.joinToString(", ")}")
             println("   Убедитесь, что эти поля созданы в проекте YouTrack")
+            println("   Доступные поля: ${fields.keys.joinToString(", ")}")
             return false
         }
 

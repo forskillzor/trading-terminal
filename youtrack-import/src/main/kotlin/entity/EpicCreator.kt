@@ -18,7 +18,7 @@ class EpicCreator(
             "Epic" to epic.name,
             "Priority" to epic.priority,
             "Type" to "Epic",
-            "State" to "To Do"
+            "Status" to "To Do"
         )
 
         if (epic.assignee.isNotEmpty()) {

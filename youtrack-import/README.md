@@ -18,15 +18,15 @@
 
 **Administration** → **Projects** → **NOUS** → **Custom Fields**
 
-| Field Name | Type | Values |
-|------------|------|--------|
-| `Story Points` | Enum | `1, 2, 3, 5, 8, 13, 21, 34, 55` |
-| `Priority` | Enum | `Low, Medium, High, Critical` |
-| `Type` | Enum | `Task, Feature, Bug, Epic, Spike, Improvement` |
-| `Status` | State | `Backlog, To Do, In Progress, Code Review, Testing, Done` |
-| `Sprint` | State | *(создаётся автоматически при создании спринтов)* |
+| Field Name     | Type     | Values                                                    |
+|----------------|----------|-----------------------------------------------------------|
+| `Story Points` | Enum     | `1, 2, 3, 5, 8, 13, 21, 34, 55`                           |
+| `Priority`     | Enum     | `Low, Medium, High, Critical`                             |
+| `Type`         | Enum     | `Task, Feature, Bug, Epic, Spike, Improvement`            |
+| `Status`       | State    | `Backlog, To Do, In Progress, Code Review, Testing, Done` |
+| `Sprint`       | State    | *(создаётся автоматически при создании спринтов)*         |
+| `Components`   | EnumMult | Core-Base, Core-Domain, Core-Network, etc.                |
 
-**Важно**: Для `Status` и `Sprint` выберите тип **State** (не Enum)!
 
 ### Шаг 3: Создание Agile Board (5 минут) ⭐ КРИТИЧНО ДЛЯ СПРИНТОВ
 

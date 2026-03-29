@@ -4,7 +4,7 @@ object Config {
     val YOUTRACK_URL = "http://localhost:8081"
     val TOKEN = "perm-YWRtaW4=.NDItMQ==.LLbeWWAZFVOXicroCXshF8D2sPvAm8"
     val VERBOSE = true
-    val PROJECT_JSON_PATH = "project.json"
+    val PROJECT_JSON_PATH = "src/main/kotlin/project.json"
 
     // Эти значения нужно получить после ручной настройки (см. README.md)
     val EXISTING_PROJECT_ID = "0-10"
