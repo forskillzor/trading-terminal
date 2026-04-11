@@ -40,6 +40,7 @@ fun UnifiedDomSection(
      *  2. НЕ скроллим, если пользователь активно скроллит сам
      *  3. Дебаунс 200 мс - не дёргаемся на каждом тике
      *  4. Без анимации - скролл должен быть быстрым и незаметным
+     *  5. Обеспечиваем отступы: 2 уровня сверху и снизу от best bid (если возможно)
      **/
 
     /**
@@ -86,7 +87,44 @@ fun UnifiedDomSection(
         // Если цена НЕ видна - скроллим до неё
         if (!isTargetVisible) {
             // Быстрый скролл без анимации - минимальная заметность для пользователя
-            lazyListState.scrollToItem(targetIndex, 0)
+            
+            // УЛУЧШЕНИЕ UX: скроллим так, чтобы best bid был виден с отступом
+            // 2 уровня сверху и 2 уровня снизу (если возможно)
+            // Это предотвращает "биение" цены об край viewport
+            
+            // 1. Определяем количество видимых элементов (примерно)
+            val visibleItemsCount = lazyListState.layoutInfo.visibleItemsInfo.size
+            val totalItems = levels.size
+            
+            // Если viewport ещё не отрисован или слишком мал - простой скролл
+            if (visibleItemsCount == 0) {
+                lazyListState.scrollToItem(targetIndex, 0)
+                return@LaunchedEffect
+            }
+            
+            // 2. Настраиваем отступы: хотим видеть 2 уровня сверху и 2 уровня снизу от best bid
+            val margin = 2 // отступ в уровнях сверху и снизу
+            
+            // Если видимых элементов слишком мало для отступов - простой скролл
+            if (visibleItemsCount <= margin * 2) {
+                lazyListState.scrollToItem(targetIndex, 0)
+                return@LaunchedEffect
+            }
+            
+            // 3. Определяем позицию скролла с учётом отступов
+            val scrollIndex = when {
+                // Best bid слишком близко к началу списка - показываем начало
+                targetIndex < margin -> 0
+                
+                // Best bid слишком близко к концу списка - показываем конец
+                targetIndex + margin >= totalItems -> (totalItems - visibleItemsCount).coerceAtLeast(0)
+                
+                // Нормальный случай - центрируем с отступом сверху
+                else -> targetIndex - margin
+            }
+            
+            // 4. Выполняем скролл
+            lazyListState.animateScrollToItem(scrollIndex, 0)
         }
         // Если цена уже видна - ничего не делаем, сохраняем позицию скролла
     }
