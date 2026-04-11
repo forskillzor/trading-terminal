@@ -17,8 +17,8 @@ import com.aandios.nous.api.market.model.orderbook.OrderBook
 import com.aandios.nous.feature.dom.domain.*
 import com.aandios.nous.feature.dom.domain.model.AggregationLevel
 import com.aandios.nous.feature.dom.domain.model.DepthLimit
-import com.aandios.nous.feature.dom.ui.classic.DomContentSplit
-import com.aandios.nous.feature.dom.ui.ninja.DomContentUnified
+import com.aandios.nous.feature.dom.ui.split.SplitDomContent
+import com.aandios.nous.feature.dom.ui.unified.UnifiedDomContent
 
 @Composable
 fun DomWidget(
@@ -95,7 +95,7 @@ fun DomWidget(
             when (domMode) {
                 DomMode.CLASSIC -> {
                     // Классический DOM с раздельными bid/ask потоками
-                    DomContentSplit(
+                    SplitDomContent(
                         orderBook = orderBook!!,
                         selectedPrice = selectedPrice,
                         onPriceSelected = onPriceSelected,
@@ -118,7 +118,7 @@ fun DomWidget(
 //                    }
 
                     // Используем унифицированные данные (бизнес-логика уже в репозитории)
-                    DomContentUnified(
+                    UnifiedDomContent(
                         unifiedOrderBook = unifiedOrderBook!!.aggregate(aggregationLevel),
                         selectedPrice = selectedPrice,
                         onPriceSelected = onPriceSelected,

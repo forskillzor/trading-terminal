@@ -1,4 +1,4 @@
-package com.aandios.nous.feature.dom.ui.ninja
+package com.aandios.nous.feature.dom.ui.unified
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -14,7 +14,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.aandios.nous_platform.utils.formatPrice
 
 @Composable
 fun UnifiedDomSpread(

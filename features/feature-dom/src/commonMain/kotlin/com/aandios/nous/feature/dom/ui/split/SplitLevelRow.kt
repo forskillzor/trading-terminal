@@ -1,4 +1,4 @@
-package com.aandios.nous.feature.dom.ui.classic
+package com.aandios.nous.feature.dom.ui.split
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -6,9 +6,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,43 +26,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.aandios.nous.api.market.model.orderbook.OrderBookLevel
 import com.aandios.nous.feature.dom.ui.formatDomPrice
-import kotlin.math.abs
 
 @Composable
-fun DomSectionSplit(
-    levels: List<OrderBookLevel>,
-    maxVolume: Double,
-    isAsk: Boolean,
-    selectedPrice: Double?,
-    onPriceClick: (Double) -> Unit,
-    modifier: Modifier = Modifier
-) {
-
-    // Список уровней с оптимизациями
-    LazyColumn(
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        items(
-            items = levels,
-            key = { it.price } // Ключ по цене - стабильный!
-        ) { level ->
-            val price = level.price.toDoubleOrNull() ?: return@items
-            val isSelected = selectedPrice?.let { abs(it - price) < 0.000001 } ?: false
-
-            DomLevelRow(
-                level = level,
-                isAsk = isAsk,
-                isSelected = isSelected,
-                maxVolume = maxVolume,
-                totalMax = maxVolume,
-                onPriceClick = { onPriceClick(price) }
-            )
-        }
-    }
-}
-
-@Composable
-private fun DomLevelRow(
+fun SplitLevelRow(
     level: OrderBookLevel,
     isAsk: Boolean,
     isSelected: Boolean,

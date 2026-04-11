@@ -1,4 +1,4 @@
-package com.aandios.nous.feature.dom.ui.ninja
+package com.aandios.nous.feature.dom.ui.unified
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,7 +15,7 @@ import com.aandios.nous.feature.dom.domain.UnifiedOrderBook
 import com.aandios.nous.feature.dom.ui.OrderPlacementPanel
 
 @Composable
-fun DomContentUnified(
+fun UnifiedDomContent(
     aggregationLevel: AggregationLevel = AggregationLevel.TICK_0_1,
     unifiedOrderBook: UnifiedOrderBook,
     selectedPrice: Double?,
@@ -28,8 +28,7 @@ fun DomContentUnified(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxSize()) {
-        // NinjaTrader стиль DOM с унифицированными данными
-        DomSectionUnified(
+        UnifiedDomSection(
             aggregationLevel = aggregationLevel,
             unifiedOrderBook = unifiedOrderBook,
             selectedPrice = selectedPrice,
@@ -37,7 +36,6 @@ fun DomContentUnified(
             modifier = Modifier.weight(1f)
         )
 
-        // Панель ордера с командами (используем OrderBook из unifiedOrderBook если нужно)
         OrderPlacementPanel(
             orderBook = OrderBook(
                 symbol = unifiedOrderBook.symbol,

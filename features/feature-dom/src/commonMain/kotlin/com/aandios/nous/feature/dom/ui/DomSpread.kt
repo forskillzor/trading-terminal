@@ -1,4 +1,4 @@
-package com.aandios.nous.feature.dom.ui.classic
+package com.aandios.nous.feature.dom.ui
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
