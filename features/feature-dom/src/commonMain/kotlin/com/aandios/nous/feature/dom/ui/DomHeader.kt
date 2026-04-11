@@ -17,50 +17,27 @@ import com.aandios.nous.feature.dom.domain.model.DepthLimit
 
 @Composable
 fun DomHeader(
-    tradingProvider: TradingProvider,
-    onTradingProviderChanged: (TradingProvider) -> Unit,
-    tradingSymbol: TradingSymbol,
-    onSymbolChanged: (TradingSymbol) -> Unit,
-    depthLimit: DepthLimit,
-    onDepthLimitChanged: (DepthLimit) -> Unit,
-    aggregationLevel: AggregationLevel,
-    onAggregationLevelChanged: (AggregationLevel) -> Unit,
-    subscriptionDepth: SubscriptionDepth,
-    onSubscriptionDepthChanged: (SubscriptionDepth) -> Unit,
-    domMode: DomMode,
-    onDomModeChanged: (DomMode) -> Unit,
+    domOptions: DomOptions,
+    onDomOptionsChanged: (DomOptions) -> Unit,
     isLive: Boolean = true,
-    collapsed: Boolean = false,
-    onToggleCollapsed: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    if (collapsed) {
+    if (domOptions.collapsed) {
         // Компактный режим: только provider и symbol
         DomHeaderCompact(
-            tradingProvider = tradingProvider,
-            tradingSymbol = tradingSymbol,
+            tradingProvider = domOptions.provider,
+            tradingSymbol = domOptions.symbol,
             isLive = isLive,
             isExpanded = false,
-            onToggleExpand = onToggleCollapsed,
+            onToggleExpand = { onDomOptionsChanged(domOptions.copy(collapsed = false)) },
             modifier = modifier
         )
     } else {
         // Полный режим: все dropdown с labels
         ExpandedDomHeader(
-            tradingProvider = tradingProvider,
-            onTradingProviderChanged = onTradingProviderChanged,
-            tradingSymbol = tradingSymbol,
-            onSymbolChanged = onSymbolChanged,
-            depthLimit = depthLimit,
-            onDepthLimitChanged = onDepthLimitChanged,
-            aggregationLevel = aggregationLevel,
-            onAggregationLevelChanged = onAggregationLevelChanged,
-            subscriptionDepth = subscriptionDepth,
-            onSubscriptionDepthChanged = onSubscriptionDepthChanged,
-            domMode = domMode,
-            onDomModeChanged = onDomModeChanged,
+            domOptions = domOptions,
+            onDomOptionsChanged = onDomOptionsChanged,
             isLive = isLive,
-            onToggleCollapsed = onToggleCollapsed,
             modifier = modifier
         )
     }
@@ -71,21 +48,9 @@ fun DomHeader(
  */
 @Composable
 private fun ExpandedDomHeader(
-    tradingProvider: TradingProvider,
-    onTradingProviderChanged: (TradingProvider) -> Unit,
-    tradingSymbol: TradingSymbol,
-    onSymbolChanged: (TradingSymbol) -> Unit,
-    depthLimit: DepthLimit,
-    onDepthLimitChanged: (DepthLimit) -> Unit,
-    aggregationLevel: AggregationLevel,
-    onAggregationLevelChanged: (AggregationLevel) -> Unit,
-    // todo пробросить до viewModel вызвать updateSubscriptionDepth
-    subscriptionDepth: SubscriptionDepth,
-    onSubscriptionDepthChanged: (SubscriptionDepth) -> Unit,
-    domMode: DomMode,
-    onDomModeChanged: (DomMode) -> Unit,
+    domOptions: DomOptions,
+    onDomOptionsChanged: (DomOptions) -> Unit,
     isLive: Boolean = true,
-    onToggleCollapsed: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -107,8 +72,10 @@ private fun ExpandedDomHeader(
             ) {
                 // Provider dropdown с label
                 TradingProviderDropdownWithLabel(
-                    currentProvider = tradingProvider,
-                    onProviderChanged = onTradingProviderChanged,
+                    currentProvider = domOptions.provider,
+                    onProviderChanged = { newProvider ->
+                        onDomOptionsChanged(domOptions.copy(provider = newProvider))
+                    },
                     modifier = Modifier.weight(1f)
                 )
                 
@@ -140,7 +107,7 @@ private fun ExpandedDomHeader(
                     
                     // Кнопка сворачивания
                     IconButton(
-                        onClick = onToggleCollapsed,
+                        onClick = { onDomOptionsChanged(domOptions.copy(collapsed = true)) },
                         modifier = Modifier.size(24.dp)
                     ) {
                         Icon(
@@ -161,21 +128,25 @@ private fun ExpandedDomHeader(
             ) {
                 // Symbol dropdown с label
                 SymbolDropdownWithLabel(
-                    currentSymbol = tradingSymbol,
-                    provider = tradingProvider,
-                    onSymbolChanged = onSymbolChanged,
+                    currentSymbol = domOptions.symbol,
+                    provider = domOptions.provider,
+                    onSymbolChanged = { newSymbol ->
+                        onDomOptionsChanged(domOptions.copy(symbol = newSymbol))
+                    },
                     modifier = Modifier.weight(1.4f)
                 )
                 
                 // Depth limit selector с label
                 DepthLimitSelectorWithLabel(
-                    currentLimit = depthLimit,
-                    onLimitChanged = onDepthLimitChanged,
+                    currentLimit = domOptions.depth,
+                    onLimitChanged = { newDepth ->
+                        onDomOptionsChanged(domOptions.copy(depth = newDepth))
+                    },
                     modifier = Modifier.weight(1f)
                 )
             }
 
-            // Третья строка: aggregation level + subscription depth + DOM mode
+            // Третья строка: aggregation level + DOM mode
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -183,15 +154,19 @@ private fun ExpandedDomHeader(
             ) {
                 // Aggregation level dropdown с label
                 AggregationLevelDropdownWithLabel(
-                    currentLevel = aggregationLevel,
-                    onLevelChanged = onAggregationLevelChanged,
+                    currentLevel = domOptions.aggregation,
+                    onLevelChanged = { newAggregation ->
+                        onDomOptionsChanged(domOptions.copy(aggregation = newAggregation))
+                    },
                     modifier = Modifier.weight(1f)
                 )
 
                 // DOM mode dropdown с label
                 DomModeDropdownWithLabel(
-                    currentMode = domMode,
-                    onModeChanged = onDomModeChanged,
+                    currentMode = domOptions.mode,
+                    onModeChanged = { newMode ->
+                        onDomOptionsChanged(domOptions.copy(mode = newMode))
+                    },
                     modifier = Modifier.weight(1f)
                 )
             }

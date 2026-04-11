@@ -33,6 +33,11 @@ class DomViewModel(
     private val viewModelScope = CoroutineScope(dispatcher + SupervisorJob())
     private var subscriptionJob: Job? = null
 
+    // ЕДИНЫЙ СТЕЙТ ВСЕХ НАСТРОЕК
+    private val _domOptions = MutableStateFlow(DomOptions.default())
+    val domOptions: StateFlow<DomOptions> = _domOptions.asStateFlow()
+
+    // Остальные стейты (не влияют на подписку)
     private val _orderBook = MutableStateFlow<OrderBook?>(null)
     val orderBook: StateFlow<OrderBook?> = _orderBook.asStateFlow()
 
@@ -54,27 +59,6 @@ class DomViewModel(
     private val _unifiedOrderBook = MutableStateFlow<UnifiedOrderBook?>(null)
     val unifiedOrderBook: StateFlow<UnifiedOrderBook?> = _unifiedOrderBook.asStateFlow()
 
-    private val _aggregationLevel = MutableStateFlow(AggregationLevel.TICK_0_1)
-    val aggregationLevel: StateFlow<AggregationLevel> = _aggregationLevel.asStateFlow()
-
-    private val _subscriptionDepth = MutableStateFlow(SubscriptionDepth.default())
-    val subscriptionDepth: StateFlow<SubscriptionDepth> = _subscriptionDepth.asStateFlow()
-
-    private val _tradingProvider = MutableStateFlow(TradingProvider.BINANCE)
-    val tradingProvider: StateFlow<TradingProvider> = _tradingProvider.asStateFlow()
-
-    private val _tradingSymbol = MutableStateFlow(TradingSymbol.defaultForProvider(TradingProvider.BINANCE))
-    val tradingSymbol: StateFlow<TradingSymbol> = _tradingSymbol.asStateFlow()
-
-    private val _depthLimit = MutableStateFlow(DepthLimit.default())
-    val depthLimit: StateFlow<DepthLimit> = _depthLimit.asStateFlow()
-
-    private val _collapsed = MutableStateFlow(false)
-    val collapsed: StateFlow<Boolean> = _collapsed.asStateFlow()
-
-    private val _domMode = MutableStateFlow(DomMode.CLASSIC)
-    val domMode: StateFlow<DomMode> = _domMode.asStateFlow()
-
     private val _symbolTickSize = MutableStateFlow<Double?>(null)
     val symbolTickSize: StateFlow<Double?> = _symbolTickSize.asStateFlow()
 
@@ -85,16 +69,72 @@ class DomViewModel(
         // Загружаем tickSize для дефолтного символа при инициализации
         viewModelScope.launch {
             delay(500) // небольшая задержка, чтобы не блокировать старт
-            val defaultSymbol = _tradingSymbol.value.symbol
+            val defaultSymbol = _domOptions.value.symbol.symbol
             fetchSymbolTickSize(defaultSymbol)
+        }
+        
+        // Запускаем начальную подписку
+        restartSubscription(_domOptions.value)
+    }
+
+    /**
+     * Обновляет настройки DOM и при необходимости перезапускает подписку.
+     */
+    fun updateDomOptions(newOptions: DomOptions) {
+        val oldOptions = _domOptions.value
+        
+        if (oldOptions != newOptions) {
+            println("📊 VM: DomOptions updated")
+            _domOptions.value = newOptions
+            
+            // Проверяем, изменились ли параметры, влияющие на подписку
+            val subscriptionChanged = 
+                oldOptions.provider != newOptions.provider ||
+                oldOptions.symbol != newOptions.symbol ||
+                oldOptions.depth != newOptions.depth
+            
+            if (subscriptionChanged) {
+                restartSubscription(newOptions)
+            }
+            
+            // Если изменился символ — обновляем tickSize
+            if (oldOptions.symbol != newOptions.symbol) {
+                fetchSymbolTickSize(newOptions.symbol.symbol)
+            }
+            
+
         }
     }
 
-    fun subscribeToBookTicker(symbol: String) {
+    private fun restartSubscription(options: DomOptions) {
+        subscriptionJob?.cancel()
         bookTickerJob?.cancel()
-
-        bookTickerJob = viewModelScope.launch {
-            domRepository.getBookTicker(symbol)
+        unifiedSubscriptionJob?.cancel()
+        
+        subscriptionJob = viewModelScope.launch {
+            // Запускаем все подписки с новыми параметрами
+            domRepository.subscribeToUnifiedOrderBook(
+                symbol = options.symbol.symbol,
+                depth = options.depth.value
+            ).catch { e ->
+                println("❌ Unified Order Book Error: ${e.message}")
+                e.printStackTrace()
+            }.collect { unifiedData ->
+                _unifiedOrderBook.value = unifiedData
+            }
+            
+            // Старые подписки для обратной совместимости
+            domRepository.subscribeToOrderBook(
+                symbol = options.symbol.symbol,
+                depth = options.depth.value
+            ).catch { e ->
+                println("❌ VM Error: ${e.message}")
+                e.printStackTrace()
+            }.collect { data ->
+                _orderBook.value = data
+            }
+            
+            domRepository.getBookTicker(options.symbol.symbol)
                 .catch { e ->
                     println("❌ BestPrices error: ${e.message}")
                 }
@@ -104,46 +144,59 @@ class DomViewModel(
         }
     }
 
+    // Удобные методы для UI (обёртки над updateDomOptions для обратной совместимости)
+    fun updateProvider(provider: TradingProvider) {
+        updateDomOptions(_domOptions.value.copy(provider = provider))
+    }
+    
+    fun updateSymbol(symbol: TradingSymbol) {
+        updateDomOptions(_domOptions.value.copy(symbol = symbol))
+    }
+    
+    fun updateDepth(depth: DepthLimit) {
+        updateDomOptions(_domOptions.value.copy(depth = depth))
+    }
+    
+    fun updateAggregation(aggregation: AggregationLevel) {
+        updateDomOptions(_domOptions.value.copy(aggregation = aggregation))
+    }
+    
+    fun updateMode(mode: DomMode) {
+        updateDomOptions(_domOptions.value.copy(mode = mode))
+    }
+    
+    fun toggleCollapsed() {
+        updateDomOptions(_domOptions.value.copy(collapsed = !_domOptions.value.collapsed))
+    }
+
+    // Старые методы подписки (оставляем для обратной совместимости, но они используют domOptions)
+    fun subscribeToBookTicker(symbol: String) {
+        // Просто обновляем символ в domOptions
+        updateSymbol(TradingSymbol(symbol, symbol, provider = domOptions.value.provider))
+    }
+
     fun subscribeToOrderBook(symbol: String, depth: Int) {
-        println("📊 VM: Subscribing to $symbol with depth=$depth")
-
-        subscriptionJob?.cancel()
-
-        subscriptionJob = viewModelScope.launch {
-            domRepository.subscribeToOrderBook(symbol, depth)
-                .catch { e ->
-                    println("❌ VM Error: ${e.message}")
-                    e.printStackTrace()
-                }
-                .collect { data ->
-                    _orderBook.value = data
-                }
-        }
+        // Обновляем и символ, и глубину в domOptions
+        updateDomOptions(_domOptions.value.copy(
+            symbol = TradingSymbol(symbol, symbol, domOptions.value.provider),
+            depth = DepthLimit.create(depth)
+        ))
     }
 
     fun subscribeToOrderBook(symbol: String) {
-        subscribeToOrderBook(symbol, _subscriptionDepth.value.levels)
+        subscribeToOrderBook(symbol, _domOptions.value.depth.value)
     }
 
     fun subscribeToUnifiedOrderBook(symbol: String, depth: Int) {
-        println("📊 VM: Subscribing to unified order book for $symbol with depth=$depth")
-
-        unifiedSubscriptionJob?.cancel()
-
-        unifiedSubscriptionJob = viewModelScope.launch {
-            domRepository.subscribeToUnifiedOrderBook(symbol, depth)
-                .catch { e ->
-                    println("❌ Unified Order Book Error: ${e.message}")
-                    e.printStackTrace()
-                }
-                .collect { unifiedData ->
-                    _unifiedOrderBook.value = unifiedData
-                }
-        }
+        // Обновляем и символ, и глубину в domOptions
+        updateDomOptions(_domOptions.value.copy(
+            symbol = TradingSymbol(symbol, symbol, domOptions.value.provider),
+            depth = DepthLimit.create(depth)
+        ))
     }
 
     fun subscribeToUnifiedOrderBook(symbol: String) {
-        subscribeToUnifiedOrderBook(symbol, _subscriptionDepth.value.levels)
+        subscribeToUnifiedOrderBook(symbol, _domOptions.value.depth.value)
     }
 
     // Единый метод для выполнения команд
@@ -253,51 +306,6 @@ class DomViewModel(
     fun updateOrderQuantity(quantity: String) {
         _orderQuantity.value = quantity
     }
-
-    fun updateAggregationLevel(level: AggregationLevel) {
-        if (_aggregationLevel.value != level) {
-            println("📊 VM: Aggregation level changed to ${level.displayName()}")
-            _aggregationLevel.value = level
-        }
-    }
-
-    // todo VM: updateSubscriptionDepth need to use in header on select depth limit
-    fun updateSubscriptionDepth(depth: SubscriptionDepth) {
-        if (_subscriptionDepth.value != depth) {
-            println("📊 VM: Subscription depth changed to ${depth.displayName}")
-            _subscriptionDepth.value = depth
-            
-            // При смене глубины подписки перезапускаем подписку
-            val currentSymbol = _tradingSymbol.value
-            subscribeToOrderBook(currentSymbol.symbol, depth.levels)
-            subscribeToUnifiedOrderBook(currentSymbol.symbol, depth.levels)
-        }
-    }
-
-    fun updateTradingProvider(provider: TradingProvider) {
-        if (_tradingProvider.value != provider) {
-            println("📊 VM: Trading provider changed to ${provider.displayName}")
-            _tradingProvider.value = provider
-            
-            // При смене провайдера обновляем символ на дефолтный для нового провайдера
-            val defaultSymbol = TradingSymbol.defaultForProvider(provider)
-            updateTradingSymbol(defaultSymbol)
-        }
-    }
-
-    fun updateTradingSymbol(symbol: TradingSymbol) {
-        if (_tradingSymbol.value != symbol) {
-            println("📊 VM: Trading symbol changed to ${symbol.displayName}")
-            _tradingSymbol.value = symbol
-            
-            // При смене символа перезапускаем подписку
-            subscribeToOrderBook(symbol.symbol, _depthLimit.value.value)
-            subscribeToBookTicker(symbol.symbol)
-            
-            // Получаем tickSize для символа и обновляем агрегацию
-            fetchSymbolTickSize(symbol.symbol)
-        }
-    }
     
     private fun fetchSymbolTickSize(symbol: String) {
         if (symbolInfoRepository == null) return
@@ -322,35 +330,10 @@ class DomViewModel(
         val closestLevel = availableLevels.minByOrNull { level -> 
             kotlin.math.abs(level.tickSize - tickSize) 
         }
-        if (closestLevel != null && _aggregationLevel.value != closestLevel) {
+        if (closestLevel != null && _domOptions.value.aggregation != closestLevel) {
             println("📊 VM: Auto-updating aggregation level to ${closestLevel.displayName()} based on tickSize $tickSize")
-            _aggregationLevel.value = closestLevel
+            updateAggregation(closestLevel)
         }
-    }
-
-    fun updateDepthLimit(limit: DepthLimit) {
-        if (_depthLimit.value != limit) {
-            println("📊 VM: Depth limit changed to ${limit.value} levels")
-            _depthLimit.value = limit
-            
-            // При смене глубины перезапускаем подписку
-            val currentSymbol = _tradingSymbol.value
-            subscribeToOrderBook(currentSymbol.symbol, limit.value)
-        }
-    }
-
-
-
-    fun updateDomMode(mode: DomMode) {
-        if (_domMode.value != mode) {
-            println("📊 VM: DOM mode changed to ${mode.displayName}")
-            _domMode.value = mode
-        }
-    }
-
-    fun toggleCollapsed() {
-        _collapsed.value = !_collapsed.value
-        println("📊 VM: Header collapsed state changed to ${_collapsed.value}")
     }
 
     /**
@@ -358,7 +341,7 @@ class DomViewModel(
      * Если unifiedOrderBook отсутствует, возвращает null.
      */
     val aggregatedUnifiedOrderBook: UnifiedOrderBook?
-        get() = _unifiedOrderBook.value?.aggregate(_aggregationLevel.value)
+        get() = _unifiedOrderBook.value?.aggregate(_domOptions.value.aggregation)
 
     fun clear() {
         subscriptionJob?.cancel()

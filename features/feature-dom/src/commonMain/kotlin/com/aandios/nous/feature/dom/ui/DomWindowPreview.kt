@@ -25,14 +25,7 @@ fun DomPreview() {
     val unifiedOrderBook by domViewModel.unifiedOrderBook.collectAsState()
     val orderQuantity by domViewModel.orderQuantity.collectAsState()
     val isTradingEnabled by domViewModel.isTradingEnabled.collectAsState()
-    val aggregationLevel by domViewModel.aggregationLevel.collectAsState()
-    val subscriptionDepth by domViewModel.subscriptionDepth.collectAsState()
-    val tradingProvider by domViewModel.tradingProvider.collectAsState()
-    val tradingSymbol by domViewModel.tradingSymbol.collectAsState()
-    val depthLimit by domViewModel.depthLimit.collectAsState()
-    val collapsed by domViewModel.collapsed.collectAsState()
-
-    var domMode by remember { mutableStateOf(DomMode.NINJA) }
+    val domOptions by domViewModel.domOptions.collectAsState()
 
     // Подписка на данные при первом запуске
     LaunchedEffect(Unit) {
@@ -55,18 +48,8 @@ fun DomPreview() {
         isTradingEnabled = isTradingEnabled,
         modifier = Modifier.width(350.dp).fillMaxHeight(),
         unifiedOrderBook = unifiedOrderBook,
-        domMode = domMode,
-        onDomModeChanged = { newMode -> domMode = newMode },
-        aggregationLevel = aggregationLevel,
-        onAggregationLevelChanged = { level -> domViewModel.updateAggregationLevel(level) },
-        tradingProvider = tradingProvider,
-        onTradingProviderChanged = { provider -> domViewModel.updateTradingProvider(provider) },
-        tradingSymbol = tradingSymbol,
-        onTradingSymbolChanged = { symbol -> domViewModel.updateTradingSymbol(symbol) },
-        depthLimit = depthLimit,
-        onDepthLimitChanged = { limit -> domViewModel.updateDepthLimit(limit) },
-        collapsed = collapsed,
-        onToggleCollapsed = { domViewModel.toggleCollapsed() }
+        domOptions = domOptions,
+        onDomOptionsChanged = { newOptions -> domViewModel.updateDomOptions(newOptions) }
     )
 }
 

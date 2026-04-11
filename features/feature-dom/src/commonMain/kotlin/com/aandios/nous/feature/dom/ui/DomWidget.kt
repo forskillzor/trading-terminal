@@ -15,7 +15,6 @@ import com.aandios.nous.api.market.model.BookTicker
 import com.aandios.nous.api.market.model.orderbook.OrderBook
 import com.aandios.nous.feature.dom.domain.*
 import com.aandios.nous.feature.dom.domain.model.AggregationLevel
-import com.aandios.nous.feature.dom.domain.model.DepthLimit
 import com.aandios.nous.feature.dom.ui.split.SplitDomContent
 import com.aandios.nous.feature.dom.ui.unified.UnifiedDomContent
 
@@ -34,20 +33,8 @@ fun DomWidget(
     width: Dp = 300.dp,
     showHeader: Boolean = true,
     unifiedOrderBook: UnifiedOrderBook? = null,
-    domMode: DomMode = DomMode.NINJA,
-    onDomModeChanged: (DomMode) -> Unit = {},
-    aggregationLevel: AggregationLevel = AggregationLevel.TICK_0_1,
-    onAggregationLevelChanged: (AggregationLevel) -> Unit = {},
-    subscriptionDepth: SubscriptionDepth = SubscriptionDepth.default(),
-    onSubscriptionDepthChanged: (SubscriptionDepth) -> Unit = {},
-    tradingProvider: TradingProvider = TradingProvider.BINANCE,
-    onTradingProviderChanged: (TradingProvider) -> Unit = {},
-    tradingSymbol: TradingSymbol = TradingSymbol.default(),
-    onTradingSymbolChanged: (TradingSymbol) -> Unit = {},
-    depthLimit: DepthLimit = DepthLimit.default(),
-    onDepthLimitChanged: (DepthLimit) -> Unit = {},
-    collapsed: Boolean = false,
-    onToggleCollapsed: () -> Unit = {},
+    domOptions: DomOptions = DomOptions.default(),
+    onDomOptionsChanged: (DomOptions) -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -57,20 +44,9 @@ fun DomWidget(
     ) {
         if (showHeader) {
             DomHeader(
-                tradingProvider = tradingProvider,
-                onTradingProviderChanged = onTradingProviderChanged,
-                tradingSymbol = tradingSymbol,
-                onSymbolChanged = onTradingSymbolChanged,
-                depthLimit = depthLimit,
-                onDepthLimitChanged = onDepthLimitChanged,
-                aggregationLevel = aggregationLevel,
-                onAggregationLevelChanged = onAggregationLevelChanged,
-                subscriptionDepth = subscriptionDepth,
-                onSubscriptionDepthChanged = onSubscriptionDepthChanged,
-                domMode = domMode,
-                onDomModeChanged = onDomModeChanged,
-                collapsed = collapsed,
-                onToggleCollapsed = onToggleCollapsed
+                domOptions = domOptions,
+                onDomOptionsChanged = onDomOptionsChanged,
+                isLive = true
             )
         }
 
@@ -78,8 +54,8 @@ fun DomWidget(
         if (dataAvailable) {
 
 
-            when (domMode) {
-                DomMode.CLASSIC -> {
+            when (domOptions.mode) {
+                DomMode.SPLIT -> {
                     if (orderBook == null) {
                         // Нет данных для отображения
                         Box(
@@ -107,7 +83,7 @@ fun DomWidget(
                     }
                 }
 
-                DomMode.NINJA -> {
+                DomMode.UNIFIED -> {
                     // Создаем UnifiedOrderBook, если его нет
                     val baseUnifiedOrderBook = unifiedOrderBook ?: orderBook?.let { 
                         UnifiedOrderBook.fromOrderBook(it, bookTicker) 
@@ -126,8 +102,8 @@ fun DomWidget(
                         }
                     } else {
                         // Применяем агрегацию к данным, если уровень агрегации не равен TICK_0_1
-                        val displayUnifiedOrderBook = if (aggregationLevel != AggregationLevel.TICK_0_1) {
-                            baseUnifiedOrderBook.aggregate(aggregationLevel)
+                        val displayUnifiedOrderBook = if (domOptions.aggregation != AggregationLevel.TICK_0_1) {
+                            baseUnifiedOrderBook.aggregate(domOptions.aggregation)
                         } else {
                             baseUnifiedOrderBook
                         }
@@ -142,7 +118,7 @@ fun DomWidget(
                             onTradingCommand = onTradingCommand,
                             onCommandResult = onCommandResult,
                             isTradingEnabled = isTradingEnabled,
-                            aggregationLevel = aggregationLevel,
+                            aggregationLevel = domOptions.aggregation,
                             modifier = Modifier.weight(1f),
                         )
                     }
