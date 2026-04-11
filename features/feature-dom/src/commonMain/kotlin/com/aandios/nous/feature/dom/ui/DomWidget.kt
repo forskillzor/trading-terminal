@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
@@ -77,59 +76,76 @@ fun DomWidget(
 
         val dataAvailable = unifiedOrderBook != null || orderBook != null
         if (dataAvailable) {
-            // Вычисляем агрегированные цены bookticker для корректной подсветки при агрегации
-            val aggregatedBookTicker = remember(bookTicker, aggregationLevel) {
-                if (bookTicker == null) return@remember null
-                // Для уровня TICK_0_1 используем точные цены, для других - округляем
-                if (aggregationLevel == AggregationLevel.TICK_0_1) {
-                    bookTicker
-                } else {
-                    // Создаем копию bookticker с округленными ценами
-                    bookTicker.copy(
-                        bestBid = aggregationLevel.roundDown(bookTicker.bestBid),
-                        bestAsk = aggregationLevel.roundDown(bookTicker.bestAsk)
-                    )
-                }
-            }
+
 
             when (domMode) {
                 DomMode.CLASSIC -> {
-                    // Классический DOM с раздельными bid/ask потоками
-                    SplitDomContent(
-                        orderBook = orderBook!!,
-                        selectedPrice = selectedPrice,
-                        onPriceSelected = onPriceSelected,
-                        orderQuantity = orderQuantity,
-                        onQuantityChanged = onQuantityChanged,
-                        onTradingCommand = onTradingCommand,
-                        onCommandResult = onCommandResult,
-                        isTradingEnabled = isTradingEnabled,
-                        modifier = Modifier.weight(1f),
-                    )
+                    if (orderBook == null) {
+                        // Нет данных для отображения
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                        }
+                    } else {
+                        // Классический DOM с раздельными bid/ask потоками
+                        SplitDomContent(
+                            orderBook = orderBook,
+                            selectedPrice = selectedPrice,
+                            onPriceSelected = onPriceSelected,
+                            orderQuantity = orderQuantity,
+                            onQuantityChanged = onQuantityChanged,
+                            onTradingCommand = onTradingCommand,
+                            onCommandResult = onCommandResult,
+                            isTradingEnabled = isTradingEnabled,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
 
                 DomMode.NINJA -> {
-                    // Применяем агрегацию к данным, если уровень агрегации не равен TICK_0_1
-                    // todo Здесь надо получать реальный размер тика из SymbolInfoAdapter
-//                    val displayOrderBook = if (aggregationLevel != AggregationLevel.TICK_0_1 && unifiedOrderBook != null) {
-//                        unifiedOrderBook.aggregate(aggregationLevel)
-//                    } else {
-//                        unifiedOrderBook
-//                    }
+                    // Создаем UnifiedOrderBook, если его нет
+                    val baseUnifiedOrderBook = unifiedOrderBook ?: orderBook?.let { 
+                        UnifiedOrderBook.fromOrderBook(it, bookTicker) 
+                    }
+                    
+                    if (baseUnifiedOrderBook == null) {
+                        // Нет данных для отображения
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                        }
+                    } else {
+                        // Применяем агрегацию к данным, если уровень агрегации не равен TICK_0_1
+                        val displayUnifiedOrderBook = if (aggregationLevel != AggregationLevel.TICK_0_1) {
+                            baseUnifiedOrderBook.aggregate(aggregationLevel)
+                        } else {
+                            baseUnifiedOrderBook
+                        }
 
-                    // Используем унифицированные данные (бизнес-логика уже в репозитории)
-                    UnifiedDomContent(
-                        unifiedOrderBook = unifiedOrderBook!!.aggregate(aggregationLevel),
-                        selectedPrice = selectedPrice,
-                        onPriceSelected = onPriceSelected,
-                        orderQuantity = orderQuantity,
-                        onQuantityChanged = onQuantityChanged,
-                        onTradingCommand = onTradingCommand,
-                        onCommandResult = onCommandResult,
-                        isTradingEnabled = isTradingEnabled,
-                        aggregationLevel = aggregationLevel,
-                        modifier = Modifier.weight(1f),
-                    )
+                        // Используем унифицированные данные
+                        UnifiedDomContent(
+                            unifiedOrderBook = displayUnifiedOrderBook,
+                            selectedPrice = selectedPrice,
+                            onPriceSelected = onPriceSelected,
+                            orderQuantity = orderQuantity,
+                            onQuantityChanged = onQuantityChanged,
+                            onTradingCommand = onTradingCommand,
+                            onCommandResult = onCommandResult,
+                            isTradingEnabled = isTradingEnabled,
+                            aggregationLevel = aggregationLevel,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
             }
         } else {
