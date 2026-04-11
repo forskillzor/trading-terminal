@@ -14,14 +14,12 @@ import com.aandios.nous.api.market.commands.TradingCommand
 import com.aandios.nous.api.market.model.orderbook.OrderBook
 import com.aandios.nous.feature.dom.ui.DomViewModel
 import com.aandios.nous.feature.dom.ui.OrderPlacementPanel
-import com.aandios.nous.feature.dom.ui.classic.DomSection
-import com.aandios.nous.feature.dom.ui.classic.DomSpread
 import org.koin.compose.koinInject
 import kotlin.math.max
 
 // todo DomContentClassic fix layout. view only big list of offers (RED)
 @Composable
-fun DomContentClassic(
+fun DomContentSplit(
     orderBook: OrderBook,
     selectedPrice: Double?,
     onPriceSelected: (Double?) -> Unit,
@@ -68,7 +66,7 @@ fun DomContentClassic(
         Column(
         ) {
 
-            DomSection(
+            DomSectionSplit(
                 levels = orderBook.asks,
                 maxVolume = maxVolume,
                 isAsk = true,
@@ -85,7 +83,7 @@ fun DomContentClassic(
                     .height(48.dp)  // Чуть выше для отображения объемов
             )
             // BIDS (покупки - зеленые)
-            DomSection(
+            DomSectionSplit(
                 levels = orderBook.bids,
                 maxVolume = maxVolume,
                 isAsk = false,

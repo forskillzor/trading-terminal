@@ -24,188 +24,13 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.aandios.nous.api.market.model.BookTicker
 import com.aandios.nous.api.market.model.orderbook.OrderBookLevel
 import com.aandios.nous.feature.dom.domain.UnifiedOrderBook
 import kotlin.math.abs
 import kotlin.math.max
 
 @Composable
-fun DomNinjaTrader(
-    bids: List<OrderBookLevel>,
-    asks: List<OrderBookLevel>,
-    bookTicker: BookTicker?,
-    selectedPrice: Double?,
-    onPriceSelected: (Double) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    // Объединяем bids и asks в единый список уровней с bidQty и askQty
-    val mergedLevels = remember(bids, asks) {
-        val priceMap = mutableMapOf<String, OrderBookLevel>()
-        // Добавляем bids
-        bids.forEach { level ->
-            priceMap[level.price] = level.copy(
-                bidQty = level.quantity,
-                askQty = ""
-            )
-        }
-        // Добавляем asks, объединяя с существующими ценами
-        asks.forEach { level ->
-            val existing = priceMap[level.price]
-            if (existing != null) {
-                // Цена есть в bids, обновляем askQty
-                priceMap[level.price] = existing.copy(
-                    askQty = level.quantity
-                )
-            } else {
-                // Новая цена только в asks
-                priceMap[level.price] = level.copy(
-                    bidQty = "",
-                    askQty = level.quantity
-                )
-            }
-        }
-        // Сортируем по цене в порядке убывания (как в стакане: сверху asks, снизу bids)
-        priceMap.values.sortedByDescending { it.price.toDoubleOrNull() ?: 0.0 }
-    }
-
-    // Находим максимальный объем для масштабирования (учитываем и bidQty, и askQty)
-    val maxVolume = remember(mergedLevels) {
-        mergedLevels.maxOfOrNull { level ->
-            max(
-                level.bidQty.toDoubleOrNull() ?: 0.0,
-                level.askQty.toDoubleOrNull() ?: 0.0
-            )
-        } ?: 1.0
-    }
-    // todo auto-scroll реально кривой. надо сделать красиво как в ninja trader
-    // Состояние скролла для автоматического скролла до цен из bookticker
-    val lazyListState = rememberLazyListState()
-
-    // Находим индекс цены для скролла (лучшая цена bid или ask из bookticker)
-    val scrollToIndex = remember(bookTicker, mergedLevels) {
-        if (bookTicker == null) {
-            return@remember null
-        }
-        
-        if (mergedLevels.isEmpty()) {
-            return@remember null
-        }
-        
-
-        // Используем среднюю цену между bestBid и bestAsk для центрирования
-        val targetPrice = (bookTicker.bestBid + bookTicker.bestAsk) / 2.0
-
-        // Поскольку mergedLevels отсортированы по убыванию, ищем ближайшую цену
-        var closestIndex = 0
-        var minDiff = Double.MAX_VALUE
-        
-        mergedLevels.forEachIndexed { index, level ->
-            val price = level.price.toDoubleOrNull() ?: return@forEachIndexed
-            val diff = abs(price - targetPrice)
-            
-            // Если найдено точное совпадение, сразу возвращаем индекс
-            if (diff < 0.000001) {
-                return@remember index
-            }
-            
-            if (diff < minDiff) {
-                minDiff = diff
-                closestIndex = index
-            }
-        }
-        
-        // Возвращаем индекс с небольшим смещением вверх, чтобы цена была видна в центре
-        val visibleItemCount = 10
-        val centeredIndex = max(0, closestIndex - visibleItemCount / 2)
-
-        centeredIndex
-    }
-
-    // Автоматический скролл до цены из bookticker
-    LaunchedEffect(scrollToIndex) {
-        if (scrollToIndex != null) {
-
-            // Плавный скролл с анимацией
-            try {
-                lazyListState.animateScrollToItem(
-                    index = scrollToIndex,
-                    scrollOffset = 0
-                )
-                println("[DOM DEBUG] Scroll completed successfully to index $scrollToIndex")
-            } catch (e: Exception) {
-                println("[DOM DEBUG] Scroll error: ${e.message}")
-                // Пробуем альтернативный метод скролла
-                try {
-                    lazyListState.scrollToItem(scrollToIndex, 0)
-                    println("[DOM DEBUG] Scroll with scrollToItem completed")
-                } catch (e2: Exception) {
-                    println("[DOM DEBUG] Both scroll methods failed: ${e2.message}")
-                }
-            }
-        } else {
-            println("[DOM DEBUG] No scroll index, skipping scroll")
-        }
-    }
-
-    Column(modifier = modifier.fillMaxSize()) {
-        // Заголовок
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "Bid Vol",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.weight(0.8f)
-            )
-            Text(
-                text = "Price",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.weight(0.6f)
-            )
-            Text(
-                text = "Ask Vol",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.weight(0.8f)
-            )
-        }
-
-        // Единый LazyColumn со всеми уровнями
-        LazyColumn(
-            state = lazyListState,
-            modifier = Modifier.weight(1f)
-        ) {
-            items(
-                items = mergedLevels,
-                key = { "level-${it.price}" }
-            ) { level ->
-                NinjaTraderRowUnified(
-                    level = level,
-                    maxVolume = maxVolume,
-                    selectedPrice = selectedPrice,
-                    bestBid = bookTicker?.bestBid,
-                    bestAsk = bookTicker?.bestAsk,
-                    onPriceClick = onPriceSelected
-                )
-            }
-        }
-
-        // Spread (разница) - можно оставить закомментированным или доработать
-        // val bestBid = bids.firstOrNull()?.price?.toDoubleOrNull()
-        // val bestAsk = asks.firstOrNull()?.price?.toDoubleOrNull()
-        // ...
-    }
-}
-
-@Composable
-fun NinjaTraderDomUnified(
+fun DomSectionUnified(
     unifiedOrderBook: UnifiedOrderBook?,
     selectedPrice: Double?,
     onPriceSelected: (Double) -> Unit,
@@ -343,7 +168,7 @@ fun NinjaTraderDomUnified(
         
         // Spread (разница) - можно отображать, если есть данные
         if (unifiedOrderBook?.spread != null && unifiedOrderBook.spreadPercent != null) {
-            NinjaTraderSpread(
+            UnifiedDomSpread(
                 bestBid = unifiedOrderBook.bestBid ?: 0.0,
                 bestAsk = unifiedOrderBook.bestAsk ?: 0.0,
                 modifier = Modifier
@@ -587,58 +412,7 @@ private fun NinjaTraderRowUnified(
     }
 }
 
-@Composable
-private fun NinjaTraderSpread(
-    bestBid: Double,
-    bestAsk: Double,
-    modifier: Modifier = Modifier
-) {
-    val spread = bestAsk - bestBid
-    val spreadPercent = (spread / bestBid) * 100
-
-    Row(
-        modifier = modifier
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(horizontal = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = formatPrice(bestBid),
-            color = MaterialTheme.colorScheme.primary,
-            style = MaterialTheme.typography.bodySmall.copy(
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Bold
-            )
-        )
-
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "SPREAD",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.labelSmall
-            )
-            Text(
-                text = "${formatPrice(spread)} (${"%.2f".format(spreadPercent)}%)",
-                color = Color.Yellow,
-                style = MaterialTheme.typography.labelSmall
-            )
-        }
-
-        Text(
-            text = formatPrice(bestAsk),
-            color = MaterialTheme.colorScheme.secondary,
-            style = MaterialTheme.typography.bodySmall.copy(
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Bold
-            )
-        )
-    }
-}
-
-private fun formatPrice(price: Double): String {
+fun formatPrice(price: Double): String {
     return when {
         price >= 1000 -> String.format("%.2f", price)
         price >= 100 -> String.format("%.3f", price)

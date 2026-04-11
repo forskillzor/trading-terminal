@@ -25,7 +25,7 @@ import com.aandios.nous.feature.dom.ui.formatDomPrice
 import kotlin.math.abs
 
 @Composable
-fun DomSection(
+fun DomSectionSplit(
     levels: List<OrderBookLevel>,
     maxVolume: Double,
     isAsk: Boolean,

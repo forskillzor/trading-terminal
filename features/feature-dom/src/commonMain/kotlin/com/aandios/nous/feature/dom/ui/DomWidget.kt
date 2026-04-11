@@ -17,9 +17,8 @@ import com.aandios.nous.api.market.model.orderbook.OrderBook
 import com.aandios.nous.feature.dom.domain.*
 import com.aandios.nous.feature.dom.domain.model.AggregationLevel
 import com.aandios.nous.feature.dom.domain.model.DepthLimit
-import com.aandios.nous.feature.dom.ui.classic.DomContentClassic
-import com.aandios.nous.feature.dom.ui.ninja.DomContentNinja
-import com.aandios.nous.feature.dom.ui.ninja.DomContentNinjaUnified
+import com.aandios.nous.feature.dom.ui.classic.DomContentSplit
+import com.aandios.nous.feature.dom.ui.ninja.DomContentUnified
 
 @Composable
 fun DomWidget(
@@ -50,7 +49,7 @@ fun DomWidget(
     onDepthLimitChanged: (DepthLimit) -> Unit = {},
     collapsed: Boolean = false,
     onToggleCollapsed: () -> Unit = {},
-    ) {
+) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -92,11 +91,11 @@ fun DomWidget(
                     )
                 }
             }
-            
+
             when (domMode) {
                 DomMode.CLASSIC -> {
                     // Классический DOM с раздельными bid/ask потоками
-                    DomContentClassic(
+                    DomContentSplit(
                         orderBook = orderBook!!,
                         selectedPrice = selectedPrice,
                         onPriceSelected = onPriceSelected,
@@ -108,43 +107,29 @@ fun DomWidget(
                         modifier = Modifier.weight(1f),
                     )
                 }
+
                 DomMode.NINJA -> {
                     // Применяем агрегацию к данным, если уровень агрегации не равен TICK_0_1
-                    val displayOrderBook = if (aggregationLevel != AggregationLevel.TICK_0_1 && unifiedOrderBook != null) {
-                        unifiedOrderBook.aggregate(aggregationLevel)
-                    } else {
-                        unifiedOrderBook
-                    }
-                    
-                    if (displayOrderBook != null) {
-                        // Используем унифицированные данные (бизнес-логика уже в репозитории)
-                        DomContentNinjaUnified(
-                            unifiedOrderBook = displayOrderBook,
-                            selectedPrice = selectedPrice,
-                            onPriceSelected = onPriceSelected,
-                            orderQuantity = orderQuantity,
-                            onQuantityChanged = onQuantityChanged,
-                            onTradingCommand = onTradingCommand,
-                            onCommandResult = onCommandResult,
-                            isTradingEnabled = isTradingEnabled,
-                            aggregationLevel = aggregationLevel,
-                            modifier = Modifier.weight(1f),
-                        )
-                    } else {
-                        // Fallback к старой логике (для обратной совместимости)
-                        DomContentNinja(
-                            orderBook = orderBook!!,
-                            bookTicker = aggregatedBookTicker, // Используем агрегированный bookticker
-                            selectedPrice = selectedPrice,
-                            onPriceSelected = onPriceSelected,
-                            orderQuantity = orderQuantity,
-                            onQuantityChanged = onQuantityChanged,
-                            onTradingCommand = onTradingCommand,
-                            onCommandResult = onCommandResult,
-                            isTradingEnabled = isTradingEnabled,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
+                    // todo Здесь надо получать реальный размер тика из SymbolInfoAdapter
+//                    val displayOrderBook = if (aggregationLevel != AggregationLevel.TICK_0_1 && unifiedOrderBook != null) {
+//                        unifiedOrderBook.aggregate(aggregationLevel)
+//                    } else {
+//                        unifiedOrderBook
+//                    }
+
+                    // Используем унифицированные данные (бизнес-логика уже в репозитории)
+                    DomContentUnified(
+                        unifiedOrderBook = unifiedOrderBook!!.aggregate(aggregationLevel),
+                        selectedPrice = selectedPrice,
+                        onPriceSelected = onPriceSelected,
+                        orderQuantity = orderQuantity,
+                        onQuantityChanged = onQuantityChanged,
+                        onTradingCommand = onTradingCommand,
+                        onCommandResult = onCommandResult,
+                        isTradingEnabled = isTradingEnabled,
+                        aggregationLevel = aggregationLevel,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
         } else {
