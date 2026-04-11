@@ -38,13 +38,6 @@ fun UnifiedDomSection(
      *  ПРИНЦИПЫ:
      *  1. Скроллим ТОЛЬКО если лучшая цена НЕ видна в текущем viewport
      *  2. НЕ скроллим, если пользователь активно скроллит сам
-     *  3. Дебаунс 200 мс - не дёргаемся на каждом тике
-     *  4. Плавная анимация скролла - информативно для пользователя
-     *  5. Определяем направление: цена выше viewport → отступ сверху, цена ниже viewport → отступ снизу
-     *  6. Обеспечиваем отступы: 2 уровня сверху/снизу от best bid (в зависимости от направления)
-     **/
-
-    /**
      *  Целевая цена для скролла - агрегированный лучший bid.
      *  Используем агрегацию, чтобы скроллить до того же уровня, который подсвечивается
      **/
@@ -56,6 +49,8 @@ fun UnifiedDomSection(
     LaunchedEffect(scrollTargetPrice) {
         // Если нет целевой цены - ничего не делаем
         if (scrollTargetPrice == null) return@LaunchedEffect
+
+        // Дебаунс 200 мс - ждём стабилизации цены, не дёргаемся на каждом тике
 
         // Если пользователь сейчас скроллит - не вмешиваемся
         if (lazyListState.isScrollInProgress) return@LaunchedEffect
@@ -69,11 +64,7 @@ fun UnifiedDomSection(
         }.takeIf { it >= 0 } ?: return@LaunchedEffect // цена не найдена в levels
 
         // Проверяем, видна ли уже целевая цена в текущем viewport
-        // И заодно определяем границы видимой области
         val visibleItems = lazyListState.layoutInfo.visibleItemsInfo
-        val firstVisibleIndex = visibleItems.firstOrNull()?.index ?: 0
-        val lastVisibleIndex = visibleItems.lastOrNull()?.index ?: 0
-        
         val isTargetVisible = visibleItems.any { visibleItem ->
             // Получаем уровень по индексу видимого элемента
             val visibleIndex = visibleItem.index
@@ -88,72 +79,8 @@ fun UnifiedDomSection(
 
         // Если цена НЕ видна - скроллим до неё
         if (!isTargetVisible) {
-            // Плавный скролл с анимацией - информативно для пользователя
-            
-            // УЛУЧШЕНИЕ UX: скроллим так, чтобы best bid был виден с отступом
-            // 2 уровня сверху и 2 уровня снизу (если возможно)
-            // Это предотвращает "биение" цены об край viewport
-            
-            // 1. Определяем количество видимых элементов
-            val visibleItemsCount = visibleItems.size
-            val totalItems = levels.size
-            
-            // Если viewport ещё не отрисован или слишком мал - простой скролл
-            if (visibleItemsCount == 0) {
-                lazyListState.animateScrollToItem(targetIndex, 0)
-                return@LaunchedEffect
-            }
-            
-            // 2. Определяем, с какой стороны цена ушла из viewport
-            val isPriceAboveViewport = targetIndex < firstVisibleIndex
-            val isPriceBelowViewport = targetIndex > lastVisibleIndex
-            
-            // Настраиваем отступы: хотим видеть 2 уровня сверху и 2 уровня снизу от best bid
-            val margin = 2 // отступ в уровнях сверху и снизу
-            
-            // Если видимых элементов слишком мало для отступов - простой скролл
-            if (visibleItemsCount <= margin * 2) {
-                lazyListState.animateScrollToItem(targetIndex, 0)
-                return@LaunchedEffect
-            }
-            
-            // 3. Определяем позицию скролла с учётом направления и отступов
-            val scrollIndex = when {
-                // Цена выше viewport - скроллим так, чтобы best bid был виден с отступом СВЕРХУ
-                isPriceAboveViewport -> {
-                    // Хотим, чтобы best bid был на позиции margin от верха
-                    val desiredIndex = targetIndex - margin
-                    // Проверяем краевые случаи
-                    when {
-                        // Best bid слишком близко к началу списка - показываем начало
-                        desiredIndex < 0 -> 0
-                        // Всё нормально - используем расчётную позицию
-                        else -> desiredIndex
-                    }
-                }
-                
-                // Цена ниже viewport - скроллим так, чтобы best bid был виден с отступом СНИЗУ
-                isPriceBelowViewport -> {
-                    // Хотим, чтобы best bid был на позиции (visibleItemsCount - margin - 1) от верха
-                    // Это значит margin уровней снизу
-                    val desiredIndex = targetIndex - (visibleItemsCount - margin - 1)
-                    // Проверяем краевые случаи
-                    when {
-                        // Best bid слишком близко к концу списка - показываем конец
-                        desiredIndex + visibleItemsCount > totalItems -> 
-                            (totalItems - visibleItemsCount).coerceAtLeast(0)
-                        // Всё нормально - используем расчётную позицию
-                        else -> desiredIndex.coerceAtLeast(0)
-                    }
-                }
-                
-                // Неожиданный случай (цена должна быть не видна, но не выше и не ниже)
-                // Просто центрируем с отступом сверху как fallback
-                else -> targetIndex - margin
-            }
-            
-            // 4. Выполняем скролл с плавной анимацией
-            lazyListState.animateScrollToItem(scrollIndex, 0)
+            // Быстрый скролл без анимации - минимальная заметность для пользователя
+            lazyListState.animateScrollToItem(targetIndex, 0)
         }
         // Если цена уже видна - ничего не делаем, сохраняем позицию скролла
     }
