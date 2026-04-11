@@ -4,35 +4,22 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.aandios.nous.api.market.commands.CommandResult
-import com.aandios.nous.api.market.commands.TradingCommand
+import com.aandios.nous.api.market.model.BookTicker
 import com.aandios.nous.api.market.model.orderbook.OrderBook
 import com.aandios.nous.feature.dom.ui.DomSpread
-import com.aandios.nous.feature.dom.ui.DomViewModel
-import com.aandios.nous.feature.dom.ui.OrderPlacementPanel
-import org.koin.compose.koinInject
 import kotlin.math.max
 
-// todo DomContentClassic fix layout. view only big list of offers (RED)
 @Composable
 fun SplitDomContent(
     orderBook: OrderBook,
+    bookTicker: BookTicker?,
     selectedPrice: Double?,
     onPriceSelected: (Double?) -> Unit,
-    orderQuantity: String,
-    onQuantityChanged: (String) -> Unit,
-    onTradingCommand: (TradingCommand) -> Unit,
-    onCommandResult: (CommandResult) -> Unit,
-    isTradingEnabled: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val domViewModel: DomViewModel = koinInject()
-    val bestPrices by domViewModel.bookTicker.collectAsState()
     Column(
         modifier = modifier.fillMaxSize()
     ) {
@@ -42,6 +29,8 @@ fun SplitDomContent(
                 orderBook.asks.maxOfOrNull { it.quantity.toDouble() } ?: 0.0
             )
         }
+        
+        // Заголовки столбцов
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -64,9 +53,9 @@ fun SplitDomContent(
                 style = MaterialTheme.typography.labelSmall
             )
         }
-        Column(
-        ) {
-
+        
+        Column {
+            // ASK (продажи - красные)
             SplitDomSection(
                 levels = orderBook.asks,
                 maxVolume = maxVolume,
@@ -75,15 +64,16 @@ fun SplitDomContent(
                 onPriceClick = { price -> onPriceSelected(price) },
                 modifier = Modifier.weight(1f)
             )
-
+            
             // Spread (разница)
             DomSpread(
-                bookTicker = bestPrices,
+                bookTicker = bookTicker,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)  // Чуть выше для отображения объемов
+                    .height(48.dp)
             )
-            // BIDS (покупки - зеленые)
+            
+            // BID (покупки - зеленые)
             SplitDomSection(
                 levels = orderBook.bids,
                 maxVolume = maxVolume,
@@ -93,19 +83,5 @@ fun SplitDomContent(
                 modifier = Modifier.weight(1f)
             )
         }
-
-        // Панель размещения ордера
-        OrderPlacementPanel(
-            orderBook = orderBook,
-            selectedPrice = selectedPrice,
-            orderQuantity = orderQuantity,
-            onQuantityChanged = onQuantityChanged,
-            onTradingCommand = onTradingCommand,
-            onCommandResult = onCommandResult,
-            isTradingEnabled = isTradingEnabled,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(180.dp)
-        )
     }
 }

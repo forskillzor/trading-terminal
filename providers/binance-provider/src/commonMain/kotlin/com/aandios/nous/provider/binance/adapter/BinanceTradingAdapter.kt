@@ -13,18 +13,30 @@ class BinanceTradingAdapter(
     val config: ProviderConfig
 ): TradingAdapter {
     override suspend fun placeOrder(request: OrderRequest): OrderResponse {
-        TODO("Not yet implemented")
+        println("📝 BinanceTradingAdapter.placeOrder: $request")
+        // Заглушка: всегда успех
+        // FIXME: Реальная реализация должна вызывать Binance API
+        return OrderResponse(
+            orderId = "TEST-${System.currentTimeMillis()}",
+            price = request.price
+        )
     }
 
     override suspend fun cancelOrder(orderId: String): Boolean {
-        TODO("Not yet implemented")
+        println("📝 BinanceTradingAdapter.cancelOrder: $orderId")
+        // Заглушка: всегда успех
+        return true
     }
 
     override suspend fun getBalances(): List<Balance> {
-        TODO("Not yet implemented")
+        println("📝 BinanceTradingAdapter.getBalances")
+        // Заглушка: пустой список
+        return emptyList()
     }
 
     override suspend fun getPositions(): List<Position> {
-        TODO("Not yet implemented")
+        println("📝 BinanceTradingAdapter.getPositions")
+        // Заглушка: пустой список
+        return emptyList()
     }
 }

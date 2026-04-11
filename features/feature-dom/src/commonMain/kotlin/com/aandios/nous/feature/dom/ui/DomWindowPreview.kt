@@ -1,6 +1,7 @@
 package com.aandios.nous.feature.dom.ui
 
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -9,12 +10,10 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.aandios.nous.core.ui.theme.TradingTerminalTheme
-import com.aandios.nous.feature.dom.domain.DomMode
 import com.aandios.nous.feature.dom.di.initKoinForPreview
 import org.koin.compose.KoinContext
 import org.koin.compose.koinInject
 import org.koin.core.context.stopKoin
-
 
 @Composable
 fun DomPreview() {
@@ -23,34 +22,26 @@ fun DomPreview() {
     val orderBook by domViewModel.orderBook.collectAsState()
     val bookTicker by domViewModel.bookTicker.collectAsState()
     val unifiedOrderBook by domViewModel.unifiedOrderBook.collectAsState()
-    val orderQuantity by domViewModel.orderQuantity.collectAsState()
-    val isTradingEnabled by domViewModel.isTradingEnabled.collectAsState()
     val domOptions by domViewModel.domOptions.collectAsState()
 
-    // Подписка на данные при первом запуске
-    LaunchedEffect(Unit) {
-        // Используем новый унифицированный поток вместо отдельных подписок
-        domViewModel.subscribeToUnifiedOrderBook("BTCUSDT")
-        // Оставляем старые подписки для обратной совместимости (можно удалить позже)
-        domViewModel.subscribeToOrderBook("BTCUSDT")
-        domViewModel.subscribeToBookTicker("BTCUSDT")
-    }
+    // ViewModel уже инициализирует подписку с дефолтными настройками (BTCUSDT, depth=100)
+    // Не нужно вызывать дополнительные подписки - это вызовет рестарт и ошибки отмены
 
     DomWidget(
-        orderBook = orderBook,
-        bookTicker = bookTicker,
-        selectedPrice = selectedPrice,
-        onPriceSelected = { price -> domViewModel.selectPrice(price) },
-        orderQuantity = orderQuantity,
-        onQuantityChanged = { quantity -> domViewModel.updateOrderQuantity(quantity) },
-        onTradingCommand = { command -> domViewModel.executeCommand(command) },
-        onCommandResult = { result -> println("Trading command result: $result") },
-        isTradingEnabled = isTradingEnabled,
         modifier = Modifier.width(350.dp).fillMaxHeight(),
-        unifiedOrderBook = unifiedOrderBook,
         domOptions = domOptions,
         onDomOptionsChanged = { newOptions -> domViewModel.updateDomOptions(newOptions) }
-    )
+    ) {
+        DomContent(
+            orderBook = orderBook,
+            unifiedOrderBook = unifiedOrderBook,
+            bookTicker = bookTicker,
+            domOptions = domOptions,
+            selectedPrice = selectedPrice,
+            onPriceSelected = { price -> domViewModel.selectPrice(price) },
+            modifier = Modifier.fillMaxSize()
+        )
+    }
 }
 
 fun main() = application {
@@ -63,8 +54,7 @@ fun main() = application {
         state = rememberWindowState(width = 300.dp, height = 1200.dp)
     ) {
         KoinContext {
-            TradingTerminalTheme(
-            ) {
+            TradingTerminalTheme {
                 DomPreview()
             }
         }

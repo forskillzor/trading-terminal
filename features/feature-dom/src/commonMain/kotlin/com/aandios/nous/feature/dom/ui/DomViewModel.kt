@@ -62,8 +62,8 @@ class DomViewModel(
     private val _symbolTickSize = MutableStateFlow<Double?>(null)
     val symbolTickSize: StateFlow<Double?> = _symbolTickSize.asStateFlow()
 
-    private var bookTickerJob: Job? = null
-    private var unifiedSubscriptionJob: Job? = null
+    // Job для управления всеми подписками DOM (стакан, bookTicker, unified order book)
+    // При изменении provider/symbol/depth — отменяется и создаётся новый
 
     init {
         // Загружаем tickSize для дефолтного символа при инициализации
@@ -108,8 +108,7 @@ class DomViewModel(
 
     private fun restartSubscription(options: DomOptions) {
         subscriptionJob?.cancel()
-        bookTickerJob?.cancel()
-        unifiedSubscriptionJob?.cancel()
+        println("🔄 VM: Restarting subscription with key ${options.subscriptionKey}")
         
         subscriptionJob = viewModelScope.launch {
             // Запускаем все подписки с новыми параметрами
@@ -172,13 +171,13 @@ class DomViewModel(
     // Старые методы подписки (оставляем для обратной совместимости, но они используют domOptions)
     fun subscribeToBookTicker(symbol: String) {
         // Просто обновляем символ в domOptions
-        updateSymbol(TradingSymbol(symbol, symbol, provider = domOptions.value.provider))
+        updateSymbol(TradingSymbol(symbol, symbol, provider = _domOptions.value.provider))
     }
 
     fun subscribeToOrderBook(symbol: String, depth: Int) {
         // Обновляем и символ, и глубину в domOptions
         updateDomOptions(_domOptions.value.copy(
-            symbol = TradingSymbol(symbol, symbol, domOptions.value.provider),
+            symbol = TradingSymbol(symbol, symbol, provider = _domOptions.value.provider),
             depth = DepthLimit.create(depth)
         ))
     }
@@ -190,7 +189,7 @@ class DomViewModel(
     fun subscribeToUnifiedOrderBook(symbol: String, depth: Int) {
         // Обновляем и символ, и глубину в domOptions
         updateDomOptions(_domOptions.value.copy(
-            symbol = TradingSymbol(symbol, symbol, domOptions.value.provider),
+            symbol = TradingSymbol(symbol, symbol, provider = _domOptions.value.provider),
             depth = DepthLimit.create(depth)
         ))
     }
@@ -345,8 +344,6 @@ class DomViewModel(
 
     fun clear() {
         subscriptionJob?.cancel()
-        unifiedSubscriptionJob?.cancel()
-        bookTickerJob?.cancel()
         viewModelScope.coroutineContext.cancelChildren()
     }
 }
