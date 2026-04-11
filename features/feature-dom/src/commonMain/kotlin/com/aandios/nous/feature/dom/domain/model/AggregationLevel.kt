@@ -1,4 +1,4 @@
-package com.aandios.nous.feature.dom.domain
+package com.aandios.nous.feature.dom.domain.model
 
 /**
  * Уровень агрегации цен в стакане заявок (DOM).

@@ -12,6 +12,8 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.aandios.nous.feature.dom.domain.*
+import com.aandios.nous.feature.dom.domain.model.AggregationLevel
+import com.aandios.nous.feature.dom.domain.model.DepthLimit
 
 @Composable
 fun DomHeader(
@@ -34,7 +36,7 @@ fun DomHeader(
 ) {
     if (collapsed) {
         // Компактный режим: только provider и symbol
-        CompactDomHeader(
+        DomHeaderCompact(
             tradingProvider = tradingProvider,
             tradingSymbol = tradingSymbol,
             isLive = isLive,
@@ -77,7 +79,7 @@ private fun ExpandedDomHeader(
     onDepthLimitChanged: (DepthLimit) -> Unit,
     aggregationLevel: AggregationLevel,
     onAggregationLevelChanged: (AggregationLevel) -> Unit,
-    // todo пробросить до viewModel переподписаться на orderbook с новой глубиной
+    // todo пробросить до viewModel вызвать updateSubscriptionDepth
     subscriptionDepth: SubscriptionDepth,
     onSubscriptionDepthChanged: (SubscriptionDepth) -> Unit,
     domMode: DomMode,

@@ -17,6 +17,7 @@ interface Provider {
     val bookTicker: BookTickerAdapter?
     val chart: ChartAdapter?
     val trading: TradingAdapter?
+    val symbolInfo: SymbolInfoAdapter?
 
     suspend fun start() {}
 

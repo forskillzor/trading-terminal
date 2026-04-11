@@ -1,5 +1,5 @@
 package com.aandios.nous.feature.dom.ui.ninja
-import com.aandios.nous.feature.dom.domain.AggregationLevel
+import com.aandios.nous.feature.dom.domain.model.AggregationLevel
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

@@ -12,17 +12,22 @@ import com.aandios.nous.api.market.commands.TradingCommand
 import com.aandios.nous.api.market.model.BookTicker
 import com.aandios.nous.api.market.model.orderbook.OrderBook
 import com.aandios.nous.core.domain.repository.DomRepository
+import com.aandios.nous.core.domain.repository.SymbolInfoRepository
 import com.aandios.nous.feature.dom.data.repository.subscribeToUnifiedOrderBook
 import com.aandios.nous.feature.dom.domain.*
+import com.aandios.nous.feature.dom.domain.model.AggregationLevel
+import com.aandios.nous.feature.dom.domain.model.DepthLimit
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.delay
 import java.util.concurrent.Executors
 
 class DomViewModel(
     private val domRepository: DomRepository,
+    private val symbolInfoRepository: SymbolInfoRepository? = null,
 ) {
     private val dispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
     private val viewModelScope = CoroutineScope(dispatcher + SupervisorJob())
@@ -70,8 +75,20 @@ class DomViewModel(
     private val _domMode = MutableStateFlow(DomMode.CLASSIC)
     val domMode: StateFlow<DomMode> = _domMode.asStateFlow()
 
+    private val _symbolTickSize = MutableStateFlow<Double?>(null)
+    val symbolTickSize: StateFlow<Double?> = _symbolTickSize.asStateFlow()
+
     private var bookTickerJob: Job? = null
     private var unifiedSubscriptionJob: Job? = null
+
+    init {
+        // Загружаем tickSize для дефолтного символа при инициализации
+        viewModelScope.launch {
+            delay(500) // небольшая задержка, чтобы не блокировать старт
+            val defaultSymbol = _tradingSymbol.value.symbol
+            fetchSymbolTickSize(defaultSymbol)
+        }
+    }
 
     fun subscribeToBookTicker(symbol: String) {
         bookTickerJob?.cancel()
@@ -244,6 +261,7 @@ class DomViewModel(
         }
     }
 
+    // todo VM: updateSubscriptionDepth need to use in header on select depth limit
     fun updateSubscriptionDepth(depth: SubscriptionDepth) {
         if (_subscriptionDepth.value != depth) {
             println("📊 VM: Subscription depth changed to ${depth.displayName}")
@@ -275,6 +293,38 @@ class DomViewModel(
             // При смене символа перезапускаем подписку
             subscribeToOrderBook(symbol.symbol, _depthLimit.value.value)
             subscribeToBookTicker(symbol.symbol)
+            
+            // Получаем tickSize для символа и обновляем агрегацию
+            fetchSymbolTickSize(symbol.symbol)
+        }
+    }
+    
+    private fun fetchSymbolTickSize(symbol: String) {
+        if (symbolInfoRepository == null) return
+        
+        viewModelScope.launch {
+            try {
+                val symbolInfo = symbolInfoRepository.getSymbolInfo(symbol)
+                val tickSize = symbolInfo?.tickSize
+                _symbolTickSize.value = tickSize
+                if (tickSize != null) {
+                    updateAggregationFromTickSize(tickSize)
+                }
+            } catch (e: Exception) {
+                println("❌ Failed to fetch tickSize for $symbol: ${e.message}")
+            }
+        }
+    }
+    
+    private fun updateAggregationFromTickSize(tickSize: Double) {
+        // Выбираем ближайший уровень агрегации из доступных
+        val availableLevels = AggregationLevel.all()
+        val closestLevel = availableLevels.minByOrNull { level -> 
+            kotlin.math.abs(level.tickSize - tickSize) 
+        }
+        if (closestLevel != null && _aggregationLevel.value != closestLevel) {
+            println("📊 VM: Auto-updating aggregation level to ${closestLevel.displayName()} based on tickSize $tickSize")
+            _aggregationLevel.value = closestLevel
         }
     }
 

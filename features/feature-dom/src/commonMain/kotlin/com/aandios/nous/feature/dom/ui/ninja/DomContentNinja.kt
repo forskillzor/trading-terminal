@@ -11,7 +11,7 @@ import com.aandios.nous.api.market.commands.CommandResult
 import com.aandios.nous.api.market.commands.TradingCommand
 import com.aandios.nous.api.market.model.BookTicker
 import com.aandios.nous.api.market.model.orderbook.OrderBook
-import com.aandios.nous.feature.dom.domain.AggregationLevel
+import com.aandios.nous.feature.dom.domain.model.AggregationLevel
 import com.aandios.nous.feature.dom.domain.UnifiedOrderBook
 import com.aandios.nous.feature.dom.ui.OrderPlacementPanel
 import com.aandios.nous.feature.dom.ui.ninja.DomNinjaTrader

@@ -1,4 +1,4 @@
-package com.aandios.nous.feature.dom.domain
+package com.aandios.nous.feature.dom.domain.model
 
 /**
  * Ограничение глубины отображения книги заявок (количество уровней).

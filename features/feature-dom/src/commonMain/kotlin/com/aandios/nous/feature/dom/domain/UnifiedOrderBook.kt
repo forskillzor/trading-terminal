@@ -3,6 +3,7 @@ package com.aandios.nous.feature.dom.domain
 import com.aandios.nous.api.market.model.BookTicker
 import com.aandios.nous.api.market.model.orderbook.OrderBook
 import com.aandios.nous.api.market.model.orderbook.OrderBookLevel
+import com.aandios.nous.feature.dom.domain.model.AggregationLevel
 
 /**
  * Унифицированное представление стакана котировок, где каждый уровень содержит

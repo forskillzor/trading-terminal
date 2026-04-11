@@ -77,7 +77,7 @@ fun CompactProviderSymbol(
  * Компактный header с provider, symbol и кнопкой развертывания.
  */
 @Composable
-fun CompactDomHeader(
+fun DomHeaderCompact(
     tradingProvider: TradingProvider,
     tradingSymbol: TradingSymbol,
     isLive: Boolean = true,

@@ -11,7 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.aandios.nous.feature.dom.domain.DepthLimit
+import com.aandios.nous.feature.dom.domain.model.DepthLimit
 
 /**
  * Компактный выпадающий список для выбора глубины стакана.

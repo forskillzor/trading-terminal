@@ -7,6 +7,7 @@ import com.aandios.nous.api.market.adapters.*
 import com.aandios.nous.provider.binance.adapter.BinanceBookTickerAdapter
 import com.aandios.nous.provider.binance.adapter.BinanceChartAdapter
 import com.aandios.nous.provider.binance.adapter.BinanceDomAdapter
+import com.aandios.nous.provider.binance.adapter.BinanceSymbolInfoAdapter
 import com.aandios.nous.provider.binance.adapter.BinanceTradesAdapter
 import com.aandios.nous.provider.binance.adapter.BinanceTradingAdapter
 
@@ -22,5 +23,6 @@ class BinanceProvider(
     override val bookTicker: BookTickerAdapter by lazy { BinanceBookTickerAdapter(networkManager.httpClient, config) }
     override val chart: ChartAdapter by lazy { BinanceChartAdapter(networkManager.httpClient, config) }
     override val trading: TradingAdapter by lazy { BinanceTradingAdapter(networkManager.httpClient, config) }
+    override val symbolInfo: SymbolInfoAdapter by lazy { BinanceSymbolInfoAdapter(networkManager.httpClient, config) }
 
 }

@@ -1,6 +1,7 @@
 package com.aandios.nous.feature.dom.domain
 
 import com.aandios.nous.api.market.model.orderbook.OrderBookLevel
+import com.aandios.nous.feature.dom.domain.model.AggregationLevel
 
 /**
  * Сервис агрегации уровней стакана заявок (DOM) по заданному тику.

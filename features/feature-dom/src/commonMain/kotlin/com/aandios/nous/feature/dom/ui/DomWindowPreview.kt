@@ -47,10 +47,7 @@ fun DomPreview() {
         orderBook = orderBook,
         bookTicker = bookTicker,
         selectedPrice = selectedPrice,
-        onPriceSelected = { price ->
-            selectedPrice = price
-            domViewModel.selectPrice(price)
-        },
+        onPriceSelected = { price -> domViewModel.selectPrice(price) },
         orderQuantity = orderQuantity,
         onQuantityChanged = { quantity -> domViewModel.updateOrderQuantity(quantity) },
         onTradingCommand = { command -> domViewModel.executeCommand(command) },

@@ -19,6 +19,7 @@ import com.aandios.nous.feature.dom.ui.classic.DomSpread
 import org.koin.compose.koinInject
 import kotlin.math.max
 
+// todo DomContentClassic fix layout. view only big list of offers (RED)
 @Composable
 fun DomContentClassic(
     orderBook: OrderBook,

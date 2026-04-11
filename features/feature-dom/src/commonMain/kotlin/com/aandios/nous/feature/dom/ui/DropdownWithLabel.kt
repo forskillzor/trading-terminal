@@ -14,6 +14,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aandios.nous.feature.dom.domain.*
+import com.aandios.nous.feature.dom.domain.model.AggregationLevel
+import com.aandios.nous.feature.dom.domain.model.DepthLimit
 
 /**
  * Обертка для dropdown-компонента с label слева и бордером.
