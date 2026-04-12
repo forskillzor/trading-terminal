@@ -6,10 +6,13 @@ import com.aandios.nous.api.market.Provider
 import com.aandios.nous.api.market.ProviderConfig
 import com.aandios.nous.api.market.adapters.BookTickerAdapter
 import com.aandios.nous.api.market.adapters.DomAdapter
+import com.aandios.nous.api.market.adapters.SymbolInfoAdapter
 import com.aandios.nous.core.data.repository.BookTickerRepositoryImpl
+import com.aandios.nous.core.data.repository.SymbolInfoRepositoryImpl
 import com.aandios.nous.core.di.coreModule
 import com.aandios.nous.core.domain.repository.BookTickerRepository
 import com.aandios.nous.core.domain.repository.DomRepository
+import com.aandios.nous.core.domain.repository.SymbolInfoRepository
 import com.aandios.nous.feature.dom.data.repository.DomRepositoryImpl
 import com.aandios.nous.feature.dom.ui.DomViewModel
 import com.aandios.nous.provider.binance.BinanceProviderFactory
@@ -65,6 +68,9 @@ val featureDomModule = module {
     single<BookTickerAdapter> {
         get<Provider>().bookTicker ?: error("BookTicker adapter not available")
     }
+    single<SymbolInfoAdapter> {
+        get<Provider>().symbolInfo ?: error("SymbolInfo adapter not available")
+    }
 
     // 4. Репозитории
     single<DomRepository> {
@@ -73,11 +79,15 @@ val featureDomModule = module {
     single<BookTickerRepository> {
         BookTickerRepositoryImpl(bookTicker = get())
     }
+    single<SymbolInfoRepository> {
+        SymbolInfoRepositoryImpl(symbolInfoAdapter = get())
+    }
 
     // 5. ViewModel — обе зависимости через get()
     factory {
         DomViewModel(
             domRepository = get(),
+            symbolInfoRepository = get()
         )
     }
 }
