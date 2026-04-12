@@ -91,7 +91,8 @@ class DomViewModel(
             val subscriptionChanged = 
                 oldOptions.provider != newOptions.provider ||
                 oldOptions.symbol != newOptions.symbol ||
-                oldOptions.depth != newOptions.depth
+                oldOptions.depth != newOptions.depth ||
+                oldOptions.mode != newOptions.mode
             
             if (subscriptionChanged) {
                 restartSubscription(newOptions)
@@ -108,38 +109,50 @@ class DomViewModel(
 
     private fun restartSubscription(options: DomOptions) {
         subscriptionJob?.cancel()
-        println("🔄 VM: Restarting subscription with key ${options.subscriptionKey}")
+        println("🔄 VM: Restarting subscription with key ${options.subscriptionKey}, mode: ${options.mode}")
         
         subscriptionJob = viewModelScope.launch {
-            // Запускаем все подписки с новыми параметрами
-            domRepository.subscribeToUnifiedOrderBook(
-                symbol = options.symbol.symbol,
-                depth = options.depth.value
-            ).catch { e ->
-                println("❌ Unified Order Book Error: ${e.message}")
-                e.printStackTrace()
-            }.collect { unifiedData ->
-                _unifiedOrderBook.value = unifiedData
-            }
-            
-            // Старые подписки для обратной совместимости
-            domRepository.subscribeToOrderBook(
-                symbol = options.symbol.symbol,
-                depth = options.depth.value
-            ).catch { e ->
-                println("❌ VM Error: ${e.message}")
-                e.printStackTrace()
-            }.collect { data ->
-                _orderBook.value = data
-            }
-            
-            domRepository.getBookTicker(options.symbol.symbol)
-                .catch { e ->
-                    println("❌ BestPrices error: ${e.message}")
+            when (options.mode) {
+                DomMode.UNIFIED -> {
+                    // В unified режиме используем только unifiedOrderBook
+                    domRepository.subscribeToUnifiedOrderBook(
+                        symbol = options.symbol.symbol,
+                        depth = options.depth.value
+                    ).catch { e ->
+                        println("❌ Unified Order Book Error: ${e.message}")
+                        e.printStackTrace()
+                    }.collect { unifiedData ->
+                        _unifiedOrderBook.value = unifiedData
+                        // Обновляем orderBook для совместимости (например, OrderPlacementPanel)
+                        _orderBook.value = unifiedData.toOrderBook()
+                        // bookTicker не обновляем - не используется в unified режиме
+                    }
                 }
-                .collect { prices ->
-                    _bookTicker.value = prices
+                
+                DomMode.SPLIT -> {
+                    // В split режиме используем отдельные потоки orderBook и bookTicker
+                    domRepository.subscribeToOrderBook(
+                        symbol = options.symbol.symbol,
+                        depth = options.depth.value
+                    ).catch { e ->
+                        println("❌ VM Error: ${e.message}")
+                        e.printStackTrace()
+                    }.collect { data ->
+                        _orderBook.value = data
+                    }
+                    
+                    domRepository.getBookTicker(options.symbol.symbol)
+                        .catch { e ->
+                            println("❌ BestPrices error: ${e.message}")
+                        }
+                        .collect { prices ->
+                            _bookTicker.value = prices
+                        }
+                    
+                    // unifiedOrderBook не используется в split режиме, можно очистить
+                    _unifiedOrderBook.value = null
                 }
+            }
         }
     }
 
