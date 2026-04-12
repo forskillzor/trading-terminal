@@ -13,21 +13,23 @@ object DomAggregator {
      * Агрегирует список уровней стакана по заданному уровню агрегации.
      *
      * @param levels исходный список уровней (может быть как bid, так и ask)
-     * @param aggregationLevel уровень агрегации (тик)
+     * @param aggregationLevel уровень агрегации (множитель тика)
+     * @param baseTickSize базовый тик инструмента (из API биржи)
      * @return новый список агрегированных уровней, отсортированный в том же порядке, что и исходный
      *         (по убыванию цены для bids, по возрастанию для asks)
      */
     fun aggregateLevels(
         levels: List<OrderBookLevel>,
-        aggregationLevel: AggregationLevel
+        aggregationLevel: AggregationLevel,
+        baseTickSize: Double
     ): List<OrderBookLevel> {
-        if (levels.isEmpty() || aggregationLevel.tickSize <= 0.0) {
+        if (levels.isEmpty() || baseTickSize <= 0.0) {
             return levels
         }
 
-        // Группируем по ключу агрегации (цена, округлённая вниз до тика)
+        // Группируем по ключу агрегации (цена, округлённая вниз до эффективного тика)
         val grouped = levels.groupBy { level ->
-            aggregationLevel.aggregationKey(level.price)
+            aggregationLevel.aggregationKey(level.price, baseTickSize)
         }
 
         // Для каждой группы создаём агрегированный уровень
@@ -68,17 +70,19 @@ object DomAggregator {
      *
      * @param bids список уровней покупок (должны быть отсортированы по убыванию цены)
      * @param asks список уровней продаж (должны быть отсортированы по возрастанию цены)
-     * @param aggregationLevel уровень агрегации
+     * @param aggregationLevel уровень агрегации (множитель тика)
+     * @param baseTickSize базовый тик инструмента (из API биржи)
      * @return пара (агрегированные bids, агрегированные asks)
      */
     fun aggregateOrderBook(
         bids: List<OrderBookLevel>,
         asks: List<OrderBookLevel>,
-        aggregationLevel: AggregationLevel
+        aggregationLevel: AggregationLevel,
+        baseTickSize: Double
     ): Pair<List<OrderBookLevel>, List<OrderBookLevel>> {
-        val aggregatedBids = aggregateLevels(bids, aggregationLevel)
+        val aggregatedBids = aggregateLevels(bids, aggregationLevel, baseTickSize)
             .sortedByDescending { it.price.toDoubleOrNull() ?: 0.0 }
-        val aggregatedAsks = aggregateLevels(asks, aggregationLevel)
+        val aggregatedAsks = aggregateLevels(asks, aggregationLevel, baseTickSize)
             .sortedBy { it.price.toDoubleOrNull() ?: 0.0 }
         return aggregatedBids to aggregatedAsks
     }
@@ -88,18 +92,20 @@ object DomAggregator {
      * Объединяет уровни, которые имеют как bidQty, так и askQty.
      *
      * @param unifiedLevels список унифицированных уровней
-     * @param aggregationLevel уровень агрегации
+     * @param aggregationLevel уровень агрегации (множитель тика)
+     * @param baseTickSize базовый тик инструмента (из API биржи)
      * @return агрегированный список унифицированных уровней, отсортированный по убыванию цены
      */
     fun aggregateUnifiedLevels(
         unifiedLevels: List<OrderBookLevel>,
-        aggregationLevel: AggregationLevel
+        aggregationLevel: AggregationLevel,
+        baseTickSize: Double
     ): List<OrderBookLevel> {
-        if (unifiedLevels.isEmpty()) return emptyList()
+        if (unifiedLevels.isEmpty() || baseTickSize <= 0.0) return emptyList()
 
         // Группируем по ключу агрегации
         val grouped = unifiedLevels.groupBy { level ->
-            aggregationLevel.aggregationKey(level.price)
+            aggregationLevel.aggregationKey(level.price, baseTickSize)
         }
 
         return grouped.map { (aggregatedPrice, group) ->

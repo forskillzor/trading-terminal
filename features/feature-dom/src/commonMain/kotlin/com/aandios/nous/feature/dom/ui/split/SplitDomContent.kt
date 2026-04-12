@@ -17,6 +17,7 @@ fun SplitDomContent(
     orderBook: OrderBook,
     bookTicker: BookTicker?,
     selectedPrice: Double?,
+    baseTickSize: Double? = null,
     onPriceSelected: (Double?) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -61,6 +62,7 @@ fun SplitDomContent(
                 maxVolume = maxVolume,
                 isAsk = true,
                 selectedPrice = selectedPrice,
+                baseTickSize = baseTickSize,
                 onPriceClick = { price -> onPriceSelected(price) },
                 modifier = Modifier.weight(1f)
             )
@@ -79,6 +81,7 @@ fun SplitDomContent(
                 maxVolume = maxVolume,
                 isAsk = false,
                 selectedPrice = selectedPrice,
+                baseTickSize = baseTickSize,
                 onPriceClick = { price -> onPriceSelected(price) },
                 modifier = Modifier.weight(1f)
             )

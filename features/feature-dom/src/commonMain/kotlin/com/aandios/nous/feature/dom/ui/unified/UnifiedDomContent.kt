@@ -10,7 +10,8 @@ import com.aandios.nous.feature.dom.domain.UnifiedOrderBook
 @Composable
 fun UnifiedDomContent(
     unifiedOrderBook: UnifiedOrderBook,
-    aggregationLevel: AggregationLevel = AggregationLevel.TICK_0_1,
+    aggregationLevel: AggregationLevel = AggregationLevel.BaseTick,
+    baseTickSize: Double? = null,
     selectedPrice: Double? = null,
     onPriceSelected: (Double?) -> Unit = {},
     modifier: Modifier = Modifier
@@ -21,6 +22,7 @@ fun UnifiedDomContent(
             selectedPrice = selectedPrice,
             onPriceSelected = { price -> onPriceSelected(price) },
             aggregationLevel = aggregationLevel,
+            baseTickSize = baseTickSize,
             modifier = Modifier.weight(1f)
         )
     }

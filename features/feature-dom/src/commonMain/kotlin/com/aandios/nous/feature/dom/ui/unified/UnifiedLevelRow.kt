@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aandios.nous.api.market.model.orderbook.OrderBookLevel
+import com.aandios.nous.feature.dom.domain.model.AggregationLevel
 import kotlin.math.abs
 
 @Composable
@@ -36,6 +37,8 @@ fun UnifiedLevelRow(
     selectedPrice: Double?,
     bestBid: Double?,
     bestAsk: Double?,
+    aggregationLevel: AggregationLevel,
+    baseTickSize: Double? = null,
     onPriceClick: (Double) -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -44,9 +47,19 @@ fun UnifiedLevelRow(
     val price = level.price.toDoubleOrNull() ?: return
     val bidQty = level.bidQty.toDoubleOrNull() ?: 0.0
     val askQty = level.askQty.toDoubleOrNull() ?: 0.0
-    val isSelected = selectedPrice?.let { abs(it - price) < 0.000001 } ?: false
-    val isBestBid = bestBid?.let { abs(it - price) < 0.000001 } ?: false
-    val isBestAsk = bestAsk?.let { abs(it - price) < 0.000001 } ?: false
+    // Функция сравнения цен с учетом агрегации
+    fun comparePrices(price1: Double, price2: Double): Boolean {
+        return if (baseTickSize != null) {
+            aggregationLevel.aggregationKey(price1.toString(), baseTickSize) == 
+                aggregationLevel.aggregationKey(price2.toString(), baseTickSize)
+        } else {
+            abs(price1 - price2) < 0.000001
+        }
+    }
+    
+    val isSelected = selectedPrice?.let { comparePrices(it, price) } ?: false
+    val isBestBid = bestBid?.let { comparePrices(it, price) } ?: false
+    val isBestAsk = bestAsk?.let { comparePrices(it, price) } ?: false
     val isBestPrice = isBestBid || isBestAsk
 
     // Цвета

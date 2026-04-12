@@ -6,7 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.aandios.nous.api.market.model.orderbook.OrderBookLevel
-import kotlin.math.abs
+import com.aandios.nous.feature.dom.domain.model.AggregationLevel
 
 @Composable
 fun SplitDomSection(
@@ -14,6 +14,7 @@ fun SplitDomSection(
     maxVolume: Double,
     isAsk: Boolean,
     selectedPrice: Double?,
+    baseTickSize: Double? = null,
     onPriceClick: (Double) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -27,7 +28,15 @@ fun SplitDomSection(
             key = { it.price } // Ключ по цене - стабильный!
         ) { level ->
             val price = level.price.toDoubleOrNull() ?: return@items
-            val isSelected = selectedPrice?.let { abs(it - price) < 0.000001 } ?: false
+            val isSelected = selectedPrice?.let { selected ->
+                if (baseTickSize != null) {
+                    AggregationLevel.BaseTick.aggregationKey(price.toString(), baseTickSize) ==
+                        AggregationLevel.BaseTick.aggregationKey(selected.toString(), baseTickSize)
+                } else {
+                    // Fallback для обратной совместимости
+                    kotlin.math.abs(selected - price) < 0.000001
+                }
+            } ?: false
 
             SplitLevelRow(
                 level = level,

@@ -20,6 +20,7 @@ fun DomHeader(
     domOptions: DomOptions,
     onDomOptionsChanged: (DomOptions) -> Unit,
     isLive: Boolean = true,
+    symbolTickSize: Double? = null,
     modifier: Modifier = Modifier
 ) {
     if (domOptions.collapsed) {
@@ -38,6 +39,7 @@ fun DomHeader(
             domOptions = domOptions,
             onDomOptionsChanged = onDomOptionsChanged,
             isLive = isLive,
+            symbolTickSize = symbolTickSize,
             modifier = modifier
         )
     }
@@ -51,6 +53,7 @@ private fun ExpandedDomHeader(
     domOptions: DomOptions,
     onDomOptionsChanged: (DomOptions) -> Unit,
     isLive: Boolean = true,
+    symbolTickSize: Double? = null,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -127,6 +130,15 @@ private fun ExpandedDomHeader(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Symbol dropdown с label
+                /**
+                 * todo это надо заменить полем ввода со списком всех инструментов по совпадению ввода
+                 * или если ничего не введено, то список по популярности
+                 * переключение режимов весь рынок например perp futures
+                 * на favorite с возможностью добавлять в избранное
+                 * пока без реализации сохранения favorite на диске, только в памяти
+                 **/
+
+
                 SymbolDropdownWithLabel(
                     currentSymbol = domOptions.symbol,
                     provider = domOptions.provider,
@@ -155,6 +167,7 @@ private fun ExpandedDomHeader(
                 // Aggregation level dropdown с label
                 AggregationLevelDropdownWithLabel(
                     currentLevel = domOptions.aggregation,
+                    symbolTickSize = symbolTickSize,
                     onLevelChanged = { newAggregation ->
                         onDomOptionsChanged(domOptions.copy(aggregation = newAggregation))
                     },

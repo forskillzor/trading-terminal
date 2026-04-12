@@ -92,16 +92,17 @@ data class UnifiedOrderBook(
     }
     
     /**
-     * Создает новый UnifiedOrderBook с агрегированными уровнями по заданному тику.
-     * @param aggregationLevel уровень агрегации (0.1, 1.0, 10.0)
+     * Создает новый UnifiedOrderBook с агрегированными уровнями по заданному уровню агрегации.
+     * @param aggregationLevel уровень агрегации (множитель тика)
+     * @param baseTickSize базовый тик инструмента (из API биржи)
      * @return новый UnifiedOrderBook с агрегированными уровнями
      */
-    fun aggregate(aggregationLevel: AggregationLevel): UnifiedOrderBook {
-        val aggregatedLevels = DomAggregator.aggregateUnifiedLevels(levels, aggregationLevel)
+    fun aggregate(aggregationLevel: AggregationLevel, baseTickSize: Double): UnifiedOrderBook {
+        val aggregatedLevels = DomAggregator.aggregateUnifiedLevels(levels, aggregationLevel, baseTickSize)
         
         // Агрегируем лучшие цены с учетом уровня агрегации
-        val aggregatedBestBid = bestBid?.let { aggregationLevel.roundDown(it) }
-        val aggregatedBestAsk = bestAsk?.let { aggregationLevel.roundDown(it) }
+        val aggregatedBestBid = bestBid?.let { aggregationLevel.roundDown(it, baseTickSize) }
+        val aggregatedBestAsk = bestAsk?.let { aggregationLevel.roundDown(it, baseTickSize) }
         val aggregatedSpread = if (aggregatedBestBid != null && aggregatedBestAsk != null) 
             aggregatedBestAsk - aggregatedBestBid else null
         val aggregatedSpreadPercent = if (aggregatedBestBid != null && aggregatedSpread != null)

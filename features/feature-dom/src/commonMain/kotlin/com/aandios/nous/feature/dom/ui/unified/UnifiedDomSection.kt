@@ -23,7 +23,8 @@ fun UnifiedDomSection(
     unifiedOrderBook: UnifiedOrderBook?,
     selectedPrice: Double?,
     onPriceSelected: (Double) -> Unit,
-    aggregationLevel: AggregationLevel = AggregationLevel.TICK_0_1,
+    aggregationLevel: AggregationLevel = AggregationLevel.BaseTick,
+    baseTickSize: Double? = null,
     modifier: Modifier = Modifier
 ) {
     val levels = unifiedOrderBook?.levels ?: emptyList()
@@ -41,8 +42,14 @@ fun UnifiedDomSection(
      *  Целевая цена для скролла - агрегированный лучший bid.
      *  Используем агрегацию, чтобы скроллить до того же уровня, который подсвечивается
      **/
-    val scrollTargetPrice = remember(unifiedOrderBook, aggregationLevel) {
-        unifiedOrderBook?.bestBid?.let { aggregationLevel.roundDown(it) }
+    val scrollTargetPrice = remember(unifiedOrderBook, aggregationLevel, baseTickSize) {
+        unifiedOrderBook?.bestBid?.let { bestBid ->
+            if (baseTickSize != null) {
+                aggregationLevel.roundDown(bestBid, baseTickSize)
+            } else {
+                bestBid // без округления, если tickSize неизвестен
+            }
+        }
     }
 
     // Автоматический скролл при изменении лучшей цены
@@ -60,7 +67,15 @@ fun UnifiedDomSection(
         // и поиск выполняется редко (только при изменении лучшей цены + дебаунс)
         val targetIndex = levels.indexOfFirst { level ->
             val levelPrice = level.price.toDoubleOrNull()
-            levelPrice != null && abs(levelPrice - scrollTargetPrice) < 0.000001
+            if (levelPrice == null) return@indexOfFirst false
+            if (baseTickSize != null) {
+                // Сравниваем через агрегационный ключ
+                aggregationLevel.aggregationKey(levelPrice.toString(), baseTickSize) == 
+                    aggregationLevel.aggregationKey(scrollTargetPrice.toString(), baseTickSize)
+            } else {
+                // fallback: сравнение с допуском
+                abs(levelPrice - scrollTargetPrice) < 0.000001
+            }
         }.takeIf { it >= 0 } ?: return@LaunchedEffect // цена не найдена в levels
 
         // Проверяем, видна ли уже целевая цена в текущем viewport
@@ -70,8 +85,15 @@ fun UnifiedDomSection(
             val visibleIndex = visibleItem.index
             if (visibleIndex in levels.indices) {
                 val levelPrice = levels[visibleIndex].price.toDoubleOrNull()
-                // Сравниваем с целевой ценой с допуском (на случай ошибок округления)
-                levelPrice != null && abs(levelPrice - scrollTargetPrice) < 0.000001
+                if (levelPrice == null) return@any false
+                if (baseTickSize != null) {
+                    // Сравниваем через агрегационный ключ
+                    aggregationLevel.aggregationKey(levelPrice.toString(), baseTickSize) == 
+                        aggregationLevel.aggregationKey(scrollTargetPrice.toString(), baseTickSize)
+                } else {
+                    // fallback: сравнение с допуском
+                    abs(levelPrice - scrollTargetPrice) < 0.000001
+                }
             } else {
                 false
             }
@@ -115,11 +137,23 @@ fun UnifiedDomSection(
         }
 
         // Вычисляем агрегированные лучшие цены для подсветки
-        val aggregatedBestBid = remember(key1 = unifiedOrderBook?.bestBid, key2 = aggregationLevel) {
-            unifiedOrderBook?.bestBid?.let { aggregationLevel.roundDown(it) }
+        val aggregatedBestBid = remember(key1 = unifiedOrderBook?.bestBid, key2 = aggregationLevel, key3 = baseTickSize) {
+            unifiedOrderBook?.bestBid?.let { bestBid ->
+                if (baseTickSize != null) {
+                    aggregationLevel.roundDown(bestBid, baseTickSize)
+                } else {
+                    bestBid // без округления, если tickSize неизвестен
+                }
+            }
         }
-        val aggregatedBestAsk = remember(key1 = unifiedOrderBook?.bestAsk, key2 = aggregationLevel) {
-            unifiedOrderBook?.bestAsk?.let { aggregationLevel.roundDown(it) }
+        val aggregatedBestAsk = remember(key1 = unifiedOrderBook?.bestAsk, key2 = aggregationLevel, key3 = baseTickSize) {
+            unifiedOrderBook?.bestAsk?.let { bestAsk ->
+                if (baseTickSize != null) {
+                    aggregationLevel.roundDown(bestAsk, baseTickSize)
+                } else {
+                    bestAsk // без округления, если tickSize неизвестен
+                }
+            }
         }
 
         // Единый LazyColumn со всеми уровнями
@@ -137,6 +171,8 @@ fun UnifiedDomSection(
                     selectedPrice = selectedPrice,
                     bestBid = aggregatedBestBid,
                     bestAsk = aggregatedBestAsk,
+                    aggregationLevel = aggregationLevel,
+                    baseTickSize = baseTickSize,
                     onPriceClick = onPriceSelected
                 )
             }

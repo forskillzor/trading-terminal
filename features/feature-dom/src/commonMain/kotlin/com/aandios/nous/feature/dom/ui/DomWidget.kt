@@ -15,6 +15,7 @@ fun DomWidget(
     width: Dp = 300.dp,
     showHeader: Boolean = true,
     domOptions: DomOptions = DomOptions.default(),
+    symbolTickSize: Double? = null,
     onDomOptionsChanged: (DomOptions) -> Unit = {},
     content: @Composable () -> Unit = { }
 ) {
@@ -27,6 +28,7 @@ fun DomWidget(
         if (showHeader) {
             DomHeader(
                 domOptions = domOptions,
+                symbolTickSize = symbolTickSize,
                 onDomOptionsChanged = onDomOptionsChanged,
                 isLive = true
             )

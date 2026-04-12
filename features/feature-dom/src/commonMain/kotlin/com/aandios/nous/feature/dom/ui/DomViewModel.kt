@@ -327,33 +327,30 @@ class DomViewModel(
                 val symbolInfo = symbolInfoRepository.getSymbolInfo(symbol)
                 val tickSize = symbolInfo?.tickSize
                 _symbolTickSize.value = tickSize
-                if (tickSize != null) {
-                    updateAggregationFromTickSize(tickSize)
-                }
+                // Уровень агрегации сохраняется (multiplier), displayName обновится автоматически через UI
             } catch (e: Exception) {
                 println("❌ Failed to fetch tickSize for $symbol: ${e.message}")
             }
         }
     }
     
-    private fun updateAggregationFromTickSize(tickSize: Double) {
-        // Выбираем ближайший уровень агрегации из доступных
-        val availableLevels = AggregationLevel.all()
-        val closestLevel = availableLevels.minByOrNull { level -> 
-            kotlin.math.abs(level.tickSize - tickSize) 
-        }
-        if (closestLevel != null && _domOptions.value.aggregation != closestLevel) {
-            println("📊 VM: Auto-updating aggregation level to ${closestLevel.displayName()} based on tickSize $tickSize")
-            updateAggregation(closestLevel)
-        }
-    }
+
 
     /**
      * Возвращает агрегированный UnifiedOrderBook с применением текущего уровня агрегации.
      * Если unifiedOrderBook отсутствует, возвращает null.
+     * Если symbolTickSize неизвестен, возвращает исходный unifiedOrderBook (без агрегации).
      */
     val aggregatedUnifiedOrderBook: UnifiedOrderBook?
-        get() = _unifiedOrderBook.value?.aggregate(_domOptions.value.aggregation)
+        get() {
+            val unifiedBook = _unifiedOrderBook.value ?: return null
+            val baseTickSize = _symbolTickSize.value
+            return if (baseTickSize != null && baseTickSize > 0.0) {
+                unifiedBook.aggregate(_domOptions.value.aggregation, baseTickSize)
+            } else {
+                unifiedBook // без агрегации, если tickSize неизвестен
+            }
+        }
 
     fun clear() {
         subscriptionJob?.cancel()

@@ -28,6 +28,7 @@ fun DomContent(
     unifiedOrderBook: UnifiedOrderBook?,
     bookTicker: BookTicker?,
     domOptions: DomOptions,
+    symbolTickSize: Double? = null,
     selectedPrice: Double? = null,
     onPriceSelected: (Double?) -> Unit = {},
     // Order placement parameters
@@ -65,6 +66,7 @@ fun DomContent(
                                 orderBook = orderBook,
                                 bookTicker = bookTicker,
                                 selectedPrice = selectedPrice,
+                                baseTickSize = symbolTickSize,
                                 onPriceSelected = onPriceSelected,
                                 modifier = Modifier.fillMaxSize()
                             )
@@ -85,9 +87,9 @@ fun DomContent(
                                 strokeWidth = 2.dp
                             )
                         } else {
-                            // Применяем агрегацию к данным, если уровень агрегации не равен TICK_0_1
-                            val displayUnifiedOrderBook = if (domOptions.aggregation != AggregationLevel.TICK_0_1) {
-                                baseUnifiedOrderBook.aggregate(domOptions.aggregation)
+                            // Применяем агрегацию к данным, если уровень агрегации не равен BaseTick и известен symbolTickSize
+                            val displayUnifiedOrderBook = if (domOptions.aggregation != AggregationLevel.BaseTick && symbolTickSize != null) {
+                                baseUnifiedOrderBook.aggregate(domOptions.aggregation, symbolTickSize)
                             } else {
                                 baseUnifiedOrderBook
                             }
@@ -95,6 +97,7 @@ fun DomContent(
                             UnifiedDomContent(
                                 unifiedOrderBook = displayUnifiedOrderBook,
                                 aggregationLevel = domOptions.aggregation,
+                                baseTickSize = symbolTickSize,
                                 selectedPrice = selectedPrice,
                                 onPriceSelected = onPriceSelected,
                                 modifier = Modifier.fillMaxSize()

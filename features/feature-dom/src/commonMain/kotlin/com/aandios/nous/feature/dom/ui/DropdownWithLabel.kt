@@ -144,6 +144,7 @@ fun DepthLimitSelectorWithLabel(
 @Composable
 fun AggregationLevelDropdownWithLabel(
     currentLevel: AggregationLevel,
+    symbolTickSize: Double? = null,
     onLevelChanged: (AggregationLevel) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -155,7 +156,7 @@ fun AggregationLevelDropdownWithLabel(
             currentValue = currentLevel,
             items = AggregationLevel.all(),
             onValueChanged = onLevelChanged,
-            displayText = { it.displayName() },
+            displayText = { it.displayName(symbolTickSize) },
             menuWidth = 100.dp
         )
     }

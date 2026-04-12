@@ -25,6 +25,7 @@ fun DomPreview() {
     val domOptions by domViewModel.domOptions.collectAsState()
     val orderQuantity by domViewModel.orderQuantity.collectAsState()
     val isTradingEnabled by domViewModel.isTradingEnabled.collectAsState()
+    val symbolTickSize by domViewModel.symbolTickSize.collectAsState()
 
     // ViewModel уже инициализирует подписку с дефолтными настройками (BTCUSDT, depth=100)
     // Не нужно вызывать дополнительные подписки - это вызовет рестарт и ошибки отмены
@@ -39,6 +40,7 @@ fun DomPreview() {
             unifiedOrderBook = unifiedOrderBook,
             bookTicker = bookTicker,
             domOptions = domOptions,
+            symbolTickSize = symbolTickSize,
             selectedPrice = selectedPrice,
             onPriceSelected = { price -> domViewModel.selectPrice(price) },
             // Order placement parameters
