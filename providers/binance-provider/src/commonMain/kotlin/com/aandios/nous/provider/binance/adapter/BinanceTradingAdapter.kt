@@ -15,7 +15,7 @@ class BinanceTradingAdapter(
     override suspend fun placeOrder(request: OrderRequest): OrderResponse {
         println("📝 BinanceTradingAdapter.placeOrder: $request")
         // Заглушка: всегда успех
-        // FIXME: Реальная реализация должна вызывать Binance API
+        // fixme: Реальная реализация должна вызывать Binance API
         return OrderResponse(
             orderId = "TEST-${System.currentTimeMillis()}",
             price = request.price

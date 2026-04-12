@@ -25,7 +25,7 @@ class BinanceBookTickerAdapter(
     }
 
     override fun subscribeToBookTicker(symbol: String): Flow<BookTicker> = callbackFlow {
-        val streamName = "${symbol.lowercase()}@bookTicker"  // ← меняем на bookTicker
+        val streamName = "${symbol.lowercase()}@bookTicker"
         val endpoint = "wss://fstream.binance.com/ws/$streamName"
 
         try {
@@ -49,6 +49,7 @@ class BinanceBookTickerAdapter(
                 }
             }
         } catch (e: Exception) {
+            // fixme: here is sometime ping timeout
             println("❌ BookTicker WebSocket failed: ${e.message}")
             e.printStackTrace()
             delay(1000)

@@ -27,6 +27,7 @@ import kotlinx.serialization.json.Json
  * - Фильтрация уровней по лучшим ценам при отдаче UI
  */
 // todo maybe change to RPI Depth???
+// fixme need to check websocket connection
 class BinanceDomAdapter(
     private val client: HttpClient,
     private val config: ProviderConfig,

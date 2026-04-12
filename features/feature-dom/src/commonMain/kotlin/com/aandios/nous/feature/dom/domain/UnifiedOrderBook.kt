@@ -115,4 +115,22 @@ data class UnifiedOrderBook(
             spreadPercent = aggregatedSpreadPercent
         )
     }
+    
+    /**
+     * Преобразует UnifiedOrderBook обратно в OrderBook для совместимости с компонентами,
+     * которые ожидают классическое представление стакана (например, OrderPlacementPanel).
+     */
+    fun toOrderBook(): OrderBook {
+        val bids = levels.filter { level -> level.bidQty.isNotEmpty() }
+            .map { level -> OrderBookLevel(price = level.price, quantity = level.bidQty) }
+        val asks = levels.filter { level -> level.askQty.isNotEmpty() }
+            .map { level -> OrderBookLevel(price = level.price, quantity = level.askQty) }
+        
+        return OrderBook(
+            symbol = symbol,
+            bids = bids,
+            asks = asks,
+            timestamp = timestamp
+        )
+    }
 }

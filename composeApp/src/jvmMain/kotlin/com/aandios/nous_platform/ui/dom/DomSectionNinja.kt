@@ -232,57 +232,6 @@ private fun NinjaTraderRow(
     }
 }
 
-@Composable
-private fun NinjaTraderSpread(
-    bestBid: Double,
-    bestAsk: Double,
-    modifier: Modifier = Modifier
-) {
-    val spread = bestAsk - bestBid
-    val spreadPercent = (spread / bestBid) * 100
-
-    Row(
-        modifier = modifier
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(horizontal = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = formatPrice(bestBid),
-            color = MaterialTheme.colorScheme.primary,
-            style = MaterialTheme.typography.bodySmall.copy(
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Bold
-            )
-        )
-
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "SPREAD",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.labelSmall
-            )
-            Text(
-                text = "${formatPrice(spread)} (${"%.2f".format(spreadPercent)}%)",
-                color = Color.Yellow,
-                style = MaterialTheme.typography.labelSmall
-            )
-        }
-
-        Text(
-            text = formatPrice(bestAsk),
-            color = MaterialTheme.colorScheme.secondary,
-            style = MaterialTheme.typography.bodySmall.copy(
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Bold
-            )
-        )
-    }
-}
-
 private fun formatPrice(price: Double): String {
     return when {
         price >= 1000 -> String.format("%.2f", price)
