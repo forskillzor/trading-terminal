@@ -122,6 +122,7 @@ class DomViewModel(
                         println("❌ Unified Order Book Error: ${e.message}")
                         e.printStackTrace()
                     }.collect { unifiedData ->
+                        // todo сюда видимо надо добавить вызов агрегации уровней при смены опции в domHeader
                         _unifiedOrderBook.value = unifiedData
                         // Обновляем orderBook для совместимости (например, OrderPlacementPanel)
                         _orderBook.value = unifiedData.toOrderBook()
