@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlin.math.pow
 
 class DomRepositoryImpl(
     private val domAdapter: DomAdapter,
@@ -67,7 +68,7 @@ class DomRepositoryImpl(
                     break
                 }
 
-                val delayMs = (1000 * Math.pow(2.0, reconnectAttempts - 1.0)).toLong()
+                val delayMs = (1000 * 2.0.pow(reconnectAttempts - 1.0)).toLong()
                 println("⏳ Reconnecting to $symbol in ${delayMs}ms (attempt $reconnectAttempts)")
                 delay(delayMs)
             }

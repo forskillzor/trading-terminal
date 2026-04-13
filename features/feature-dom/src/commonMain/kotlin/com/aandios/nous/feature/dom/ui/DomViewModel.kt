@@ -97,7 +97,10 @@ class DomViewModel(
             if (subscriptionChanged) {
                 restartSubscription(newOptions)
             }
-            
+
+            // todo add aggregation orderBook if option changed to aggregate
+            val aggregationChanged = oldOptions.aggregation != newOptions.aggregation
+
             // Если изменился символ — обновляем tickSize
             if (oldOptions.symbol != newOptions.symbol) {
                 fetchSymbolTickSize(newOptions.symbol.symbol)
