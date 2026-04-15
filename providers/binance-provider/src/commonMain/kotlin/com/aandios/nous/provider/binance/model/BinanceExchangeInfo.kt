@@ -1,7 +1,9 @@
 package com.aandios.nous.provider.binance.model
 
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonClassDiscriminator
 import kotlinx.serialization.json.JsonElement
 
 /**
@@ -27,29 +29,49 @@ data class BinanceRateLimit(
 @Serializable
 data class BinanceSymbolInfo(
     @SerialName("symbol") val symbol: String,
+    @SerialName("pair") val pair: String? = null,
+    @SerialName("contractType") val contractType: String? = null,
+    @SerialName("deliveryDate") val deliveryDate: Long? = null,
+    @SerialName("onboardDate") val onboardDate: Long? = null,
     @SerialName("status") val status: String,
+    @SerialName("maintMarginPercent") val maintMarginPercent: String? = null,
+    @SerialName("requiredMarginPercent") val requiredMarginPercent: String? = null,
     @SerialName("baseAsset") val baseAsset: String,
-    @SerialName("baseAssetPrecision") val baseAssetPrecision: Int,
     @SerialName("quoteAsset") val quoteAsset: String,
+    @SerialName("marginAsset") val marginAsset: String? = null,
+    @SerialName("pricePrecision") val pricePrecision: Int? = null,
+    @SerialName("quantityPrecision") val quantityPrecision: Int? = null,
+    @SerialName("baseAssetPrecision") val baseAssetPrecision: Int,
     @SerialName("quotePrecision") val quotePrecision: Int,
-    @SerialName("quoteAssetPrecision") val quoteAssetPrecision: Int,
-    @SerialName("baseCommissionPrecision") val baseCommissionPrecision: Int,
-    @SerialName("quoteCommissionPrecision") val quoteCommissionPrecision: Int,
-    @SerialName("orderTypes") val orderTypes: List<String>,
-    @SerialName("icebergAllowed") val icebergAllowed: Boolean,
-    @SerialName("ocoAllowed") val ocoAllowed: Boolean,
-    @SerialName("quoteOrderQtyMarketAllowed") val quoteOrderQtyMarketAllowed: Boolean,
-    @SerialName("allowTrailingStop") val allowTrailingStop: Boolean,
-    @SerialName("cancelReplaceAllowed") val cancelReplaceAllowed: Boolean,
-    @SerialName("isSpotTradingAllowed") val isSpotTradingAllowed: Boolean,
-    @SerialName("isMarginTradingAllowed") val isMarginTradingAllowed: Boolean,
+    @SerialName("quoteAssetPrecision") val quoteAssetPrecision: Int? = null,
+    @SerialName("baseCommissionPrecision") val baseCommissionPrecision: Int? = null,
+    @SerialName("quoteCommissionPrecision") val quoteCommissionPrecision: Int? = null,
+    @SerialName("underlyingType") val underlyingType: String? = null,
+    @SerialName("underlyingSubType") val underlyingSubType: List<String>? = null,
+    @SerialName("triggerProtect") val triggerProtect: String? = null,
+    @SerialName("liquidationFee") val liquidationFee: String? = null,
+    @SerialName("marketTakeBound") val marketTakeBound: String? = null,
+    @SerialName("maxMoveOrderLimit") val maxMoveOrderLimit: Int? = null,
     @SerialName("filters") val filters: List<BinanceSymbolFilter>,
-    @SerialName("permissions") val permissions: List<String>,
-    @SerialName("defaultSelfTradePreventionMode") val defaultSelfTradePreventionMode: String,
-    @SerialName("allowedSelfTradePreventionModes") val allowedSelfTradePreventionModes: List<String>,
+    @SerialName("orderTypes") val orderTypes: List<String>,
+    @SerialName("timeInForce") val timeInForce: List<String>? = null,
+    @SerialName("permissionSets") val permissionSets: List<String>? = null,
+    // Старые поля для обратной совместимости
+    @SerialName("icebergAllowed") val icebergAllowed: Boolean? = null,
+    @SerialName("ocoAllowed") val ocoAllowed: Boolean? = null,
+    @SerialName("quoteOrderQtyMarketAllowed") val quoteOrderQtyMarketAllowed: Boolean? = null,
+    @SerialName("allowTrailingStop") val allowTrailingStop: Boolean? = null,
+    @SerialName("cancelReplaceAllowed") val cancelReplaceAllowed: Boolean? = null,
+    @SerialName("isSpotTradingAllowed") val isSpotTradingAllowed: Boolean? = null,
+    @SerialName("isMarginTradingAllowed") val isMarginTradingAllowed: Boolean? = null,
+    @SerialName("permissions") val permissions: List<String>? = null,
+    @SerialName("defaultSelfTradePreventionMode") val defaultSelfTradePreventionMode: String? = null,
+    @SerialName("allowedSelfTradePreventionModes") val allowedSelfTradePreventionModes: List<String>? = null,
 )
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
+@JsonClassDiscriminator("filterType")
 sealed class BinanceSymbolFilter {
     abstract val filterType: String
 }
@@ -85,9 +107,38 @@ data class BinanceMarketLotSizeFilter(
 @SerialName("MIN_NOTIONAL")
 data class BinanceMinNotionalFilter(
     @SerialName("filterType") override val filterType: String,
-    @SerialName("minNotional") val minNotional: String,
-    @SerialName("applyToMarket") val applyToMarket: Boolean,
-    @SerialName("avgPriceMins") val avgPriceMins: Int,
+    @SerialName("minNotional") val minNotional: String? = null,
+    @SerialName("notional") val notional: String? = null,
+    @SerialName("applyToMarket") val applyToMarket: Boolean? = null,
+    @SerialName("avgPriceMins") val avgPriceMins: Int? = null,
 ) : BinanceSymbolFilter()
 
-// Другие фильтры можно добавить по необходимости
+@Serializable
+@SerialName("MAX_NUM_ORDERS")
+data class BinanceMaxNumOrdersFilter(
+    @SerialName("filterType") override val filterType: String,
+    @SerialName("limit") val limit: Int,
+) : BinanceSymbolFilter()
+
+@Serializable
+@SerialName("PERCENT_PRICE")
+data class BinancePercentPriceFilter(
+    @SerialName("filterType") override val filterType: String,
+    @SerialName("multiplierUp") val multiplierUp: String,
+    @SerialName("multiplierDown") val multiplierDown: String,
+    @SerialName("multiplierDecimal") val multiplierDecimal: String,
+) : BinanceSymbolFilter()
+
+@Serializable
+@SerialName("POSITION_RISK_CONTROL")
+data class BinancePositionRiskControlFilter(
+    @SerialName("filterType") override val filterType: String,
+    @SerialName("positionControlSide") val positionControlSide: String,
+) : BinanceSymbolFilter()
+
+// Unknown filter для обработки неизвестных типов фильтров
+@Serializable
+@SerialName("UNKNOWN")
+data class BinanceUnknownFilter(
+    @SerialName("filterType") override val filterType: String,
+) : BinanceSymbolFilter()

@@ -58,7 +58,7 @@ class BinanceSymbolInfoAdapter(
             tickSize = priceFilter?.tickSize?.toDoubleOrNull() ?: 0.01,
             stepSize = lotSizeFilter?.stepSize?.toDoubleOrNull() ?: 0.001,
             minQty = lotSizeFilter?.minQty?.toDoubleOrNull() ?: 0.001,
-            minNotional = minNotionalFilter?.minNotional?.toDoubleOrNull() ?: 10.0,
+            minNotional = minNotionalFilter?.notional?.toDoubleOrNull() ?: 10.0,
             status = status,
             baseAsset = baseAsset,
             quoteAsset = quoteAsset,

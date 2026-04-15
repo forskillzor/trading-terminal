@@ -10,19 +10,24 @@ import com.aandios.nous.provider.binance.adapter.BinanceDomAdapter
 import com.aandios.nous.provider.binance.adapter.BinanceSymbolInfoAdapter
 import com.aandios.nous.provider.binance.adapter.BinanceTradesAdapter
 import com.aandios.nous.provider.binance.adapter.BinanceTradingAdapter
+import io.ktor.client.HttpClient
 
 class BinanceProvider(
     override val providerId: String,
     override val providerName: String,
     override val version: String,
     override val config: ProviderConfig,
-    override val networkManager: NetworkManager,
+    override val networkManager: NetworkManager,  // Оставляем для совместимости, но не используем его httpClient
 ) : Provider {
-    override val trades by lazy { BinanceTradesAdapter(networkManager.httpClient, config) }
-    override val dom: DomAdapter by lazy { BinanceDomAdapter(networkManager.httpClient, config, provider = this) }
-    override val bookTicker: BookTickerAdapter by lazy { BinanceBookTickerAdapter(networkManager.httpClient, config) }
-    override val chart: ChartAdapter by lazy { BinanceChartAdapter(networkManager.httpClient, config) }
-    override val trading: TradingAdapter by lazy { BinanceTradingAdapter(networkManager.httpClient, config) }
-    override val symbolInfo: SymbolInfoAdapter by lazy { BinanceSymbolInfoAdapter(networkManager.httpClient, config) }
+    
+    // Создаём отдельный HttpClient для Binance с правильным classDiscriminator
+    private val binanceHttpClient: HttpClient = BinanceHttpClientFactory.create()
+    
+    override val trades by lazy { BinanceTradesAdapter(binanceHttpClient, config) }
+    override val dom: DomAdapter by lazy { BinanceDomAdapter(binanceHttpClient, config, provider = this) }
+    override val bookTicker: BookTickerAdapter by lazy { BinanceBookTickerAdapter(binanceHttpClient, config) }
+    override val chart: ChartAdapter by lazy { BinanceChartAdapter(binanceHttpClient, config) }
+    override val trading: TradingAdapter by lazy { BinanceTradingAdapter(binanceHttpClient, config) }
+    override val symbolInfo: SymbolInfoAdapter by lazy { BinanceSymbolInfoAdapter(binanceHttpClient, config) }
 
 }
