@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.aandios.nous.feature.dom.domain.DomOptions
+import com.aandios.nous.feature.dom.ui.header.DomHeader
 
 @Composable
 fun DomWidget(

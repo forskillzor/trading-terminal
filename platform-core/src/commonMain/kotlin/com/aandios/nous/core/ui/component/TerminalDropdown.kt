@@ -1,4 +1,4 @@
-package com.aandios.nous.feature.dom.ui
+package com.aandios.nous.core.ui.component
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*

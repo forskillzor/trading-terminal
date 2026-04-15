@@ -1,4 +1,4 @@
-package com.aandios.nous.feature.dom.ui
+package com.aandios.nous.feature.dom.ui.header
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -10,10 +10,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.aandios.nous.feature.dom.domain.*
-import com.aandios.nous.feature.dom.domain.model.AggregationLevel
-import com.aandios.nous.feature.dom.domain.model.DepthLimit
 
 @Composable
 fun DomHeader(
@@ -74,7 +73,7 @@ private fun ExpandedDomHeader(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Provider dropdown с label
-                TradingProviderDropdownWithLabel(
+                TradingProviderDropdown(
                     currentProvider = domOptions.provider,
                     onProviderChanged = { newProvider ->
                         onDomOptionsChanged(domOptions.copy(provider = newProvider))
@@ -104,7 +103,7 @@ private fun ExpandedDomHeader(
                             text = if (isLive) "LIVE" else "OFFLINE",
                             color = if (isLive) Color.Green else Color.Red,
                             style = MaterialTheme.typography.labelSmall,
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+                            fontWeight = FontWeight.Medium
                         )
                     }
                     
@@ -139,7 +138,7 @@ private fun ExpandedDomHeader(
                  **/
 
 
-                SymbolDropdownWithLabel(
+                SymbolDropdown(
                     currentSymbol = domOptions.symbol,
                     provider = domOptions.provider,
                     onSymbolChanged = { newSymbol ->
@@ -149,7 +148,7 @@ private fun ExpandedDomHeader(
                 )
                 
                 // Depth limit selector с label
-                DepthLimitSelectorWithLabel(
+                DepthLimitDropdown(
                     currentLimit = domOptions.depth,
                     onLimitChanged = { newDepth ->
                         onDomOptionsChanged(domOptions.copy(depth = newDepth))
@@ -165,7 +164,7 @@ private fun ExpandedDomHeader(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Aggregation level dropdown с label
-                AggregationLevelDropdownWithLabel(
+                AggregationLevelDropdown(
                     currentLevel = domOptions.aggregation,
                     symbolTickSize = symbolTickSize,
                     onLevelChanged = { newAggregation ->
@@ -175,7 +174,7 @@ private fun ExpandedDomHeader(
                 )
 
                 // DOM mode dropdown с label
-                DomModeDropdownWithLabel(
+                DomModeDropdown(
                     currentMode = domOptions.mode,
                     onModeChanged = { newMode ->
                         onDomOptionsChanged(domOptions.copy(mode = newMode))
