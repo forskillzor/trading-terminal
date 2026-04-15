@@ -24,7 +24,7 @@ fun SymbolDropdown(
     ) {
         TerminalDropdown(
             currentValue = currentSymbol,
-            items = TradingSymbol.Companion.getSymbolsForProvider(provider),
+            items = TradingSymbol.getSymbolsForProvider(provider),
             onValueChanged = onSymbolChanged,
             displayText = { it.displayName },
             menuWidth = 120.dp

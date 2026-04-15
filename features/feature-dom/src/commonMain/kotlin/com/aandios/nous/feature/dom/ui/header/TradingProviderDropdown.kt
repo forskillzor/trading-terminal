@@ -22,7 +22,7 @@ fun TradingProviderDropdown(
     ) {
         TerminalDropdown(
             currentValue = currentProvider,
-            items = TradingProvider.Companion.all(),
+            items = TradingProvider.all(),
             onValueChanged = onProviderChanged,
             displayText = { it.displayName },
             menuWidth = 180.dp

@@ -36,26 +36,26 @@ fun CompactProviderSymbol(
         modifier = modifier
     ) {
         Row(
-            verticalAlignment = Alignment.Companion.CenterVertically,
+            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.Companion.padding(horizontal = 12.dp, vertical = 6.dp)
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
         ) {
             // Provider
             Row(
-                verticalAlignment = Alignment.Companion.CenterVertically,
+                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
                     text = tradingProvider.displayName,
                     color = MaterialTheme.colorScheme.inverseOnSurface,
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.Companion.SemiBold
+                    fontWeight = FontWeight.SemiBold
                 )
             }
 
             // Разделитель
             Spacer(
-                modifier = Modifier.Companion
+                modifier = Modifier
                     .width(1.dp)
                     .height(12.dp)
                     .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
@@ -63,14 +63,14 @@ fun CompactProviderSymbol(
 
             // Symbol
             Row(
-                verticalAlignment = Alignment.Companion.CenterVertically,
+                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
                     text = tradingSymbol.displayName,
                     color = MaterialTheme.colorScheme.inverseOnSurface,
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.Companion.SemiBold
+                    fontWeight = FontWeight.SemiBold
                 )
             }
         }

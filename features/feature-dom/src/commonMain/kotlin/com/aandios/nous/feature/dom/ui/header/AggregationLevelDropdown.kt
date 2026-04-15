@@ -23,7 +23,7 @@ fun AggregationLevelDropdown(
     ) {
         TerminalDropdown(
             currentValue = currentLevel,
-            items = AggregationLevel.Companion.all(),
+            items = AggregationLevel.all(),
             onValueChanged = onLevelChanged,
             displayText = { it.displayName(symbolTickSize) },
             menuWidth = 100.dp
