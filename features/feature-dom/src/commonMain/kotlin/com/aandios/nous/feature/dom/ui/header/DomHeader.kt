@@ -182,6 +182,30 @@ private fun ExpandedDomHeader(
                     modifier = Modifier.weight(1f)
                 )
             }
+            
+            // Четвертая строка: Split view mode selector (только для SPLIT режима)
+            if (domOptions.mode == DomMode.SPLIT) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Start,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "View:",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
+                    
+                    SplitViewModeSelector(
+                        currentMode = domOptions.splitViewMode,
+                        onModeChanged = { newSplitViewMode ->
+                            onDomOptionsChanged(domOptions.copy(splitViewMode = newSplitViewMode))
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
         }
     }
 }

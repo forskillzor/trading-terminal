@@ -21,7 +21,7 @@ fun SplitDomSection(
 
     // Список уровней с оптимизациями
     LazyColumn(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxSize(),
     ) {
         items(
             items = levels,
