@@ -19,7 +19,7 @@ import com.aandios.nous.feature.dom.domain.DomMode
 import com.aandios.nous.feature.dom.domain.DomOptions
 import com.aandios.nous.feature.dom.domain.UnifiedOrderBook
 import com.aandios.nous.feature.dom.domain.model.AggregationLevel
-import com.aandios.nous.feature.dom.ui.split.EnhancedSplitDomContent
+import com.aandios.nous.feature.dom.ui.split.SplitDomContent
 import com.aandios.nous.feature.dom.ui.unified.UnifiedDomContent
 
 @Composable
@@ -62,7 +62,7 @@ fun DomContent(
                                 strokeWidth = 2.dp
                             )
                         } else {
-                            EnhancedSplitDomContent(
+                            SplitDomContent(
                                 orderBook = orderBook,
                                 bookTicker = bookTicker,
                                 selectedPrice = selectedPrice,

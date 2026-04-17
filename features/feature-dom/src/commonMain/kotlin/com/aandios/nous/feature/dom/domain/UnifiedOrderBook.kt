@@ -98,7 +98,8 @@ data class UnifiedOrderBook(
      * @return новый UnifiedOrderBook с агрегированными уровнями
      */
     fun aggregate(aggregationLevel: AggregationLevel, baseTickSize: Double): UnifiedOrderBook {
-        val aggregatedLevels = DomAggregator.aggregateUnifiedLevels(levels, aggregationLevel, baseTickSize)
+        val aggregatedLevels = DomAggregator
+            .aggregateUnifiedLevels(levels, aggregationLevel, baseTickSize)
         
         // Агрегируем лучшие цены с учетом уровня агрегации
         val aggregatedBestBid = bestBid?.let { aggregationLevel.roundDown(it, baseTickSize) }

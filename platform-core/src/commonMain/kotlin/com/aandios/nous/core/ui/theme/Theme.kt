@@ -62,7 +62,7 @@ private val Menlo = FontFamily(
 )
 
 // Определяем моноширинный шрифт
-private val TerminalFontFamily = JetBrainsMono
+private val TerminalFontFamily = Menlo
 
 // Типографика для трейдингового терминала (исправленная)
 private val TerminalTypography = Typography(

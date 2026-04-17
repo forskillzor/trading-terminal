@@ -98,15 +98,10 @@ class DomViewModel(
                 restartSubscription(newOptions)
             }
 
-            // todo add aggregation orderBook if option changed to aggregate
-            val aggregationChanged = oldOptions.aggregation != newOptions.aggregation
-
             // Если изменился символ — обновляем tickSize
             if (oldOptions.symbol != newOptions.symbol) {
                 fetchSymbolTickSize(newOptions.symbol.symbol)
             }
-            
-
         }
     }
 
@@ -160,61 +155,6 @@ class DomViewModel(
         }
     }
 
-    // Удобные методы для UI (обёртки над updateDomOptions для обратной совместимости)
-    fun updateProvider(provider: TradingProvider) {
-        updateDomOptions(_domOptions.value.copy(provider = provider))
-    }
-    
-    fun updateSymbol(symbol: TradingSymbol) {
-        updateDomOptions(_domOptions.value.copy(symbol = symbol))
-    }
-    
-    fun updateDepth(depth: DepthLimit) {
-        updateDomOptions(_domOptions.value.copy(depth = depth))
-    }
-    
-    fun updateAggregation(aggregation: AggregationLevel) {
-        updateDomOptions(_domOptions.value.copy(aggregation = aggregation))
-    }
-    
-    fun updateMode(mode: DomMode) {
-        updateDomOptions(_domOptions.value.copy(mode = mode))
-    }
-    
-    fun toggleCollapsed() {
-        updateDomOptions(_domOptions.value.copy(collapsed = !_domOptions.value.collapsed))
-    }
-
-    // Старые методы подписки (оставляем для обратной совместимости, но они используют domOptions)
-    fun subscribeToBookTicker(symbol: String) {
-        // Просто обновляем символ в domOptions
-        updateSymbol(TradingSymbol(symbol, symbol, provider = _domOptions.value.provider))
-    }
-
-    fun subscribeToOrderBook(symbol: String, depth: Int) {
-        // Обновляем и символ, и глубину в domOptions
-        updateDomOptions(_domOptions.value.copy(
-            symbol = TradingSymbol(symbol, symbol, provider = _domOptions.value.provider),
-            depth = DepthLimit.create(depth)
-        ))
-    }
-
-    fun subscribeToOrderBook(symbol: String) {
-        subscribeToOrderBook(symbol, _domOptions.value.depth.value)
-    }
-
-    fun subscribeToUnifiedOrderBook(symbol: String, depth: Int) {
-        // Обновляем и символ, и глубину в domOptions
-        updateDomOptions(_domOptions.value.copy(
-            symbol = TradingSymbol(symbol, symbol, provider = _domOptions.value.provider),
-            depth = DepthLimit.create(depth)
-        ))
-    }
-
-    fun subscribeToUnifiedOrderBook(symbol: String) {
-        subscribeToUnifiedOrderBook(symbol, _domOptions.value.depth.value)
-    }
-
     // Единый метод для выполнения команд
     fun executeCommand(command: TradingCommand?) {
         if (command != null) {
@@ -234,81 +174,6 @@ class DomViewModel(
                 println("📝 VM: Executing command: ${command.getDescription()}")
                 command.execute()
             }
-        }
-    }
-
-    // Фабричные методы для создания команд (удобно для UI)
-    fun createBuyMarketCommand(): TradingCommand {
-        val symbol = _orderBook.value?.symbol ?: "UNKNOWN"
-        val quantity = _orderQuantity.value.toDoubleOrNull() ?: 0.0
-
-        return BuyMarketCommand(symbol, quantity) { result ->
-            _lastCommandResult.value = result
-            println("📝 VM: Buy Market result: $result")
-        }
-    }
-
-    fun createSellMarketCommand(): TradingCommand {
-        val symbol = _orderBook.value?.symbol ?: "UNKNOWN"
-        val quantity = _orderQuantity.value.toDoubleOrNull() ?: 0.0
-
-        return SellMarketCommand(symbol, quantity) { result ->
-            _lastCommandResult.value = result
-            println("📝 VM: Sell Market result: $result")
-        }
-    }
-
-    fun createBuyLimitCommand(): TradingCommand? {
-        val symbol = _orderBook.value?.symbol ?: return null
-        val price = _selectedPrice.value ?: return null
-        val quantity = _orderQuantity.value.toDoubleOrNull() ?: return null
-
-        return BuyLimitCommand(symbol, price, quantity) { result ->
-            _lastCommandResult.value = result
-            println("📝 VM: Buy Limit result: $result")
-        }
-    }
-
-    fun createSellLimitCommand(): TradingCommand? {
-        val symbol = _orderBook.value?.symbol ?: return null
-        val price = _selectedPrice.value ?: return null
-        val quantity = _orderQuantity.value.toDoubleOrNull() ?: return null
-
-        return SellLimitCommand(symbol, price, quantity) { result ->
-            _lastCommandResult.value = result
-            println("📝 VM: Sell Limit result: $result")
-        }
-    }
-
-    fun createBuyBestBidCommand(): TradingCommand? {
-        val symbol = _orderBook.value?.symbol ?: return null
-        val bestBid = _orderBook.value?.bids?.firstOrNull()?.price?.toDoubleOrNull() ?: return null
-        val quantity = _orderQuantity.value.toDoubleOrNull() ?: return null
-
-        return BuyBestBidCommand(symbol, bestBid, quantity) { result ->
-            _lastCommandResult.value = result
-            println("📝 VM: Buy Best Bid result: $result")
-        }
-    }
-
-    fun createSellBestAskCommand(): TradingCommand? {
-        val symbol = _orderBook.value?.symbol ?: return null
-        val bestAsk = _orderBook.value?.asks?.firstOrNull()?.price?.toDoubleOrNull() ?: return null
-        val quantity = _orderQuantity.value.toDoubleOrNull() ?: return null
-
-        return SellBestAskCommand(symbol, bestAsk, quantity) { result ->
-            _lastCommandResult.value = result
-            println("📝 VM: Sell Best Ask result: $result")
-        }
-    }
-
-    fun createTradeOffCommand(): TradingCommand {
-        return TradeOffCommand { result ->
-            if (result is CommandResult.Success) {
-                _isTradingEnabled.value = !_isTradingEnabled.value
-                println("🔴 VM: Trading is now ${if (_isTradingEnabled.value) "ON" else "OFF"}")
-            }
-            _lastCommandResult.value = result
         }
     }
 
@@ -336,28 +201,5 @@ class DomViewModel(
                 println("❌ Failed to fetch tickSize for $symbol: ${e.message}")
             }
         }
-    }
-    
-
-
-    /**
-     * Возвращает агрегированный UnifiedOrderBook с применением текущего уровня агрегации.
-     * Если unifiedOrderBook отсутствует, возвращает null.
-     * Если symbolTickSize неизвестен, возвращает исходный unifiedOrderBook (без агрегации).
-     */
-    val aggregatedUnifiedOrderBook: UnifiedOrderBook?
-        get() {
-            val unifiedBook = _unifiedOrderBook.value ?: return null
-            val baseTickSize = _symbolTickSize.value
-            return if (baseTickSize != null && baseTickSize > 0.0) {
-                unifiedBook.aggregate(_domOptions.value.aggregation, baseTickSize)
-            } else {
-                unifiedBook // без агрегации, если tickSize неизвестен
-            }
-        }
-
-    fun clear() {
-        subscriptionJob?.cancel()
-        viewModelScope.coroutineContext.cancelChildren()
     }
 }

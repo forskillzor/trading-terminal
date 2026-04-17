@@ -2,7 +2,9 @@ package com.aandios.nous.feature.dom.ui.split
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.aandios.nous.api.market.model.orderbook.OrderBookLevel
@@ -16,11 +18,13 @@ fun SplitDomSection(
     selectedPrice: Double?,
     baseTickSize: Double? = null,
     onPriceClick: (Double) -> Unit,
+    listState: LazyListState? = null,
     modifier: Modifier = Modifier
 ) {
 
     // Список уровней с оптимизациями
     LazyColumn(
+        state = listState ?: rememberLazyListState(),
         modifier = modifier.fillMaxSize(),
     ) {
         items(
