@@ -1,8 +1,5 @@
-package com.aandios.nous.feature.dom.domain
+package com.aandios.nous.api.market.model.orderbook
 
-import com.aandios.nous.api.market.model.orderbook.DepthSnapshot
-import com.aandios.nous.api.market.model.orderbook.DepthUpdate
-import com.aandios.nous.api.market.model.orderbook.OrderBookLevel
 import java.util.concurrent.ConcurrentHashMap
 
 class OrderBookState {

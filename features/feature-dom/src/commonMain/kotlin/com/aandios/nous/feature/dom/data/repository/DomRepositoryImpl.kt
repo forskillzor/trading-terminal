@@ -7,7 +7,7 @@ import com.aandios.nous.api.market.model.orderbook.DepthSnapshot
 import com.aandios.nous.api.market.model.orderbook.OrderBook
 import com.aandios.nous.api.market.model.orderbook.OrderBookLevel
 import com.aandios.nous.core.domain.repository.DomRepository
-import com.aandios.nous.feature.dom.domain.OrderBookState
+import com.aandios.nous.api.market.model.orderbook.OrderBookState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
