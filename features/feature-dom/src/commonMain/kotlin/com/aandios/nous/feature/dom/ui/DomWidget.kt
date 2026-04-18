@@ -14,10 +14,6 @@ import com.aandios.nous.feature.dom.ui.header.DomHeader
 fun DomWidget(
     modifier: Modifier = Modifier,
     width: Dp = 300.dp,
-    showHeader: Boolean = true,
-    domOptions: DomOptions = DomOptions.default(),
-    symbolTickSize: Double? = null,
-    onDomOptionsChanged: (DomOptions) -> Unit = {},
     content: @Composable () -> Unit = { }
 ) {
     Column(
@@ -26,14 +22,6 @@ fun DomWidget(
             .widthIn(min = width)
             .background(MaterialTheme.colorScheme.surface)
     ) {
-        if (showHeader) {
-            DomHeader(
-                domOptions = domOptions,
-                symbolTickSize = symbolTickSize,
-                onDomOptionsChanged = onDomOptionsChanged,
-                isLive = true
-            )
-        }
         Box(modifier = Modifier.weight(1f)) {
             content()
         }
