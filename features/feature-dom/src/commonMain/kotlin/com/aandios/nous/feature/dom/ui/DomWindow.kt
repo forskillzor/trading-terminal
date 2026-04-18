@@ -108,13 +108,18 @@ fun DomWindow() {
             }
         }
         // Панель размещения ордеров (фиксированная высота)
+        val symbol = domOptions.symbol.symbol
+        val bestBidPrice = bookTicker?.bestBid?: panelOrderBook?.bids?.firstOrNull()?.price?.toDoubleOrNull()
+        val bestAskPrice = bookTicker?.bestAsk?: panelOrderBook?.asks?.firstOrNull()?.price?.toDoubleOrNull()
+        
         OrderPlacementPanel(
-            orderBook = panelOrderBook,
+            symbol = symbol,
             selectedPrice = selectedPrice,
             orderQuantity = orderQuantity,
+            bestBidPrice = bestBidPrice,
+            bestAskPrice = bestAskPrice,
             onQuantityChanged = { qty -> domViewModel.updateOrderQuantity(qty) },
-            onTradingCommand = { command -> domViewModel.executeCommand(command) },
-            onCommandResult = { /* результат уже обрабатывается во ViewModel */ },
+            onOrderIntent = { intent -> domViewModel.handleOrderIntent(intent) },
             isTradingEnabled = isTradingEnabled,
             modifier = Modifier
                 .fillMaxWidth()

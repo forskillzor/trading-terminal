@@ -235,26 +235,3 @@ fun SplitDomContent(
         }
     }
 }
-
-//@Composable
-//fun SplitDomSection(
-//    levels: List<com.aandios.nous.api.market.model.orderbook.OrderBookLevel>,
-//    maxVolume: Double,
-//    isAsk: Boolean,
-//    selectedPrice: Double?,
-//    baseTickSize: Double? = null,
-//    onPriceClick: (Double) -> Unit,
-//    listState: LazyListState,
-//    modifier: Modifier = Modifier
-//) {
-//    com.aandios.nous.feature.dom.ui.split.SplitDomSection(
-//        levels = levels,
-//        maxVolume = maxVolume,
-//        isAsk = isAsk,
-//        selectedPrice = selectedPrice,
-//        baseTickSize = baseTickSize,
-//        onPriceClick = onPriceClick,
-//        listState = listState,
-//        modifier = modifier
-//    )
-//}

@@ -17,6 +17,7 @@ import com.aandios.nous.feature.dom.data.repository.subscribeToUnifiedOrderBook
 import com.aandios.nous.feature.dom.domain.*
 import com.aandios.nous.feature.dom.domain.model.AggregationLevel
 import com.aandios.nous.feature.dom.domain.model.DepthLimit
+import com.aandios.nous.feature.dom.domain.model.OrderIntent
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -120,7 +121,6 @@ class DomViewModel(
                         println("❌ Unified Order Book Error: ${e.message}")
                         e.printStackTrace()
                     }.collect { unifiedData ->
-                        // todo сюда видимо надо добавить вызов агрегации уровней при смены опции в domHeader
                         _unifiedOrderBook.value = unifiedData
                         // Обновляем orderBook для совместимости (например, OrderPlacementPanel)
                         _orderBook.value = unifiedData.toOrderBook()
@@ -186,6 +186,33 @@ class DomViewModel(
 
     fun updateOrderQuantity(quantity: String) {
         _orderQuantity.value = quantity
+    }
+    
+    fun handleOrderIntent(intent: OrderIntent) {
+        val command = when (intent) {
+            is OrderIntent.MarketBuy -> BuyMarketCommand(intent.symbol, intent.quantity) { result ->
+                _lastCommandResult.value = result
+            }
+            is OrderIntent.MarketSell -> SellMarketCommand(intent.symbol, intent.quantity) { result ->
+                _lastCommandResult.value = result
+            }
+            is OrderIntent.LimitBuy -> BuyLimitCommand(intent.symbol, intent.price, intent.quantity) { result ->
+                _lastCommandResult.value = result
+            }
+            is OrderIntent.LimitSell -> SellLimitCommand(intent.symbol, intent.price, intent.quantity) { result ->
+                _lastCommandResult.value = result
+            }
+            is OrderIntent.BestBidBuy -> BuyBestBidCommand(intent.symbol, intent.bestBidPrice, intent.quantity) { result ->
+                _lastCommandResult.value = result
+            }
+            is OrderIntent.BestAskSell -> SellBestAskCommand(intent.symbol, intent.bestAskPrice, intent.quantity) { result ->
+                _lastCommandResult.value = result
+            }
+            OrderIntent.ToggleTrading -> TradeOffCommand { result ->
+                _lastCommandResult.value = result
+            }
+        }
+        executeCommand(command)
     }
     
     private fun fetchSymbolTickSize(symbol: String) {

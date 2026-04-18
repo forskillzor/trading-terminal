@@ -18,26 +18,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.aandios.nous.api.market.commands.BuyBestBidCommand
-import com.aandios.nous.api.market.commands.BuyLimitCommand
-import com.aandios.nous.api.market.commands.BuyMarketCommand
-import com.aandios.nous.api.market.commands.CommandResult
-import com.aandios.nous.api.market.commands.SellBestAskCommand
-import com.aandios.nous.api.market.commands.SellLimitCommand
-import com.aandios.nous.api.market.commands.SellMarketCommand
-import com.aandios.nous.api.market.commands.TradeOffCommand
-import com.aandios.nous.api.market.commands.TradingCommand
-import com.aandios.nous.api.market.model.orderbook.OrderBook
 import com.aandios.nous.core.ui.component.TerminalButton
+import com.aandios.nous.feature.dom.domain.model.OrderIntent
 
 @Composable
 fun OrderPlacementPanel(
-    orderBook: OrderBook,
+    symbol: String,
     selectedPrice: Double?,
     orderQuantity: String,
+    bestBidPrice: Double?,
+    bestAskPrice: Double?,
     onQuantityChanged: (String) -> Unit,
-    onTradingCommand: (TradingCommand) -> Unit,
-    onCommandResult: (CommandResult) -> Unit,
+    onOrderIntent: (OrderIntent) -> Unit,
     isTradingEnabled: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -133,10 +125,8 @@ fun OrderPlacementPanel(
             ) {
                 TerminalButton(
                     onClick = {
-                        val symbol = orderBook.symbol
                         val quantity = orderQuantity.toDoubleOrNull() ?: 0.0
-                        val command = BuyMarketCommand(symbol, quantity, onCommandResult)
-                        onTradingCommand(command)
+                        onOrderIntent(OrderIntent.MarketBuy(symbol, quantity))
                     },
                     isActive = false,
                     modifier = Modifier.weight(1f)
@@ -152,10 +142,8 @@ fun OrderPlacementPanel(
 
                 TerminalButton(
                     onClick = {
-                        val symbol = orderBook.symbol
                         val quantity = orderQuantity.toDoubleOrNull() ?: 0.0
-                        val command = SellMarketCommand(symbol, quantity, onCommandResult)
-                        onTradingCommand(command)
+                        onOrderIntent(OrderIntent.MarketSell(symbol, quantity))
                     },
                     isActive = false,
                     modifier = Modifier.weight(1f)
@@ -178,10 +166,8 @@ fun OrderPlacementPanel(
                 TerminalButton(
                     onClick = {
                         if (selectedPrice != null) {
-                            val symbol = orderBook.symbol
                             val quantity = orderQuantity.toDoubleOrNull() ?: 0.0
-                            val command = BuyLimitCommand(symbol, selectedPrice, quantity, onCommandResult)
-                            onTradingCommand(command)
+                            onOrderIntent(OrderIntent.LimitBuy(symbol, selectedPrice, quantity))
                         }
                     },
                     isActive = false,
@@ -202,10 +188,8 @@ fun OrderPlacementPanel(
                 TerminalButton(
                     onClick = {
                         if (selectedPrice != null) {
-                            val symbol = orderBook.symbol
                             val quantity = orderQuantity.toDoubleOrNull() ?: 0.0
-                            val command = SellLimitCommand(symbol, selectedPrice, quantity, onCommandResult)
-                            onTradingCommand(command)
+                            onOrderIntent(OrderIntent.LimitSell(symbol, selectedPrice, quantity))
                         }
                     },
                     isActive = false,
@@ -231,20 +215,17 @@ fun OrderPlacementPanel(
             ) {
                 TerminalButton(
                     onClick = {
-                        val bestBid = orderBook.bids.firstOrNull()?.price?.toDoubleOrNull() ?: 0.0
-                        if (bestBid > 0) {
-                            val symbol = orderBook.symbol
+                        if (bestBidPrice != null && bestBidPrice > 0) {
                             val quantity = orderQuantity.toDoubleOrNull() ?: 0.0
-                            val command = BuyBestBidCommand(symbol, bestBid, quantity, onCommandResult)
-                            onTradingCommand(command)
+                            onOrderIntent(OrderIntent.BestBidBuy(symbol, bestBidPrice, quantity))
                         }
                     },
                     isActive = false,
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        text = if (orderBook.bids.isNotEmpty()) "Best Bid" else "Best Bid (waiting...)",
-                        color = if (orderBook.bids.isNotEmpty())
+                        text = if (bestBidPrice != null && bestBidPrice > 0) "Best Bid" else "Best Bid (waiting...)",
+                        color = if (bestBidPrice != null && bestBidPrice > 0)
                             MaterialTheme.colorScheme.primary
                         else
                             MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
@@ -256,20 +237,17 @@ fun OrderPlacementPanel(
 
                 TerminalButton(
                     onClick = {
-                        val bestAsk = orderBook.asks.firstOrNull()?.price?.toDoubleOrNull() ?: 0.0
-                        if (bestAsk > 0) {
-                            val symbol = orderBook.symbol
+                        if (bestAskPrice != null && bestAskPrice > 0) {
                             val quantity = orderQuantity.toDoubleOrNull() ?: 0.0
-                            val command = SellBestAskCommand(symbol, bestAsk, quantity, onCommandResult)
-                            onTradingCommand(command)
+                            onOrderIntent(OrderIntent.BestAskSell(symbol, bestAskPrice, quantity))
                         }
                     },
                     isActive = false,
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        text = if (orderBook.asks.isNotEmpty()) "Best Ask" else "Best Ask (waiting...)",
-                        color = if (orderBook.asks.isNotEmpty())
+                        text = if (bestAskPrice != null && bestAskPrice > 0) "Best Ask" else "Best Ask (waiting...)",
+                        color = if (bestAskPrice != null && bestAskPrice > 0)
                             MaterialTheme.colorScheme.secondary
                         else
                             MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
@@ -283,8 +261,7 @@ fun OrderPlacementPanel(
             // Trade Off кнопка
             TerminalButton(
                 onClick = {
-                    val command = TradeOffCommand(onCommandResult)
-                    onTradingCommand(command)
+                    onOrderIntent(OrderIntent.ToggleTrading)
                 },
                 isActive = !isTradingEnabled,  // Активна когда торговля ВЫКЛЮЧЕНА
                 modifier = Modifier.fillMaxWidth()
