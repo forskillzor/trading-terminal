@@ -1,11 +1,9 @@
 package com.aandios.nous.provider.binance.adapter
 
 import com.aandios.nous.api.market.ProviderConfig
-import com.aandios.nous.api.market.adapters.BookTickerAdapter
 import com.aandios.nous.api.market.adapters.DomAdapter
 import com.aandios.nous.api.market.model.orderbook.DepthSnapshot
 import com.aandios.nous.api.market.model.orderbook.DepthUpdate
-import com.aandios.nous.provider.binance.BinanceProvider
 import com.aandios.nous.provider.binance.model.BDepthUpdate
 import com.aandios.nous.provider.binance.model.BinanceDepthSnapshot
 import io.ktor.client.*
@@ -20,21 +18,11 @@ import kotlinx.serialization.json.Json
 /**
  * Binance DOM Adapter
  *
- * Упрощенная архитектура:
- * - BestPrice (bookTicker) как источник правды для лучших цен
- * - Depth (depth) только для объемов на уровнях
- * - Хеш-таблица для хранения всех уровней (O(1) обновление)
- * - Фильтрация уровней по лучшим ценам при отдаче UI
  */
-// todo maybe change to RPI Depth???
-// fixme need to check websocket connection
 class BinanceDomAdapter(
     private val client: HttpClient,
     private val config: ProviderConfig,
-    private val depthLimit: Int = 20,  // количество отображаемых уровней
-    provider: BinanceProvider
 ) : DomAdapter {
-    private val bookTickerAdapter: BookTickerAdapter = provider.bookTicker  // для получения BestPrice
 
     private val json = Json { ignoreUnknownKeys = true }
 

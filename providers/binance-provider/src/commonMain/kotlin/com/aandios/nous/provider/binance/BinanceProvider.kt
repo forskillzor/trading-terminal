@@ -24,7 +24,7 @@ class BinanceProvider(
     private val binanceHttpClient: HttpClient = BinanceHttpClientFactory.create()
     
     override val trades by lazy { BinanceTradesAdapter(binanceHttpClient, config) }
-    override val dom: DomAdapter by lazy { BinanceDomAdapter(binanceHttpClient, config, provider = this) }
+    override val dom: DomAdapter by lazy { BinanceDomAdapter(binanceHttpClient, config) }
     override val bookTicker: BookTickerAdapter by lazy { BinanceBookTickerAdapter(binanceHttpClient, config) }
     override val chart: ChartAdapter by lazy { BinanceChartAdapter(binanceHttpClient, config) }
     override val trading: TradingAdapter by lazy { BinanceTradingAdapter(binanceHttpClient, config) }

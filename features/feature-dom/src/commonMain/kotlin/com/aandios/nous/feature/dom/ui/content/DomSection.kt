@@ -83,8 +83,7 @@ fun DomSection(
             // Получаем уровень по индексу видимого элемента
             val visibleIndex = visibleItem.index
             if (visibleIndex in levels.indices) {
-                val levelPrice = levels[visibleIndex].price.toDoubleOrNull()
-                if (levelPrice == null) return@any false
+                val levelPrice = levels[visibleIndex].price.toDoubleOrNull() ?: return@any false
                 if (baseTickSize != null) {
                     // Сравниваем через агрегационный ключ
                     aggregationLevel.aggregationKey(levelPrice.toString(), baseTickSize) == 
@@ -98,12 +97,9 @@ fun DomSection(
             }
         }
 
-        // Если цена НЕ видна - скроллим до неё
         if (!isTargetVisible) {
-            // Быстрый скролл без анимации - минимальная заметность для пользователя
             lazyListState.animateScrollToItem(targetIndex, 0)
         }
-        // Если цена уже видна - ничего не делаем, сохраняем позицию скролла
     }
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -175,17 +171,6 @@ fun DomSection(
                     onPriceClick = onPriceSelected
                 )
             }
-        }
-
-        // Spread (разница) - можно отображать, если есть данные
-        if (orderBook?.spread != null && orderBook.spreadPercent != null) {
-            DomSpread(
-                bestBid = orderBook.bestBid ?: 0.0,
-                bestAsk = orderBook.bestAsk ?: 0.0,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-            )
         }
     }
 }
