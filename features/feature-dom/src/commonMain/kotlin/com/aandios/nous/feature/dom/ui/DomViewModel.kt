@@ -1,13 +1,10 @@
 package com.aandios.nous.feature.dom.ui
 
 import com.aandios.nous.api.market.commands.*
-import com.aandios.nous.api.market.model.BookTicker
-import com.aandios.nous.api.market.model.orderbook.OrderBook
 import com.aandios.nous.core.domain.repository.DomRepository
 import com.aandios.nous.core.domain.repository.SymbolInfoRepository
 import com.aandios.nous.feature.dom.data.repository.DomRepositoryImpl
 import com.aandios.nous.feature.dom.domain.DomOptions
-import com.aandios.nous.feature.dom.domain.UnifiedOrderBook
 import com.aandios.nous.feature.dom.domain.model.DomEvent
 import com.aandios.nous.feature.dom.domain.model.OrderIntent
 import kotlinx.coroutines.*
@@ -29,10 +26,6 @@ class DomViewModel(
     private val _domOptions = MutableStateFlow(DomOptions.default())
     val domOptions: StateFlow<DomOptions> = _domOptions.asStateFlow()
 
-    // Остальные стейты (не влияют на подписку)
-    private val _orderBook = MutableStateFlow<OrderBook?>(null)
-    val orderBook: StateFlow<OrderBook?> = _orderBook.asStateFlow()
-
     private val _selectedPrice = MutableStateFlow<Double?>(null)
     val selectedPrice: StateFlow<Double?> = _selectedPrice.asStateFlow()
 
@@ -44,12 +37,6 @@ class DomViewModel(
 
     private val _lastCommandResult = MutableStateFlow<CommandResult?>(null)
     val lastCommandResult: StateFlow<CommandResult?> = _lastCommandResult.asStateFlow()
-
-    private val _bookTicker = MutableStateFlow<BookTicker?>(null)
-    val bookTicker: StateFlow<BookTicker?> = _bookTicker.asStateFlow()
-
-    private val _unifiedOrderBook = MutableStateFlow<UnifiedOrderBook?>(null)
-    val unifiedOrderBook: StateFlow<UnifiedOrderBook?> = _unifiedOrderBook.asStateFlow()
 
     private val _symbolTickSize = MutableStateFlow<Double?>(null)
     val symbolTickSize: StateFlow<Double?> = _symbolTickSize.asStateFlow()
@@ -80,9 +67,6 @@ class DomViewModel(
     
     private val _incrementalBestAskQuantity = MutableStateFlow<Double?>(null)
     val incrementalBestAskQuantity: StateFlow<Double?> = _incrementalBestAskQuantity.asStateFlow()
-
-    // Job для управления всеми подписками DOM (стакан, bookTicker, unified order book)
-    // При изменении provider/symbol/depth — отменяется и создаётся новый
 
     init {
         // Загружаем tickSize для дефолтного символа при инициализации
