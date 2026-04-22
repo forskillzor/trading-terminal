@@ -14,14 +14,12 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.aandios.nous.api.market.model.BookTicker
-import com.aandios.nous.api.market.model.orderbook.OrderBook
 import com.aandios.nous.api.market.model.orderbook.OrderBookLevel
 import com.aandios.nous.core.ui.theme.TradingTerminalTheme
 import com.aandios.nous.feature.dom.di.initKoinForPreview
 import com.aandios.nous.feature.dom.domain.*
 import com.aandios.nous.feature.dom.domain.model.AggregationLevel
 import com.aandios.nous.feature.dom.ui.header.DomHeader
-import com.aandios.nous.feature.dom.ui.split.SplitDomContent
 import com.aandios.nous.feature.dom.ui.unified.UnifiedDomContent
 import org.koin.compose.KoinContext
 import org.koin.compose.koinInject
@@ -114,23 +112,7 @@ fun DomWindow() {
             }
         }
     
-    // Данные для панели ордеров из инкрементальных данных
-    val panelBestBid = incrementalBestBid
-    val panelBestAsk = incrementalBestAsk
-    val panelOrderBook = OrderBook(
-        symbol = domOptions.symbol.symbol,
-        bids = incrementalBids
-            .filter { (price, _) -> panelBestBid == null || price <= panelBestBid }
-            .map { (price, quantity) ->
-                OrderBookLevel(price = price.toString(), quantity = quantity.toString())
-            },
-        asks = incrementalAsks
-            .filter { (price, _) -> panelBestAsk == null || price >= panelBestAsk }
-            .map { (price, quantity) ->
-                OrderBookLevel(price = price.toString(), quantity = quantity.toString())
-            },
-        timestamp = System.currentTimeMillis()
-    )
+
     
     // BookTicker из инкрементальных данных
     val displayBookTicker = BookTicker(
@@ -158,30 +140,14 @@ fun DomWindow() {
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 Box(modifier = Modifier.weight(1f)) {
-                    when (domOptions.mode) {
-                         DomMode.SPLIT -> {
-                             SplitDomContent(
-                                  orderBook = panelOrderBook,
-                                  bookTicker = displayBookTicker,
-                                  selectedPrice = selectedPrice,
-                                  splitViewMode = domOptions.splitViewMode,
-                                  baseTickSize = symbolTickSize,
-                                  onPriceSelected = { price -> domViewModel.selectPrice(price) },
-                                  modifier = Modifier.fillMaxSize()
-                             )
-                         }
-
-                        DomMode.UNIFIED -> {
-                            UnifiedDomContent(
-                                unifiedOrderBook = displayUnifiedOrderBook,
-                                aggregationLevel = domOptions.aggregation,
-                                baseTickSize = symbolTickSize,
-                                selectedPrice = selectedPrice,
-                                onPriceSelected = { price -> domViewModel.selectPrice(price) },
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
-                    }
+                    UnifiedDomContent(
+                        unifiedOrderBook = displayUnifiedOrderBook,
+                        aggregationLevel = domOptions.aggregation,
+                        baseTickSize = symbolTickSize,
+                        selectedPrice = selectedPrice,
+                        onPriceSelected = { price -> domViewModel.selectPrice(price) },
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
             }
         }

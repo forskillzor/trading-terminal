@@ -5,6 +5,5 @@ package com.aandios.nous.feature.dom.domain
  * Определяет стиль и логику отображения книги заявок.
  */
 enum class DomMode(val displayName: String) {
-    SPLIT("split"),
     UNIFIED("unified")
 }

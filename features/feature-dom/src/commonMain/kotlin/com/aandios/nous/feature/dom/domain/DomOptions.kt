@@ -13,7 +13,6 @@ data class DomOptions(
     val depth: DepthLimit = DepthLimit.default(),
     val aggregation: AggregationLevel = AggregationLevel.BaseTick,
     val mode: DomMode = DomMode.UNIFIED,
-    val splitViewMode: SplitViewMode = SplitViewMode.BID_ASK,
     val collapsed: Boolean = false
 ) {
     companion object {
