@@ -5,6 +5,7 @@ import kotlinx.serialization.SerialName
 data class DepthUpdate(
     val firstUpdateId: Long,
     val finalUpdateId: Long,
+    val previousFinalUpdateId: Long,
     val bids: List<List<String>>,
     val asks: List<List<String>>
 )

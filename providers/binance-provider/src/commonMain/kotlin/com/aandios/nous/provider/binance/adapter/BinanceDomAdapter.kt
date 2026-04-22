@@ -60,7 +60,7 @@ class BinanceDomAdapter(
      * Подписка на depth обновления
      */
     override suspend fun subscribeToDepthUpdates(symbol: String, depth: Int): Flow<DepthUpdate> = callbackFlow {
-        val streamName = "${symbol.lowercase()}@depth${depth}@100ms"
+        val streamName = "${symbol.lowercase()}@depth@100ms"
         val endpoint = if (config.isTestnet) {
             "wss://testnet.binance.vision/ws/$streamName"
         } else {

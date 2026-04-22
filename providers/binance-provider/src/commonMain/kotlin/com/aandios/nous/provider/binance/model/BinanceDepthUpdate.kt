@@ -8,12 +8,14 @@ import kotlinx.serialization.Serializable
 data class BDepthUpdate(
     @SerialName("U") val firstUpdateId: Long,
     @SerialName("u") val finalUpdateId: Long,
+    @SerialName("pu") val previousFinalUpdateId: Long,
     @SerialName("b") val bids: List<List<String>>,
     @SerialName("a") val asks: List<List<String>>
 ) {
     fun toDepthUpdate() = DepthUpdate(
         firstUpdateId,
         finalUpdateId,
+        previousFinalUpdateId,
         bids,
         asks
     )

@@ -4,6 +4,7 @@ import com.aandios.nous.api.market.adapters.BookTickerAdapter
 import com.aandios.nous.api.market.adapters.DomAdapter
 import com.aandios.nous.api.market.model.BookTicker
 import com.aandios.nous.api.market.model.orderbook.DepthSnapshot
+import com.aandios.nous.api.market.model.orderbook.DepthUpdate
 import com.aandios.nous.api.market.model.orderbook.OrderBook
 import com.aandios.nous.api.market.model.orderbook.OrderBookState
 import com.aandios.nous.core.domain.repository.DomRepository
@@ -12,7 +13,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.launch
 import kotlin.math.pow
 
 class DomRepositoryImpl(
@@ -20,17 +21,11 @@ class DomRepositoryImpl(
     private val bookTickerAdapter: BookTickerAdapter
 ) : DomRepository {
 
-    /**
-     * Устаревший метод. Используйте [subscribeToDomEvents] для инкрементальных обновлений.
-     */
     @Deprecated("Use subscribeToDomEvents() for incremental DOM updates")
     override suspend fun subscribeToOrderBook(symbol: String, depth: Int): Flow<OrderBook> {
         throw UnsupportedOperationException("subscribeToOrderBook is deprecated. Use subscribeToDomEvents() instead.")
     }
 
-    /**
-     * Устаревший метод. Используйте [subscribeToDomEvents] для инкрементальных обновлений.
-     */
     @Deprecated("Use subscribeToDomEvents() for incremental DOM updates")
     override fun getBookTicker(symbol: String): Flow<BookTicker> {
         throw UnsupportedOperationException("getBookTicker is deprecated. Use subscribeToDomEvents() instead.")
@@ -38,55 +33,98 @@ class DomRepositoryImpl(
 
     /**
      * Подписывается на инкрементальные события DOM (стакана котировок).
-     * Вместо публикации полного OrderBook при каждом изменении,
-     * этот поток эмитит события для добавления/обновления/удаления уровней.
-     * 
-     * @param symbol торговый символ
-     * @param depth глубина стакана
-     * @return поток событий DomEvent
+     *
+     * Реализует протокол синхронизации Binance:
+     * 1. Открыть WebSocket стрим @depth и буферизировать все события
+     * 2. Получить снапшот через REST
+     * 3. Отбросить события где u < lastUpdateId
+     * 4. Первое обработанное: U <= lastUpdateId+1 AND u >= lastUpdateId+1
+     * 5. Каждое следующее: pu == предыдущее u
+     * 6. Если pu != previous u — переинициализация с шага 1
      */
     suspend fun subscribeToDomEvents(symbol: String, depth: Int): Flow<DomEvent> = callbackFlow {
         println("📊 Subscribing to $symbol DOM events with depth $depth")
 
-        val state = OrderBookState()
         var reconnectAttempts = 0
         val maxReconnectAttempts = 5
 
         while (true) {
             try {
-                // Шаг 1: Получаем начальный снапшот и отправляем событие Snapshot
+                val state = OrderBookState()
+
+                // Шаг 1: Запускаем depth WebSocket и буферизируем события
+                val depthJob = launch {
+                    domAdapter.subscribeToDepthUpdates(symbol, depth)
+                        .catch { e -> println("⚠️ Depth updates error: ${e.message}") }
+                        .collect { depthUpdate ->
+                            state.bufferEvent(depthUpdate)
+                        }
+                }
+
+                // Даём время WebSocket подключиться и начать буферизацию
+                delay(500)
+
+                // Шаг 2: Получаем снапшот через REST
                 val snapshot: DepthSnapshot = domAdapter.getOrderBookSnapshot(symbol, depth)
                 state.updateFromSnapshot(snapshot)
-                println("✅ Got snapshot for $symbol with ${state.bids.size} bids, ${state.asks.size} asks")
-                
+                println("✅ Got snapshot for $symbol with lastUpdateId=${snapshot.lastUpdateId}, " +
+                    "${state.bids.size} bids, ${state.asks.size} asks")
+
                 // Отправляем событие Snapshot
                 trySend(DomEvent.fromSnapshot(snapshot, symbol))
 
-                // Шаг 2: Запускаем два параллельных потока
-                val bookTickerFlow = bookTickerAdapter.subscribeToBookTicker(symbol)
-                    .catch { e -> println("⚠️ BestPrices error: ${e.message}") }
-
-                val depthFlow = domAdapter.subscribeToDepthUpdates(symbol, depth)
-                    .catch { e -> println("⚠️ Depth updates error: ${e.message}") }
-
-                // Шаг 3: Объединяем потоки и преобразуем в события
-                bookTickerFlow.combine(depthFlow) { bookTicker, depthUpdate ->
-                    // Применяем обновление depth к состоянию
-                    state.applyUpdate(depthUpdate)
-                    
-                    // Отправляем события BestPrices
-                    trySend(DomEvent.fromBookTicker(bookTicker, symbol))
-                    
-                    // Отправляем события для каждого изменения в depthUpdate
-                    DomEvent.fromDepthUpdate(depthUpdate, symbol).forEach { event ->
-                        trySend(event)
-                    }
-                    
-                    // Возвращаем Unit, так как события отправляются через trySend
-                    Unit
-                }.collect {
-                    reconnectAttempts = 0  // сброс счетчика при успехе
+                // Шаг 3: Применяем буферизированные события с валидацией
+                if (!state.flushPendingEvents()) {
+                    println("⚠️ Order book sync failed during flush, re-initializing")
+                    depthJob.cancel()
+                    trySend(DomEvent.Reset)
+                    continue
                 }
+
+                // Шаг 4: Продолжаем слушать depth (уже без буферизации)
+                // и запускаем bookTicker параллельно
+                val bookTickerJob = launch {
+                    bookTickerAdapter.subscribeToBookTicker(symbol)
+                        .catch { e -> println("⚠️ BestPrices error: ${e.message}") }
+                        .collect { bookTicker ->
+                            trySend(DomEvent.fromBookTicker(bookTicker, symbol))
+                        }
+                }
+
+                // Переключаем depth на прямую валидацию (без буфера)
+                depthJob.cancel()
+                val depthDirectJob = launch {
+                    domAdapter.subscribeToDepthUpdates(symbol, depth)
+                        .catch { e -> println("⚠️ Depth updates error: ${e.message}") }
+                        .collect { depthUpdate ->
+                            if (!state.applyUpdateWithValidation(depthUpdate)) {
+                                println("⚠️ Binance order book sync failed for $symbol, re-initializing")
+                                trySend(DomEvent.Reset)
+                                throw ReinitializationException("Order book sync failed for $symbol")
+                            }
+
+                            DomEvent.fromDepthUpdate(depthUpdate, symbol).forEach { event ->
+                                trySend(event)
+                            }
+                        }
+                }
+
+                // Ждём завершения любого из потоков
+                try {
+                    bookTickerJob.join()
+                    depthDirectJob.join()
+                } catch (e: ReinitializationException) {
+                    bookTickerJob.cancel()
+                    depthDirectJob.cancel()
+                    throw e
+                }
+
+                reconnectAttempts = 0
+
+            } catch (e: ReinitializationException) {
+                println("🔄 Re-initializing order book for $symbol: ${e.message}")
+                reconnectAttempts = 0
+                continue
 
             } catch (e: Exception) {
                 println("❌ Error in $symbol DOM events: ${e.message}")
@@ -102,12 +140,13 @@ class DomRepositoryImpl(
                 val delayMs = (1000 * 2.0.pow(reconnectAttempts - 1.0)).toLong()
                 println("⏳ Reconnecting to $symbol in ${delayMs}ms (attempt $reconnectAttempts)")
                 delay(delayMs)
-                
-                // Отправляем событие Reset перед переподключением
+
                 trySend(DomEvent.Reset)
             }
         }
 
         close()
     }
+
+    private class ReinitializationException(message: String) : Exception(message)
 }
