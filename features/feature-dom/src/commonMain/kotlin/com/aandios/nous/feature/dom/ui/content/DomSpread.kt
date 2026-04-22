@@ -1,4 +1,4 @@
-package com.aandios.nous.feature.dom.ui.unified
+package com.aandios.nous.feature.dom.ui.content
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -16,7 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun UnifiedDomSpread(
+fun DomSpread(
     bestBid: Double,
     bestAsk: Double,
     modifier: Modifier = Modifier.Companion

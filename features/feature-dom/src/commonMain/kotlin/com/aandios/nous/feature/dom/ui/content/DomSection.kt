@@ -1,4 +1,4 @@
-package com.aandios.nous.feature.dom.ui.unified
+package com.aandios.nous.feature.dom.ui.content
 
 import com.aandios.nous.feature.dom.domain.model.AggregationLevel
 
@@ -14,21 +14,20 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.aandios.nous.feature.dom.domain.UnifiedOrderBook
+import com.aandios.nous.feature.dom.domain.OrderBook
 import kotlin.math.abs
-import kotlinx.coroutines.delay
 
 @Composable
-fun UnifiedDomSection(
-    unifiedOrderBook: UnifiedOrderBook?,
+fun DomSection(
+    orderBook: OrderBook?,
     selectedPrice: Double?,
     onPriceSelected: (Double) -> Unit,
     aggregationLevel: AggregationLevel = AggregationLevel.BaseTick,
     baseTickSize: Double? = null,
     modifier: Modifier = Modifier
 ) {
-    val levels = unifiedOrderBook?.levels ?: emptyList()
-    val maxVolume = unifiedOrderBook?.maxVolume() ?: 1.0
+    val levels = orderBook?.levels ?: emptyList()
+    val maxVolume = orderBook?.maxVolume() ?: 1.0
 
     // Состояние скролла для автоматического скролла до цен из bookticker
     val lazyListState = rememberLazyListState()
@@ -42,8 +41,8 @@ fun UnifiedDomSection(
      *  Целевая цена для скролла - агрегированный лучший bid.
      *  Используем агрегацию, чтобы скроллить до того же уровня, который подсвечивается
      **/
-    val scrollTargetPrice = remember(unifiedOrderBook, aggregationLevel, baseTickSize) {
-        unifiedOrderBook?.bestBid?.let { bestBid ->
+    val scrollTargetPrice = remember(orderBook, aggregationLevel, baseTickSize) {
+        orderBook?.bestBid?.let { bestBid ->
             if (baseTickSize != null) {
                 aggregationLevel.roundDown(bestBid, baseTickSize)
             } else {
@@ -137,8 +136,8 @@ fun UnifiedDomSection(
         }
 
         // Вычисляем агрегированные лучшие цены для подсветки
-        val aggregatedBestBid = remember(key1 = unifiedOrderBook?.bestBid, key2 = aggregationLevel, key3 = baseTickSize) {
-            unifiedOrderBook?.bestBid?.let { bestBid ->
+        val aggregatedBestBid = remember(key1 = orderBook?.bestBid, key2 = aggregationLevel, key3 = baseTickSize) {
+            orderBook?.bestBid?.let { bestBid ->
                 if (baseTickSize != null) {
                     aggregationLevel.roundDown(bestBid, baseTickSize)
                 } else {
@@ -146,8 +145,8 @@ fun UnifiedDomSection(
                 }
             }
         }
-        val aggregatedBestAsk = remember(key1 = unifiedOrderBook?.bestAsk, key2 = aggregationLevel, key3 = baseTickSize) {
-            unifiedOrderBook?.bestAsk?.let { bestAsk ->
+        val aggregatedBestAsk = remember(key1 = orderBook?.bestAsk, key2 = aggregationLevel, key3 = baseTickSize) {
+            orderBook?.bestAsk?.let { bestAsk ->
                 if (baseTickSize != null) {
                     aggregationLevel.roundDown(bestAsk, baseTickSize)
                 } else {
@@ -165,7 +164,7 @@ fun UnifiedDomSection(
                 items = levels,
                 key = { "level-${it.price}" }
             ) { level ->
-                UnifiedLevelRow(
+                LevelRow(
                     level = level,
                     maxVolume = maxVolume,
                     selectedPrice = selectedPrice,
@@ -179,10 +178,10 @@ fun UnifiedDomSection(
         }
 
         // Spread (разница) - можно отображать, если есть данные
-        if (unifiedOrderBook?.spread != null && unifiedOrderBook.spreadPercent != null) {
-            UnifiedDomSpread(
-                bestBid = unifiedOrderBook.bestBid ?: 0.0,
-                bestAsk = unifiedOrderBook.bestAsk ?: 0.0,
+        if (orderBook?.spread != null && orderBook.spreadPercent != null) {
+            DomSpread(
+                bestBid = orderBook.bestBid ?: 0.0,
+                bestAsk = orderBook.bestAsk ?: 0.0,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)

@@ -1,4 +1,4 @@
-package com.aandios.nous.feature.dom.ui.unified
+package com.aandios.nous.feature.dom.ui.content
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -31,7 +31,7 @@ import com.aandios.nous.feature.dom.domain.model.AggregationLevel
 import kotlin.math.abs
 
 @Composable
-fun UnifiedLevelRow(
+fun LevelRow(
     level: OrderBookLevel,
     maxVolume: Double,
     selectedPrice: Double?,

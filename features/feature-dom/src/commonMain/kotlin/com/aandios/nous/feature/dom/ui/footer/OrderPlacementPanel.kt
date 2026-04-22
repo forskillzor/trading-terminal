@@ -1,4 +1,4 @@
-package com.aandios.nous.feature.dom.ui
+package com.aandios.nous.feature.dom.ui.footer
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

@@ -12,7 +12,6 @@ data class DomOptions(
     val symbol: TradingSymbol = TradingSymbol.defaultForProvider(TradingProvider.BINANCE),
     val depth: DepthLimit = DepthLimit.default(),
     val aggregation: AggregationLevel = AggregationLevel.BaseTick,
-    val mode: DomMode = DomMode.UNIFIED,
     val collapsed: Boolean = false
 ) {
     companion object {

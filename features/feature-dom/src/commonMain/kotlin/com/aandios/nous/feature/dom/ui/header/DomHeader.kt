@@ -172,18 +172,7 @@ private fun ExpandedDomHeader(
                     },
                     modifier = Modifier.weight(1f)
                 )
-
-                // DOM mode dropdown с label
-                DomModeDropdown(
-                    currentMode = domOptions.mode,
-                    onModeChanged = { newMode ->
-                        onDomOptionsChanged(domOptions.copy(mode = newMode))
-                    },
-                    modifier = Modifier.weight(1f)
-                )
             }
-            
-
         }
     }
 }

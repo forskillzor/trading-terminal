@@ -1,15 +1,15 @@
-package com.aandios.nous.feature.dom.ui.unified
+package com.aandios.nous.feature.dom.ui.content
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.aandios.nous.feature.dom.domain.model.AggregationLevel
-import com.aandios.nous.feature.dom.domain.UnifiedOrderBook
+import com.aandios.nous.feature.dom.domain.OrderBook
 
 @Composable
-fun UnifiedDomContent(
-    unifiedOrderBook: UnifiedOrderBook,
+fun DomContent(
+    orderBook: OrderBook,
     aggregationLevel: AggregationLevel = AggregationLevel.BaseTick,
     baseTickSize: Double? = null,
     selectedPrice: Double? = null,
@@ -17,8 +17,8 @@ fun UnifiedDomContent(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxSize()) {
-        UnifiedDomSection(
-            unifiedOrderBook = unifiedOrderBook,
+        DomSection(
+            orderBook = orderBook,
             selectedPrice = selectedPrice,
             onPriceSelected = { price -> onPriceSelected(price) },
             aggregationLevel = aggregationLevel,

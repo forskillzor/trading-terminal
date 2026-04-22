@@ -2,11 +2,8 @@ package com.aandios.nous.feature.dom.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -20,7 +17,8 @@ import com.aandios.nous.feature.dom.di.initKoinForPreview
 import com.aandios.nous.feature.dom.domain.*
 import com.aandios.nous.feature.dom.domain.model.AggregationLevel
 import com.aandios.nous.feature.dom.ui.header.DomHeader
-import com.aandios.nous.feature.dom.ui.unified.UnifiedDomContent
+import com.aandios.nous.feature.dom.ui.content.DomContent
+import com.aandios.nous.feature.dom.ui.footer.OrderPlacementPanel
 import org.koin.compose.KoinContext
 import org.koin.compose.koinInject
 import org.koin.core.context.stopKoin
@@ -96,7 +94,7 @@ fun DomWindow() {
             val spread = if (bestBid != null && bestAsk != null) bestAsk - bestBid else null
             val spreadPercent = if (bestBid != null && spread != null) (spread / bestBid) * 100 else null
             
-            val unified = UnifiedOrderBook(
+            val unified = OrderBook(
                 symbol = domOptions.symbol.symbol,
                 levels = sortedLevels,
                 timestamp = System.currentTimeMillis(),
@@ -140,8 +138,8 @@ fun DomWindow() {
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 Box(modifier = Modifier.weight(1f)) {
-                    UnifiedDomContent(
-                        unifiedOrderBook = displayUnifiedOrderBook,
+                    DomContent(
+                        orderBook = displayUnifiedOrderBook,
                         aggregationLevel = domOptions.aggregation,
                         baseTickSize = symbolTickSize,
                         selectedPrice = selectedPrice,
@@ -155,7 +153,7 @@ fun DomWindow() {
         val symbol = domOptions.symbol.symbol
         val bestBidPrice = displayBookTicker.bestBid
         val bestAskPrice = displayBookTicker.bestAsk
-        
+
         OrderPlacementPanel(
             symbol = symbol,
             selectedPrice = selectedPrice,

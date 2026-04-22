@@ -12,7 +12,7 @@ import com.aandios.nous.feature.dom.domain.model.AggregationLevel
  * Эта модель предназначена для передачи в UI-слой, чтобы избежать преобразований
  * на стороне UI и централизовать бизнес-логику в репозитории.
  */
-data class UnifiedOrderBook(
+data class OrderBook(
     val symbol: String,
     val levels: List<OrderBookLevel>,
     val timestamp: Long,
@@ -25,7 +25,7 @@ data class UnifiedOrderBook(
         fun fromOrderBook(
             orderBook: OrderBook,
             bookTicker: BookTicker?
-        ): UnifiedOrderBook {
+        ): com.aandios.nous.feature.dom.domain.OrderBook {
             val bids = orderBook.bids
             val asks = orderBook.asks
             
@@ -67,7 +67,7 @@ data class UnifiedOrderBook(
             val spread = if (bestBid != null && bestAsk != null) bestAsk - bestBid else null
             val spreadPercent = if (bestBid != null && spread != null) (spread / bestBid) * 100 else null
             
-            return UnifiedOrderBook(
+            return OrderBook(
                 symbol = orderBook.symbol,
                 levels = sortedLevels,
                 timestamp = orderBook.timestamp,
@@ -97,7 +97,7 @@ data class UnifiedOrderBook(
      * @param baseTickSize базовый тик инструмента (из API биржи)
      * @return новый UnifiedOrderBook с агрегированными уровнями
      */
-    fun aggregate(aggregationLevel: AggregationLevel, baseTickSize: Double): UnifiedOrderBook {
+    fun aggregate(aggregationLevel: AggregationLevel, baseTickSize: Double): com.aandios.nous.feature.dom.domain.OrderBook {
         val aggregatedLevels = DomAggregator
             .aggregateUnifiedLevels(levels, aggregationLevel, baseTickSize)
         

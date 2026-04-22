@@ -94,9 +94,8 @@ class DomViewModel(
             val subscriptionChanged = 
                 oldOptions.provider != newOptions.provider ||
                 oldOptions.symbol != newOptions.symbol ||
-                oldOptions.depth != newOptions.depth ||
-                oldOptions.mode != newOptions.mode
-            
+                oldOptions.depth != newOptions.depth
+
             if (subscriptionChanged) {
                 restartSubscription(newOptions)
             }
@@ -110,8 +109,6 @@ class DomViewModel(
 
     private fun restartSubscription(options: DomOptions) {
         subscriptionJob?.cancel()
-        println("🔄 VM: Restarting subscription with key ${options.subscriptionKey}, mode: ${options.mode}, depth: ${options.depth.value}")
-        
         subscriptionJob = viewModelScope.launch {
             subscribeToIncrementalDom(options)
         }
