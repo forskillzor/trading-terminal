@@ -3,7 +3,6 @@ package com.aandios.nous.feature.dom.ui
 import com.aandios.nous.api.market.commands.*
 import com.aandios.nous.core.domain.repository.DomRepository
 import com.aandios.nous.core.domain.repository.SymbolInfoRepository
-import com.aandios.nous.feature.dom.data.repository.DomRepositoryImpl
 import com.aandios.nous.feature.dom.domain.DomOptions
 import com.aandios.nous.api.market.model.orderbook.DomEvent
 import com.aandios.nous.feature.dom.domain.model.OrderIntent
@@ -17,8 +16,9 @@ import java.util.concurrent.Executors
 class DomViewModel(
     private val domRepository: DomRepository,
     private val symbolInfoRepository: SymbolInfoRepository? = null,
+    private val coroutineDispatcher: CoroutineDispatcher? = null,
 ) {
-    private val dispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+    private val dispatcher = coroutineDispatcher ?: Executors.newSingleThreadExecutor().asCoroutineDispatcher()
     private val viewModelScope = CoroutineScope(dispatcher + SupervisorJob())
     private var subscriptionJob: Job? = null
 
@@ -121,8 +121,6 @@ class DomViewModel(
      * Подписывается на инкрементальные события DOM и обновляет соответствующие StateFlow.
      */
     private suspend fun subscribeToIncrementalDom(options: DomOptions) {
-        val domRepositoryImpl = domRepository as DomRepositoryImpl
-        
         // Сбрасываем инкрементальные данные
         _incrementalBids.value = emptyMap()
         _incrementalAsks.value = emptyMap()
@@ -131,7 +129,7 @@ class DomViewModel(
         _incrementalBestBidQuantity.value = null
         _incrementalBestAskQuantity.value = null
         
-        domRepositoryImpl.subscribeToDomEvents(
+        domRepository.subscribeToDomEvents(
             symbol = options.symbol.symbol,
             depth = options.depth.value
         ).catch { e ->

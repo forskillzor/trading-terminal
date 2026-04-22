@@ -40,7 +40,7 @@ class DomViewModelTest {
     fun setUp() {
         fakeDomRepository = FakeDomRepository()
         fakeSymbolInfoRepository = FakeSymbolInfoRepository()
-        viewModel = DomViewModel(fakeDomRepository, fakeSymbolInfoRepository)
+        viewModel = DomViewModel(fakeDomRepository, fakeSymbolInfoRepository, testDispatcher)
     }
 
     @AfterTest

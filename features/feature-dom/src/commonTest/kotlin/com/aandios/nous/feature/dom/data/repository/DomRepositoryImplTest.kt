@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -87,7 +88,17 @@ class DomRepositoryImplTest {
             asks = emptyList()
         )
 
-        // Prepare a depth update to be emitted after subscription
+        // Start collecting events, take first 2 events (Snapshot + UpdateBid)
+        val events = mutableListOf<DomEvent>()
+        val job = launch {
+            repository.subscribeToDomEvents(symbol, depth)
+                .take(2)
+                .collect { event -> events.add(event) }
+        }
+
+        // Wait for repository to start and get snapshot
+        advanceUntilIdle()
+        // Emit depth update after subscription
         val depthUpdate = DepthUpdate(
             firstUpdateId = 101,
             finalUpdateId = 101,
@@ -97,16 +108,14 @@ class DomRepositoryImplTest {
         )
         fakeDomAdapter.depthUpdatesFlow.emit(depthUpdate)
 
-        val events = mutableListOf<DomEvent>()
-        val job = launch {
-            repository.subscribeToDomEvents(symbol, depth).toList(events)
-        }
-
+        // Advance time to process the update
         advanceUntilIdle()
 
-        // Should have Snapshot and at least one UpdateBid
-        assertTrue(events.size >= 2)
-        val updateEvent = events.find { it is DomEvent.UpdateBid }
+        // Should have exactly 2 events: Snapshot and UpdateBid
+        assertEquals(2, events.size, "Events: $events")
+        val snapshotEvent = events[0]
+        assertIs<DomEvent.Snapshot>(snapshotEvent)
+        val updateEvent = events[1]
         assertIs<DomEvent.UpdateBid>(updateEvent)
         assertEquals(50000.0, updateEvent.price)
         assertEquals(1.0, updateEvent.quantity)
@@ -125,6 +134,17 @@ class DomRepositoryImplTest {
             asks = emptyList()
         )
 
+        // Start collecting events, take first 2 events (Snapshot + BestPrices)
+        val events = mutableListOf<DomEvent>()
+        val job = launch {
+            repository.subscribeToDomEvents(symbol, depth)
+                .take(2)
+                .collect { event -> events.add(event) }
+        }
+
+        // Wait for repository to start and get snapshot
+        advanceUntilIdle()
+        // Now emit book ticker
         val bookTicker = BookTicker(
             symbol = symbol,
             bestBid = 50000.0,
@@ -136,14 +156,13 @@ class DomRepositoryImplTest {
         )
         fakeBookTickerAdapter.bookTickerFlow.emit(bookTicker)
 
-        val events = mutableListOf<DomEvent>()
-        val job = launch {
-            repository.subscribeToDomEvents(symbol, depth).toList(events)
-        }
-
+        // Advance time to process the ticker
         advanceUntilIdle()
 
-        val bestPricesEvent = events.find { it is DomEvent.BestPrices }
+        assertEquals(2, events.size, "Events: $events")
+        val snapshotEvent = events[0]
+        assertIs<DomEvent.Snapshot>(snapshotEvent)
+        val bestPricesEvent = events[1]
         assertIs<DomEvent.BestPrices>(bestPricesEvent)
         assertEquals(symbol, bestPricesEvent.symbol)
         assertEquals(50000.0, bestPricesEvent.bestBid)
@@ -197,18 +216,41 @@ class DomRepositoryImplTest {
             asks = emptyList()
         )
 
-        // Simulate sync failure by making applyUpdateWithValidation return false
-        fakeDomAdapter.shouldFailValidation = true
-
+        // Start collecting events, take first 3 events (Snapshot, UpdateBid, Reset)
         val events = mutableListOf<DomEvent>()
         val job = launch {
-            repository.subscribeToDomEvents(symbol, depth).toList(events)
+            repository.subscribeToDomEvents(symbol, depth)
+                .take(3)
+                .collect { event -> events.add(event) }
         }
 
+        // Wait for repository to start and get snapshot
+        advanceUntilIdle()
+        // Emit a valid depth update to initialize OrderBookState
+        val validUpdate = DepthUpdate(
+            firstUpdateId = 101,
+            finalUpdateId = 101,
+            previousFinalUpdateId = 100,
+            bids = listOf(listOf("50000.0", "1.0")),
+            asks = emptyList()
+        )
+        fakeDomAdapter.depthUpdatesFlow.emit(validUpdate)
         advanceUntilIdle()
 
-        // Should emit Reset event
-        val resetEvent = events.find { it is DomEvent.Reset }
+        // Now emit a depth update with broken sequence to trigger reinitialization
+        val brokenUpdate = DepthUpdate(
+            firstUpdateId = 102,
+            finalUpdateId = 102,
+            previousFinalUpdateId = 999, // incorrect, should cause validation failure
+            bids = listOf(listOf("50001.0", "0.5")),
+            asks = emptyList()
+        )
+        fakeDomAdapter.depthUpdatesFlow.emit(brokenUpdate)
+        advanceUntilIdle()
+
+        // Should have exactly 3 events: Snapshot, UpdateBid, Reset
+        assertEquals(3, events.size, "Events: $events")
+        val resetEvent = events[2]
         assertIs<DomEvent.Reset>(resetEvent)
 
         job.cancel()
