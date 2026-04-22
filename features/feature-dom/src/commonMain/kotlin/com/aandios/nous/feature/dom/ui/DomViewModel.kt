@@ -1,23 +1,13 @@
 package com.aandios.nous.feature.dom.ui
 
-import com.aandios.nous.api.market.commands.BuyBestBidCommand
-import com.aandios.nous.api.market.commands.BuyLimitCommand
-import com.aandios.nous.api.market.commands.BuyMarketCommand
-import com.aandios.nous.api.market.commands.CommandResult
-import com.aandios.nous.api.market.commands.SellBestAskCommand
-import com.aandios.nous.api.market.commands.SellLimitCommand
-import com.aandios.nous.api.market.commands.SellMarketCommand
-import com.aandios.nous.api.market.commands.TradeOffCommand
-import com.aandios.nous.api.market.commands.TradingCommand
+import com.aandios.nous.api.market.commands.*
 import com.aandios.nous.api.market.model.BookTicker
 import com.aandios.nous.api.market.model.orderbook.OrderBook
 import com.aandios.nous.core.domain.repository.DomRepository
 import com.aandios.nous.core.domain.repository.SymbolInfoRepository
 import com.aandios.nous.feature.dom.data.repository.DomRepositoryImpl
-import com.aandios.nous.feature.dom.data.repository.subscribeToUnifiedOrderBook
-import com.aandios.nous.feature.dom.domain.*
-import com.aandios.nous.feature.dom.domain.model.AggregationLevel
-import com.aandios.nous.feature.dom.domain.model.DepthLimit
+import com.aandios.nous.feature.dom.domain.DomOptions
+import com.aandios.nous.feature.dom.domain.UnifiedOrderBook
 import com.aandios.nous.feature.dom.domain.model.DomEvent
 import com.aandios.nous.feature.dom.domain.model.OrderIntent
 import kotlinx.coroutines.*
@@ -25,8 +15,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.delay
 import java.util.concurrent.Executors
 
 class DomViewModel(
@@ -66,14 +54,13 @@ class DomViewModel(
     private val _symbolTickSize = MutableStateFlow<Double?>(null)
     val symbolTickSize: StateFlow<Double?> = _symbolTickSize.asStateFlow()
 
-    // Инкрементальные данные DOM (для глубины > 100)
+    // Инкрементальные данные DOM
     private val _domEvents = MutableStateFlow<List<DomEvent>>(emptyList())
     val domEvents: StateFlow<List<DomEvent>> = _domEvents.asStateFlow()
     
     // Константы для управления памятью
     private companion object {
         const val MAX_DOM_EVENTS = 50
-        const val INCREMENTAL_MODE_THRESHOLD = 100
     }
     
     private val _incrementalBids = MutableStateFlow<Map<Double, Double>>(emptyMap())
@@ -141,105 +128,16 @@ class DomViewModel(
         subscriptionJob?.cancel()
         println("🔄 VM: Restarting subscription with key ${options.subscriptionKey}, mode: ${options.mode}, depth: ${options.depth.value}")
         
-        // Решаем, использовать ли инкрементальные обновления (для глубины > порога)
-        val useIncremental = options.depth.value > INCREMENTAL_MODE_THRESHOLD
-        
         subscriptionJob = viewModelScope.launch {
-            if (useIncremental && domRepository is DomRepositoryImpl) {
-                // Используем инкрементальные обновления
-                subscribeToIncrementalDom(options)
-            } else {
-                // Используем классические обновления
-                when (options.mode) {
-                    DomMode.UNIFIED -> {
-                        // В unified режиме используем только unifiedOrderBook
-                        domRepository.subscribeToUnifiedOrderBook(
-                            symbol = options.symbol.symbol,
-                            depth = options.depth.value
-                        ).catch { e ->
-                            println("❌ Unified Order Book Error: ${e.message}")
-                            e.printStackTrace()
-                        }.collect { unifiedData ->
-                            _unifiedOrderBook.value = unifiedData
-                            // Обновляем orderBook для совместимости (например, OrderPlacementPanel)
-                            _orderBook.value = unifiedData.toOrderBook()
-                            // bookTicker не обновляем - не используется в unified режиме
-                        }
-                    }
-                    
-                    DomMode.SPLIT -> {
-                        // В split режиме используем отдельные потоки orderBook и bookTicker
-                        domRepository.subscribeToOrderBook(
-                            symbol = options.symbol.symbol,
-                            depth = options.depth.value
-                        ).catch { e ->
-                            println("❌ VM Error: ${e.message}")
-                            e.printStackTrace()
-                        }.collect { data ->
-                            _orderBook.value = data
-                        }
-                        
-                        domRepository.getBookTicker(options.symbol.symbol)
-                            .catch { e ->
-                                println("❌ BestPrices error: ${e.message}")
-                            }
-                            .collect { prices ->
-                                _bookTicker.value = prices
-                            }
-                        
-                        // unifiedOrderBook не используется в split режиме, можно очистить
-                        _unifiedOrderBook.value = null
-                    }
-                }
-            }
+            subscribeToIncrementalDom(options)
         }
     }
     
     /**
      * Подписывается на инкрементальные события DOM и обновляет соответствующие StateFlow.
-     * Вызывается только если domRepository является DomRepositoryImpl (проверено в вызывающем коде).
      */
     private suspend fun subscribeToIncrementalDom(options: DomOptions) {
-        // Безопасное приведение с проверкой (двойная проверка для надежности)
-        val domRepositoryImpl = domRepository as? DomRepositoryImpl
-        if (domRepositoryImpl == null) {
-            println("⚠️ Cannot use incremental DOM mode: domRepository is not DomRepositoryImpl")
-            // Fallback на классический режим для SPLIT
-            when (options.mode) {
-                DomMode.SPLIT -> {
-                    domRepository.subscribeToOrderBook(
-                        symbol = options.symbol.symbol,
-                        depth = options.depth.value
-                    ).catch { e ->
-                        println("❌ VM Error (fallback): ${e.message}")
-                        e.printStackTrace()
-                    }.collect { data ->
-                        _orderBook.value = data
-                    }
-                    
-                    domRepository.getBookTicker(options.symbol.symbol)
-                        .catch { e ->
-                            println("❌ BestPrices error (fallback): ${e.message}")
-                        }
-                        .collect { prices ->
-                            _bookTicker.value = prices
-                        }
-                }
-                DomMode.UNIFIED -> {
-                    domRepository.subscribeToUnifiedOrderBook(
-                        symbol = options.symbol.symbol,
-                        depth = options.depth.value
-                    ).catch { e ->
-                        println("❌ Unified Order Book Error (fallback): ${e.message}")
-                        e.printStackTrace()
-                    }.collect { unifiedData ->
-                        _unifiedOrderBook.value = unifiedData
-                        _orderBook.value = unifiedData.toOrderBook()
-                    }
-                }
-            }
-            return
-        }
+        val domRepositoryImpl = domRepository as DomRepositoryImpl
         
         // Сбрасываем инкрементальные данные
         _incrementalBids.value = emptyMap()
