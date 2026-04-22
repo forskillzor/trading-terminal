@@ -20,7 +20,17 @@ kotlin {
             implementation(libs.compose.material3)
         }
         commonTest.dependencies {
+            // Kotlin Test (includes common and platform-specific implementations)
+            implementation(libs.kotlin.test)
+            
+            // JUnit 5 for JVM
             implementation(libs.junit.jupiter)
+            
+            // Coroutines test
+            implementation(libs.kotlinx.coroutines.test)
+            
+            // Ktor mock for HTTP client testing
+            implementation(libs.ktor.client.mock)
         }
     }
 }
