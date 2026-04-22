@@ -19,5 +19,8 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.compose.material3)
         }
+        commonTest.dependencies {
+            implementation(libs.junit.jupiter)
+        }
     }
 }

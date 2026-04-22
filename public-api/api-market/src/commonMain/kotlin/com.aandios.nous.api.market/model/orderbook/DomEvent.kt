@@ -1,8 +1,6 @@
-package com.aandios.nous.feature.dom.domain.model
+package com.aandios.nous.api.market.model.orderbook
 
 import com.aandios.nous.api.market.model.BookTicker
-import com.aandios.nous.api.market.model.orderbook.DepthSnapshot
-import com.aandios.nous.api.market.model.orderbook.DepthUpdate
 
 /**
  * События для инкрементального обновления DOM (стакана котировок).
@@ -66,36 +64,36 @@ sealed class DomEvent {
     companion object {
         fun fromDepthUpdate(update: DepthUpdate, symbol: String): List<DomEvent> {
             val events = mutableListOf<DomEvent>()
-            
+
             // Обрабатываем bids
             update.bids.forEach { (priceStr, qtyStr) ->
                 val price = priceStr.toDoubleOrNull()
                 val quantity = qtyStr.toDoubleOrNull()
-                
+
                 if (price == null || quantity == null) {
                     println("⚠️ DomEvent: Failed to parse bid data: price='$priceStr', quantity='$qtyStr' for symbol $symbol")
                     return@forEach
                 }
-                
+
                 events.add(UpdateBid(price, quantity))
             }
-            
+
             // Обрабатываем asks
             update.asks.forEach { (priceStr, qtyStr) ->
                 val price = priceStr.toDoubleOrNull()
                 val quantity = qtyStr.toDoubleOrNull()
-                
+
                 if (price == null || quantity == null) {
                     println("⚠️ DomEvent: Failed to parse ask data: price='$priceStr', quantity='$qtyStr' for symbol $symbol")
                     return@forEach
                 }
-                
+
                 events.add(UpdateAsk(price, quantity))
             }
-            
+
             return events
         }
-        
+
         fun fromBookTicker(bookTicker: BookTicker, symbol: String): DomEvent {
             return BestPrices(
                 bestBid = bookTicker.bestBid,
@@ -105,7 +103,7 @@ sealed class DomEvent {
                 symbol = symbol
             )
         }
-        
+
         fun fromSnapshot(snapshot: DepthSnapshot, symbol: String): DomEvent {
             return Snapshot(snapshot, symbol)
         }

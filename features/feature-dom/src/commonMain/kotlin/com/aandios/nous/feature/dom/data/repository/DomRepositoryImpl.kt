@@ -2,13 +2,10 @@ package com.aandios.nous.feature.dom.data.repository
 
 import com.aandios.nous.api.market.adapters.BookTickerAdapter
 import com.aandios.nous.api.market.adapters.DomAdapter
-import com.aandios.nous.api.market.model.BookTicker
 import com.aandios.nous.api.market.model.orderbook.DepthSnapshot
-import com.aandios.nous.api.market.model.orderbook.DepthUpdate
-import com.aandios.nous.api.market.model.orderbook.OrderBook
+import com.aandios.nous.api.market.model.orderbook.DomEvent
 import com.aandios.nous.api.market.model.orderbook.OrderBookState
 import com.aandios.nous.core.domain.repository.DomRepository
-import com.aandios.nous.feature.dom.domain.model.DomEvent
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -20,17 +17,6 @@ class DomRepositoryImpl(
     private val domAdapter: DomAdapter,
     private val bookTickerAdapter: BookTickerAdapter
 ) : DomRepository {
-
-    @Deprecated("Use subscribeToDomEvents() for incremental DOM updates")
-    override suspend fun subscribeToOrderBook(symbol: String, depth: Int): Flow<OrderBook> {
-        throw UnsupportedOperationException("subscribeToOrderBook is deprecated. Use subscribeToDomEvents() instead.")
-    }
-
-    @Deprecated("Use subscribeToDomEvents() for incremental DOM updates")
-    override fun getBookTicker(symbol: String): Flow<BookTicker> {
-        throw UnsupportedOperationException("getBookTicker is deprecated. Use subscribeToDomEvents() instead.")
-    }
-
     /**
      * Подписывается на инкрементальные события DOM (стакана котировок).
      *
@@ -42,7 +28,7 @@ class DomRepositoryImpl(
      * 5. Каждое следующее: pu == предыдущее u
      * 6. Если pu != previous u — переинициализация с шага 1
      */
-    suspend fun subscribeToDomEvents(symbol: String, depth: Int): Flow<DomEvent> = callbackFlow {
+    override suspend fun subscribeToDomEvents(symbol: String, depth: Int): Flow<DomEvent> = callbackFlow {
         println("📊 Subscribing to $symbol DOM events with depth $depth")
 
         var reconnectAttempts = 0

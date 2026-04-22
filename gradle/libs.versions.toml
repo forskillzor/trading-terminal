@@ -24,6 +24,7 @@ androidx-lifecycle = "2.9.6"
 
 # Testing
 junit = "4.13.2"
+junit-jupiter = "5.14.0"
 
 [libraries]
 # Kotlin Test
@@ -72,6 +73,7 @@ androidx-ui-geometry-desktop = { group = "androidx.compose.ui", name = "ui-geome
 
 # JUnit
 junit = { module = "junit:junit", version.ref = "junit" }
+junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version.ref = "junit-jupiter" }
 
 [plugins]
 # Kotlin Multiplatform
