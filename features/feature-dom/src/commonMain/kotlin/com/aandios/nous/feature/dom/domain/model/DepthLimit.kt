@@ -15,8 +15,8 @@ data class DepthLimit(
 
     companion object {
         const val MIN_VALUE = 20
-        const val MAX_VALUE = 500
-        const val DEFAULT_VALUE = 100
+        const val MAX_VALUE = 1000
+        const val DEFAULT_VALUE = 1000
 
         /**
          * Создает DepthLimit с значением по умолчанию (100 уровней).
@@ -33,7 +33,7 @@ data class DepthLimit(
         /**
          * Список стандартных значений для выбора в UI.
          */
-        val standardValues = listOf(20, 50, 100, 200, 500)
+        val standardValues = listOf(10, 20, 50, 100, 500, 1000)
     }
 
     /**
