@@ -13,5 +13,5 @@ interface DomAdapter: MarketAdapter {
     /**
      * Subscribe to order book updates
      */
-    suspend fun subscribeToDepthUpdates(symbol: String): Flow<DepthUpdate>
+    suspend fun subscribeToDepthUpdates(symbol: String, depth: Int): Flow<DepthUpdate>
 }

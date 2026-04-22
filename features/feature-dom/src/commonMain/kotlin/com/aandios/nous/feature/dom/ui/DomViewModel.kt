@@ -13,16 +13,19 @@ import com.aandios.nous.api.market.model.BookTicker
 import com.aandios.nous.api.market.model.orderbook.OrderBook
 import com.aandios.nous.core.domain.repository.DomRepository
 import com.aandios.nous.core.domain.repository.SymbolInfoRepository
+import com.aandios.nous.feature.dom.data.repository.DomRepositoryImpl
 import com.aandios.nous.feature.dom.data.repository.subscribeToUnifiedOrderBook
 import com.aandios.nous.feature.dom.domain.*
 import com.aandios.nous.feature.dom.domain.model.AggregationLevel
 import com.aandios.nous.feature.dom.domain.model.DepthLimit
+import com.aandios.nous.feature.dom.domain.model.DomEvent
 import com.aandios.nous.feature.dom.domain.model.OrderIntent
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.delay
 import java.util.concurrent.Executors
 
@@ -62,6 +65,34 @@ class DomViewModel(
 
     private val _symbolTickSize = MutableStateFlow<Double?>(null)
     val symbolTickSize: StateFlow<Double?> = _symbolTickSize.asStateFlow()
+
+    // Инкрементальные данные DOM (для глубины > 100)
+    private val _domEvents = MutableStateFlow<List<DomEvent>>(emptyList())
+    val domEvents: StateFlow<List<DomEvent>> = _domEvents.asStateFlow()
+    
+    // Константы для управления памятью
+    private companion object {
+        const val MAX_DOM_EVENTS = 50
+        const val INCREMENTAL_MODE_THRESHOLD = 100
+    }
+    
+    private val _incrementalBids = MutableStateFlow<Map<Double, Double>>(emptyMap())
+    val incrementalBids: StateFlow<Map<Double, Double>> = _incrementalBids.asStateFlow()
+    
+    private val _incrementalAsks = MutableStateFlow<Map<Double, Double>>(emptyMap())
+    val incrementalAsks: StateFlow<Map<Double, Double>> = _incrementalAsks.asStateFlow()
+    
+    private val _incrementalBestBid = MutableStateFlow<Double?>(null)
+    val incrementalBestBid: StateFlow<Double?> = _incrementalBestBid.asStateFlow()
+    
+    private val _incrementalBestAsk = MutableStateFlow<Double?>(null)
+    val incrementalBestAsk: StateFlow<Double?> = _incrementalBestAsk.asStateFlow()
+    
+    private val _incrementalBestBidQuantity = MutableStateFlow<Double?>(null)
+    val incrementalBestBidQuantity: StateFlow<Double?> = _incrementalBestBidQuantity.asStateFlow()
+    
+    private val _incrementalBestAskQuantity = MutableStateFlow<Double?>(null)
+    val incrementalBestAskQuantity: StateFlow<Double?> = _incrementalBestAskQuantity.asStateFlow()
 
     // Job для управления всеми подписками DOM (стакан, bookTicker, unified order book)
     // При изменении provider/symbol/depth — отменяется и создаётся новый
@@ -108,33 +139,79 @@ class DomViewModel(
 
     private fun restartSubscription(options: DomOptions) {
         subscriptionJob?.cancel()
-        println("🔄 VM: Restarting subscription with key ${options.subscriptionKey}, mode: ${options.mode}")
+        println("🔄 VM: Restarting subscription with key ${options.subscriptionKey}, mode: ${options.mode}, depth: ${options.depth.value}")
+        
+        // Решаем, использовать ли инкрементальные обновления (для глубины > порога)
+        val useIncremental = options.depth.value > INCREMENTAL_MODE_THRESHOLD
         
         subscriptionJob = viewModelScope.launch {
-            when (options.mode) {
-                DomMode.UNIFIED -> {
-                    // В unified режиме используем только unifiedOrderBook
-                    domRepository.subscribeToUnifiedOrderBook(
-                        symbol = options.symbol.symbol,
-                        depth = options.depth.value
-                    ).catch { e ->
-                        println("❌ Unified Order Book Error: ${e.message}")
-                        e.printStackTrace()
-                    }.collect { unifiedData ->
-                        _unifiedOrderBook.value = unifiedData
-                        // Обновляем orderBook для совместимости (например, OrderPlacementPanel)
-                        _orderBook.value = unifiedData.toOrderBook()
-                        // bookTicker не обновляем - не используется в unified режиме
+            if (useIncremental && domRepository is DomRepositoryImpl) {
+                // Используем инкрементальные обновления
+                subscribeToIncrementalDom(options)
+            } else {
+                // Используем классические обновления
+                when (options.mode) {
+                    DomMode.UNIFIED -> {
+                        // В unified режиме используем только unifiedOrderBook
+                        domRepository.subscribeToUnifiedOrderBook(
+                            symbol = options.symbol.symbol,
+                            depth = options.depth.value
+                        ).catch { e ->
+                            println("❌ Unified Order Book Error: ${e.message}")
+                            e.printStackTrace()
+                        }.collect { unifiedData ->
+                            _unifiedOrderBook.value = unifiedData
+                            // Обновляем orderBook для совместимости (например, OrderPlacementPanel)
+                            _orderBook.value = unifiedData.toOrderBook()
+                            // bookTicker не обновляем - не используется в unified режиме
+                        }
+                    }
+                    
+                    DomMode.SPLIT -> {
+                        // В split режиме используем отдельные потоки orderBook и bookTicker
+                        domRepository.subscribeToOrderBook(
+                            symbol = options.symbol.symbol,
+                            depth = options.depth.value
+                        ).catch { e ->
+                            println("❌ VM Error: ${e.message}")
+                            e.printStackTrace()
+                        }.collect { data ->
+                            _orderBook.value = data
+                        }
+                        
+                        domRepository.getBookTicker(options.symbol.symbol)
+                            .catch { e ->
+                                println("❌ BestPrices error: ${e.message}")
+                            }
+                            .collect { prices ->
+                                _bookTicker.value = prices
+                            }
+                        
+                        // unifiedOrderBook не используется в split режиме, можно очистить
+                        _unifiedOrderBook.value = null
                     }
                 }
-                
+            }
+        }
+    }
+    
+    /**
+     * Подписывается на инкрементальные события DOM и обновляет соответствующие StateFlow.
+     * Вызывается только если domRepository является DomRepositoryImpl (проверено в вызывающем коде).
+     */
+    private suspend fun subscribeToIncrementalDom(options: DomOptions) {
+        // Безопасное приведение с проверкой (двойная проверка для надежности)
+        val domRepositoryImpl = domRepository as? DomRepositoryImpl
+        if (domRepositoryImpl == null) {
+            println("⚠️ Cannot use incremental DOM mode: domRepository is not DomRepositoryImpl")
+            // Fallback на классический режим для SPLIT
+            when (options.mode) {
                 DomMode.SPLIT -> {
-                    // В split режиме используем отдельные потоки orderBook и bookTicker
                     domRepository.subscribeToOrderBook(
                         symbol = options.symbol.symbol,
                         depth = options.depth.value
                     ).catch { e ->
-                        println("❌ VM Error: ${e.message}")
+                        println("❌ VM Error (fallback): ${e.message}")
                         e.printStackTrace()
                     }.collect { data ->
                         _orderBook.value = data
@@ -142,17 +219,131 @@ class DomViewModel(
                     
                     domRepository.getBookTicker(options.symbol.symbol)
                         .catch { e ->
-                            println("❌ BestPrices error: ${e.message}")
+                            println("❌ BestPrices error (fallback): ${e.message}")
                         }
                         .collect { prices ->
                             _bookTicker.value = prices
                         }
-                    
-                    // unifiedOrderBook не используется в split режиме, можно очистить
-                    _unifiedOrderBook.value = null
+                }
+                DomMode.UNIFIED -> {
+                    domRepository.subscribeToUnifiedOrderBook(
+                        symbol = options.symbol.symbol,
+                        depth = options.depth.value
+                    ).catch { e ->
+                        println("❌ Unified Order Book Error (fallback): ${e.message}")
+                        e.printStackTrace()
+                    }.collect { unifiedData ->
+                        _unifiedOrderBook.value = unifiedData
+                        _orderBook.value = unifiedData.toOrderBook()
+                    }
                 }
             }
+            return
         }
+        
+        // Сбрасываем инкрементальные данные
+        _incrementalBids.value = emptyMap()
+        _incrementalAsks.value = emptyMap()
+        _incrementalBestBid.value = null
+        _incrementalBestAsk.value = null
+        _incrementalBestBidQuantity.value = null
+        _incrementalBestAskQuantity.value = null
+        
+        domRepositoryImpl.subscribeToDomEvents(
+            symbol = options.symbol.symbol,
+            depth = options.depth.value
+        ).catch { e ->
+            println("❌ DOM Events Error: ${e.message}")
+            e.printStackTrace()
+        }.collect { event ->
+            processDomEvent(event)
+        }
+    }
+    
+    /**
+     * Обрабатывает событие DomEvent и обновляет соответствующие StateFlow.
+     */
+    private fun processDomEvent(event: DomEvent) {
+        when (event) {
+            is DomEvent.Snapshot -> {
+                // Очищаем текущие данные и загружаем из снапшота
+                val bids = mutableMapOf<Double, Double>()
+                val asks = mutableMapOf<Double, Double>()
+                
+                event.snapshot.bids.forEach { (priceStr, qtyStr) ->
+                    val price = priceStr.toDoubleOrNull()
+                    val quantity = qtyStr.toDoubleOrNull()
+                    
+                    if (price == null || quantity == null) {
+                        println("⚠️ DomViewModel: Failed to parse snapshot bid data: price='$priceStr', quantity='$qtyStr'")
+                        return@forEach
+                    }
+                    
+                    if (quantity > 0.0) bids[price] = quantity
+                }
+                
+                event.snapshot.asks.forEach { (priceStr, qtyStr) ->
+                    val price = priceStr.toDoubleOrNull()
+                    val quantity = qtyStr.toDoubleOrNull()
+                    
+                    if (price == null || quantity == null) {
+                        println("⚠️ DomViewModel: Failed to parse snapshot ask data: price='$priceStr', quantity='$qtyStr'")
+                        return@forEach
+                    }
+                    
+                    if (quantity > 0.0) asks[price] = quantity
+                }
+                
+                _incrementalBids.value = bids
+                _incrementalAsks.value = asks
+            }
+            
+            is DomEvent.UpdateBid -> {
+                val currentBids = _incrementalBids.value.toMutableMap()
+                if (event.quantity == 0.0) {
+                    currentBids.remove(event.price)
+                } else {
+                    currentBids[event.price] = event.quantity
+                }
+                _incrementalBids.value = currentBids
+            }
+            
+            is DomEvent.UpdateAsk -> {
+                val currentAsks = _incrementalAsks.value.toMutableMap()
+                if (event.quantity == 0.0) {
+                    currentAsks.remove(event.price)
+                } else {
+                    currentAsks[event.price] = event.quantity
+                }
+                _incrementalAsks.value = currentAsks
+            }
+            
+            is DomEvent.BestPrices -> {
+                _incrementalBestBid.value = event.bestBid
+                _incrementalBestAsk.value = event.bestAsk
+                _incrementalBestBidQuantity.value = event.bestBidQuantity
+                _incrementalBestAskQuantity.value = event.bestAskQuantity
+            }
+            
+            DomEvent.Reset -> {
+                _incrementalBids.value = emptyMap()
+                _incrementalAsks.value = emptyMap()
+                _incrementalBestBid.value = null
+                _incrementalBestAsk.value = null
+                _incrementalBestBidQuantity.value = null
+                _incrementalBestAskQuantity.value = null
+            }
+        }
+        
+        // Обновляем список событий для отладки (ограничиваем размер)
+        val currentEvents = _domEvents.value
+        val newEvents = if (currentEvents.size >= MAX_DOM_EVENTS) {
+            // Используем более эффективный подход: создаем новый список с удалением первого элемента
+            currentEvents.drop(1) + event
+        } else {
+            currentEvents + event
+        }
+        _domEvents.value = newEvents
     }
 
     // Единый метод для выполнения команд
