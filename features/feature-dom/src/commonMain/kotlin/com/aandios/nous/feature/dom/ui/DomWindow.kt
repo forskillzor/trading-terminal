@@ -50,8 +50,16 @@ fun DomWindow() {
             // Создаём UnifiedOrderBook из инкрементальных данных
             val priceMap = mutableMapOf<String, OrderBookLevel>()
             
-            // Добавляем bids
+            val bestBid = incrementalBestBid
+            val bestAsk = incrementalBestAsk
+            
+            // Добавляем bids, фильтруя по bestBid:
+            // Bid не может быть выше bestBid (лучший bid — самая высокая цена покупки).
+            // Если цена > bestBid — это stale данные, пропускаем.
             incrementalBids.forEach { (price, quantity) ->
+                if (bestBid != null && price > bestBid) {
+                    return@forEach
+                }
                 priceMap[price.toString()] = OrderBookLevel(
                     price = price.toString(),
                     quantity = quantity.toString(),
@@ -60,8 +68,13 @@ fun DomWindow() {
                 )
             }
             
-            // Добавляем asks, объединяя с существующими ценами
+            // Добавляем asks, фильтруя по bestAsk:
+            // Ask не может быть ниже bestAsk (лучший ask — самая низкая цена продажи).
+            // Если цена < bestAsk — это stale данные, пропускаем.
             incrementalAsks.forEach { (price, quantity) ->
+                if (bestAsk != null && price < bestAsk) {
+                    return@forEach
+                }
                 val existing = priceMap[price.toString()]
                 if (existing != null) {
                     priceMap[price.toString()] = existing.copy(
@@ -78,12 +91,10 @@ fun DomWindow() {
             }
             
             // Сортируем по цене в порядке убывания (как в стакане)
-            val sortedLevels = priceMap.values.sortedByDescending { 
-                it.price.toDoubleOrNull() ?: 0.0 
+            val sortedLevels = priceMap.values.sortedByDescending {
+                it.price.toDoubleOrNull() ?: 0.0
             }
             
-            val bestBid = incrementalBestBid
-            val bestAsk = incrementalBestAsk
             val spread = if (bestBid != null && bestAsk != null) bestAsk - bestBid else null
             val spreadPercent = if (bestBid != null && spread != null) (spread / bestBid) * 100 else null
             
@@ -104,14 +115,20 @@ fun DomWindow() {
         }
     
     // Данные для панели ордеров из инкрементальных данных
+    val panelBestBid = incrementalBestBid
+    val panelBestAsk = incrementalBestAsk
     val panelOrderBook = OrderBook(
         symbol = domOptions.symbol.symbol,
-        bids = incrementalBids.map { (price, quantity) ->
-            OrderBookLevel(price = price.toString(), quantity = quantity.toString())
-        },
-        asks = incrementalAsks.map { (price, quantity) ->
-            OrderBookLevel(price = price.toString(), quantity = quantity.toString())
-        },
+        bids = incrementalBids
+            .filter { (price, _) -> panelBestBid == null || price <= panelBestBid }
+            .map { (price, quantity) ->
+                OrderBookLevel(price = price.toString(), quantity = quantity.toString())
+            },
+        asks = incrementalAsks
+            .filter { (price, _) -> panelBestAsk == null || price >= panelBestAsk }
+            .map { (price, quantity) ->
+                OrderBookLevel(price = price.toString(), quantity = quantity.toString())
+            },
         timestamp = System.currentTimeMillis()
     )
     

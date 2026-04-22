@@ -78,8 +78,8 @@ class OrderBookState {
 
             // U > lastUpdateId+1 — пропущены события между снапшотом и этим событием.
             // Это нормально для Binance, просто ждём следующее событие.
-            println("⚠️ OrderBookState: gap detected before snapshot, skipping event. " +
-                "lastUpdateId=$lastUpdateId, U=${update.firstUpdateId}, u=${update.finalUpdateId}")
+//            println("⚠️ OrderBookState: gap detected before snapshot, skipping event. " +
+//                "lastUpdateId=$lastUpdateId, U=${update.firstUpdateId}, u=${update.finalUpdateId}")
             return true
         }
 
