@@ -61,24 +61,17 @@ class BinanceChartAdapter(
         symbol: String,
         interval: String
     ): Flow<Candle> = callbackFlow {
-        println("📡 WebSocket: Starting for $symbol $interval")
-
-        // Для фьючерсов используем fstream
+        // Kline - market stream: wss://fstream.binance.com/market/ws/<symbol>@kline_<interval>
         val streamName = "${symbol.lowercase()}@kline_${interval}"
-        val endpoint = "wss://fstream.binance.com/ws/$streamName"  // fstream для фьючерсов
-
-        println("🔗 Connecting to: $endpoint")
+        val endpoint = "wss://fstream.binance.com/market/ws/$streamName"
 
         try {
             client.webSocket(urlString = endpoint) {
-                println("✅ WebSocket: CONNECTED to $endpoint")
-
                 for (frame in incoming) {
                     when (frame) {
                         is Frame.Text -> {
-                            val text = frame.readText()
-
                             try {
+                                val text = frame.readText()
                                 val wsResponse = json.decodeFromString<BinanceWebSocketResponse>(text)
 
                                 if (wsResponse.eventType == "kline") {
@@ -98,7 +91,7 @@ class BinanceChartAdapter(
 
                                     trySend(webSocketCandle.toCandle())
                                 }
-                            } catch (e: Exception) {
+                            } catch (_: Exception) {
                                 // Игнорируем ошибки парсинга
                             }
                         }
@@ -106,10 +99,8 @@ class BinanceChartAdapter(
                     }
                 }
             }
-        } catch (e: Exception) {
-            println("❌ WebSocket failed: ${e.message}")
-            e.printStackTrace()
-            throw e
+        } catch (_: Exception) {
+            // WebSocket ошибки логируются выше
         }
 
         close()

@@ -58,10 +58,13 @@ class ChartRepositoryImpl(
     private fun getRealTimeUpdates(symbol: String, interval: String): Flow<Candle> {
         val key = "$symbol-$interval"
 
+        // Инициализируем кеш ДО flatMapLatest, чтобы избежать рестарта при модификации внутри lambda
+        if (!realTimeUpdates.value.containsKey(key)) {
+            realTimeUpdates.value = realTimeUpdates.value + (key to createRealTimeFlow(symbol, interval))
+        }
+
         return realTimeUpdates.flatMapLatest { flows ->
-            flows[key] ?: createRealTimeFlow(symbol, interval).also {flow ->
-                realTimeUpdates.value += (key to flow)
-            }
+            flows[key] ?: error("Real-time flow not initialized for key: $key")
         }
     }
 
