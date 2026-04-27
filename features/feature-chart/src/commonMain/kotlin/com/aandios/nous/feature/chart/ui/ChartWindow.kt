@@ -23,13 +23,16 @@ import org.koin.core.context.stopKoin
 fun ChartWindow() {
     val chartViewModel: ChartViewModel = koinInject()
     val chartState by chartViewModel.chartState.collectAsState()
+    val currentSymbol by chartViewModel.currentSymbol.collectAsState()
+    val currentTimeframe by chartViewModel.currentTimeframe.collectAsState()
+    val symbols by chartViewModel.symbols.collectAsState()
 
     // Загружаем данные при первом рендере
     LaunchedEffect(Unit) {
         chartViewModel.loadChart()
     }
 
-    BoxWithConstraints(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
@@ -68,11 +71,26 @@ fun ChartWindow() {
                 }
             }
             is ChartState.Success -> {
-                CandleStickChart(
-                    candles = state.candles,
-                    currentPrice = state.currentPrice,
-                    modifier = Modifier.fillMaxSize()
-                )
+                Box(modifier = Modifier.fillMaxSize()) {
+                    // Chart (full size)
+                    CandleStickChart(
+                        candles = state.candles,
+                        currentPrice = state.currentPrice,
+                        modifier = Modifier.fillMaxSize()
+                    )
+
+                    // Toolbar overlay (top-left corner)
+                    ChartToolbar(
+                        currentSymbol = currentSymbol,
+                        currentTimeframe = currentTimeframe,
+                        availableSymbols = symbols,
+                        onSymbolChange = { chartViewModel.selectSymbol(it) },
+                        onTimeframeChange = { chartViewModel.selectTimeframe(it) },
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(8.dp)
+                    )
+                }
             }
         }
     }

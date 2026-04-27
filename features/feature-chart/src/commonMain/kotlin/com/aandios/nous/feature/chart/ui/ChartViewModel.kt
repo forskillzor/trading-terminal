@@ -1,5 +1,6 @@
 package com.aandios.nous.feature.chart.ui
 
+import com.aandios.nous.api.market.adapters.SymbolInfoAdapter
 import com.aandios.nous.api.market.model.Candle
 import com.aandios.nous.core.domain.repository.ChartRepository
 import kotlinx.coroutines.*
@@ -10,13 +11,54 @@ import kotlinx.coroutines.flow.catch
 import kotlin.coroutines.cancellation.CancellationException
 
 class ChartViewModel(
-    private val chartRepository: ChartRepository
+    private val chartRepository: ChartRepository,
+    private val symbolInfoAdapter: SymbolInfoAdapter,
 ) {
     private val viewModelScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var currentJob: Job? = null
 
     private val _chartState = MutableStateFlow<ChartState>(ChartState.Loading)
     val chartState: StateFlow<ChartState> = _chartState.asStateFlow()
+
+    private val _currentSymbol = MutableStateFlow("BTCUSDT")
+    val currentSymbol: StateFlow<String> = _currentSymbol.asStateFlow()
+
+    private val _currentTimeframe = MutableStateFlow("1h")
+    val currentTimeframe: StateFlow<String> = _currentTimeframe.asStateFlow()
+
+    private val _symbols = MutableStateFlow<List<String>>(listOf("BTCUSDT", "ETHUSDT"))
+    val symbols: StateFlow<List<String>> = _symbols.asStateFlow()
+
+    init {
+        loadSymbols()
+    }
+
+    private fun loadSymbols() {
+        viewModelScope.launch {
+            try {
+                val allSymbols = symbolInfoAdapter.getAllSymbolsInfo()
+                val tradingSymbols = allSymbols
+                    .filter { it.status == "TRADING" }
+                    .map { it.symbol }
+                    .sorted()
+                if (tradingSymbols.isNotEmpty()) {
+                    _symbols.value = tradingSymbols
+                }
+            } catch (e: Exception) {
+                println("Failed to load symbols: ${e.message}")
+            }
+        }
+    }
+
+    fun selectSymbol(symbol: String) {
+        _currentSymbol.value = symbol
+        loadChart(ticker = symbol, timeframe = _currentTimeframe.value)
+    }
+
+    fun selectTimeframe(timeframe: String) {
+        _currentTimeframe.value = timeframe
+        loadChart(ticker = _currentSymbol.value, timeframe = timeframe)
+    }
 
     fun loadChart(ticker: String = "BTCUSDT", timeframe: String = "1h") {
         viewModelScope.launch {

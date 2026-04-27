@@ -4,6 +4,7 @@ import com.aandios.nous.api.market.NetworkManager
 import com.aandios.nous.api.market.Provider
 import com.aandios.nous.api.market.ProviderConfig
 import com.aandios.nous.api.market.adapters.ChartAdapter
+import com.aandios.nous.api.market.adapters.SymbolInfoAdapter
 import com.aandios.nous.core.data.repository.ChartRepositoryImpl
 import com.aandios.nous.core.di.coreModule
 import com.aandios.nous.core.domain.repository.ChartRepository
@@ -62,10 +63,16 @@ val featureChartModule = module {
         ChartRepositoryImpl(chartAdapter = get())
     }
 
-    // 5. ViewModel
+    // 5. SymbolInfo adapter из провайдера
+    single<SymbolInfoAdapter> {
+        get<Provider>().symbolInfo ?: error("SymbolInfo adapter not available")
+    }
+
+    // 6. ViewModel
     factory {
         ChartViewModel(
-            chartRepository = get()
+            chartRepository = get(),
+            symbolInfoAdapter = get(),
         )
     }
 }
