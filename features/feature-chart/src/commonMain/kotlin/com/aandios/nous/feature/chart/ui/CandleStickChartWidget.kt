@@ -132,7 +132,17 @@ fun CandleStickChart(
                         val sd = change.scrollDelta
                         if (event.type == PointerEventType.Scroll && sd != Offset.Zero) {
                             val factor = if (sd.y < 0) 1.15f else 1f / 1.15f
-                            zoomLevel = (zoomLevel * factor).coerceIn(0.3f, 5.0f)
+                            val oldZoom = zoomLevel
+                            val newZoom = (oldZoom * factor).coerceIn(0.3f, 5.0f)
+                            val actualFactor = newZoom / oldZoom
+
+                            // Сохраняем свечу под курсором мыши неподвижной
+                            val mouseX = change.position.x
+                            val virtualPos = mouseX + scrollOffset
+                            val newScrollOffset = virtualPos * actualFactor - mouseX
+
+                            zoomLevel = newZoom
+                            scrollOffset = newScrollOffset.coerceIn(0f, Float.MAX_VALUE)
                             change.consume()
                         }
                     }

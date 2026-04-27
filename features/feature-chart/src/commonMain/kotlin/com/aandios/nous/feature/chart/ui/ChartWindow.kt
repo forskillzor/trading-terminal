@@ -90,6 +90,8 @@ fun ChartWindow() {
                         availableSymbols = symbols,
                         onSymbolChange = { chartViewModel.selectSymbol(it) },
                         onTimeframeChange = { chartViewModel.selectTimeframe(it) },
+                        crosshairEnabled = crosshairEnabled,
+                        onCrosshairToggle = { crosshairEnabled = !crosshairEnabled },
                         modifier = Modifier
                             .align(Alignment.TopStart)
                             .padding(8.dp)
