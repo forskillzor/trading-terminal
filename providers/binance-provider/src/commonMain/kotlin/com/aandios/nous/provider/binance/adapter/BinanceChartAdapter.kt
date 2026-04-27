@@ -57,6 +57,46 @@ class BinanceChartAdapter(
         }
     }
 
+    override suspend fun getCandlesBefore(
+        symbol: String,
+        interval: String,
+        endTime: Long,
+        limit: Int
+    ): List<Candle> {
+        println("[DEBUG-BINANCE] getCandlesBefore(symbol=$symbol, interval=$interval, endTime=$endTime, limit=$limit)")
+        val response: List<List<String>> = client.get("https://fapi.binance.com/fapi/v1/klines") {
+            url {
+                parameters.append("symbol", symbol)
+                parameters.append("interval", interval)
+                parameters.append("endTime", endTime.toString())
+                parameters.append("limit", limit.toString())
+            }
+        }.body()
+
+        println("[DEBUG-BINANCE] getCandlesBefore: response size=${response.size}")
+        if (response.isNotEmpty()) {
+            val first = response.first()
+            val last = response.last()
+            println("[DEBUG-BINANCE] getCandlesBefore: first openTime=${first[0]}, last openTime=${last[0]}")
+        }
+
+        return response.map { rawCandle ->
+            BinanceCandle(
+                openTime = rawCandle[0].toLong(),
+                open = rawCandle[1],
+                high = rawCandle[2],
+                low = rawCandle[3],
+                close = rawCandle[4],
+                volume = rawCandle[5],
+                closeTime = rawCandle[6].toLong(),
+                quoteAssetVolume = rawCandle[7],
+                numberOfTrades = rawCandle[8].toInt(),
+                takerBuyBaseAssetVolume = rawCandle[9],
+                takerBuyQuoteAssetVolume = rawCandle[10]
+            ).toCandle()
+        }
+    }
+
     override fun subscribeToCandles(
         symbol: String,
         interval: String

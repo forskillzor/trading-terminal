@@ -73,6 +73,9 @@ fun CandleStickChart(
     priceScaleWidth: Dp = 60.dp,
     crosshairEnabled: Boolean = false,
     onCrosshairEnabledChange: (Boolean) -> Unit = {},
+    onNeedMoreHistory: () -> Unit = {},
+    historyLoadCount: Int = 0,
+    hasMoreHistory: Boolean = true,
 ) {
     if (candles.isEmpty()) return
 
@@ -80,6 +83,8 @@ fun CandleStickChart(
     var isCrosshairVisible by remember { mutableStateOf(false) }
     var scrollOffset by remember { mutableFloatStateOf(0f) }
     var zoomLevel by remember { mutableFloatStateOf(1f) }
+    // Максимальное пустое место слева (в пикселях) — триггер для загрузки истории
+    val maxScrollLeft = 300f
 
     // Расчет минимальной и максимальной цены
     val priceRange = remember(candles, currentPrice) {
@@ -118,13 +123,14 @@ fun CandleStickChart(
                     detectDragGestures(
                         onDrag = { change, _ ->
                             val deltaX = change.position.x - change.previousPosition.x
-                            scrollOffset = (scrollOffset - deltaX).coerceIn(0f, Float.MAX_VALUE)
+                            scrollOffset = (scrollOffset - deltaX).coerceIn(-maxScrollLeft, Float.MAX_VALUE)
                         },
                     )
                 }
             }
-            // Зум колесиком мыши
-            .pointerInput(Unit) {
+            // Зум колесиком мыши — всегда относительно свечи под курсором
+            .pointerInput(candles.size) {
+                val pxPriceScaleWidth = with(density) { priceScaleWidth.toPx() }
                 awaitPointerEventScope {
                     while (true) {
                         val event = awaitPointerEvent()
@@ -135,14 +141,14 @@ fun CandleStickChart(
                             val oldZoom = zoomLevel
                             val newZoom = (oldZoom * factor).coerceIn(0.3f, 5.0f)
                             val actualFactor = newZoom / oldZoom
-
-                            // Сохраняем свечу под курсором мыши неподвижной
                             val mouseX = change.position.x
+
+                            // Зум относительно свечи под курсором
                             val virtualPos = mouseX + scrollOffset
                             val newScrollOffset = virtualPos * actualFactor - mouseX
-
                             zoomLevel = newZoom
-                            scrollOffset = newScrollOffset.coerceIn(0f, Float.MAX_VALUE)
+                            scrollOffset = newScrollOffset.coerceIn(-maxScrollLeft, Float.MAX_VALUE)
+
                             change.consume()
                         }
                     }
@@ -223,16 +229,40 @@ fun CandleStickChart(
         val maxScroll = max(0f, chartWidthPx * zoomLevel - chartWidthPx)
 
         // При загрузке новых данных (смена символа/таймфрейма) показываем последние свечи
+        // НЕ срабатывает при prepend исторических свечей (historyLoadCount > 0)
         LaunchedEffect(candles.firstOrNull()?.timestamp ?: 0L) {
-            scrollOffset = maxScroll
+            if (historyLoadCount == 0) {
+                scrollOffset = maxScroll
+            }
         }
 
         // Клиппинг scrollOffset
-        val clampedOffset = scrollOffset.coerceIn(0f, maxScroll)
+        val clampedOffset = scrollOffset.coerceIn(-maxScrollLeft, maxScroll)
 
         // Вычисление видимого диапазона свечей
         val startIdx = (clampedOffset / totalW).toInt().coerceIn(0, max(0, candles.size - 1))
         val endIdx = ((clampedOffset + chartWidthPx) / totalW + 1).toInt().coerceIn(startIdx + 1, candles.size)
+
+        // Lazy loading historical candles: когда пользователь скроллит левее первой свечи
+        // (clampedOffset < 0) — появляется пустое место, вызываем загрузку истории
+        LaunchedEffect(clampedOffset, hasMoreHistory) {
+            println("[DEBUG-WIDGET] >>> LaunchedEffect fired: clampedOffset=$clampedOffset, hasMoreHistory=$hasMoreHistory, candles.size=${candles.size}, scrollOffset=$scrollOffset")
+            if (hasMoreHistory && clampedOffset < 0f) {
+                println("[DEBUG-WIDGET] >>> TRIGGERING onNeedMoreHistory()")
+                onNeedMoreHistory()
+            }
+        }
+
+        // Коррекция scrollOffset после загрузки исторических свечей
+        LaunchedEffect(historyLoadCount, candles.size) {
+            println("[DEBUG-WIDGET] >>> LaunchedEffect(historyLoadCount=$historyLoadCount, candleCount=${candles.size})")
+            if (historyLoadCount > 0) {
+                val oldScrollOffset = scrollOffset
+                val added = historyLoadCount * totalW
+                scrollOffset += added
+                println("[DEBUG-WIDGET] Corrected scrollOffset: $oldScrollOffset -> $scrollOffset (added $added, totalW=$totalW, candles.size=${candles.size})")
+            }
+        }
 
         // Основной Canvas для графика
         Canvas(

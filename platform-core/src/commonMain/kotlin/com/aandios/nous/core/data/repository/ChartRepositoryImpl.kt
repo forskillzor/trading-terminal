@@ -112,6 +112,16 @@ class ChartRepositoryImpl(
         }
     }
 
+    override suspend fun loadHistoricalCandlesBefore(
+        ticker: String,
+        timeframe: String,
+        endTime: Long,
+        limit: Int
+    ): List<Candle> {
+        val symbol = ticker.replace("/", "")
+        return chartAdapter.getCandlesBefore(symbol, mapTimeframe(timeframe), endTime, limit)
+    }
+
     private fun mapTimeframe(timeframe: String): String {
         return when (timeframe) {
             "1m" -> "1m"

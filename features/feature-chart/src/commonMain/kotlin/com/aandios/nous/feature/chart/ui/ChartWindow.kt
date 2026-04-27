@@ -26,6 +26,8 @@ fun ChartWindow() {
     val currentSymbol by chartViewModel.currentSymbol.collectAsState()
     val currentTimeframe by chartViewModel.currentTimeframe.collectAsState()
     val symbols by chartViewModel.symbols.collectAsState()
+    val historyLoadCount by chartViewModel.historyLoadCount.collectAsState()
+    val hasMoreHistory by chartViewModel.hasMoreHistory.collectAsState()
 
     var crosshairEnabled by remember { mutableStateOf(false) }
 
@@ -80,6 +82,9 @@ fun ChartWindow() {
                         currentPrice = state.currentPrice,
                         crosshairEnabled = crosshairEnabled,
                         onCrosshairEnabledChange = { crosshairEnabled = it },
+                        onNeedMoreHistory = { chartViewModel.loadMoreHistory() },
+                        historyLoadCount = historyLoadCount,
+                        hasMoreHistory = hasMoreHistory,
                         modifier = Modifier.fillMaxSize()
                     )
 
