@@ -11,7 +11,7 @@ class DomainModelsTest {
     fun `DepthLimit create and validation`() {
         // Default value
         val default = DepthLimit.default()
-        assertEquals(100, default.value)
+        assertEquals(1000, default.value)
 
         // Create with valid value
         val limit = DepthLimit.create(50)
@@ -20,8 +20,8 @@ class DomainModelsTest {
         // Coercion to min/max
         val tooLow = DepthLimit.create(10)
         assertEquals(20, tooLow.value) // MIN_VALUE = 20
-        val tooHigh = DepthLimit.create(1000)
-        assertEquals(500, tooHigh.value) // MAX_VALUE = 500
+        val tooHigh = DepthLimit.create(2000)
+        assertEquals(1000, tooHigh.value) // MAX_VALUE = 1000
 
         // Standard values check
         assertTrue(DepthLimit.create(20).isStandard())

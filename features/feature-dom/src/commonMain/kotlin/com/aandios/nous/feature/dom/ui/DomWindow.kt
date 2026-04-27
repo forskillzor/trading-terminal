@@ -31,87 +31,33 @@ fun DomWindow() {
     val isTradingEnabled by domViewModel.isTradingEnabled.collectAsState()
     val symbolTickSize by domViewModel.symbolTickSize.collectAsState()
     val selectedPrice by domViewModel.selectedPrice.collectAsState()
-    
-    // Инкрементальные данные
-    val incrementalBids by domViewModel.incrementalBids.collectAsState()
-    val incrementalAsks by domViewModel.incrementalAsks.collectAsState()
+
+    // SnapshotStateMap — читается напрямую, Compose отслеживает entry
+    // Без collectAsState(), без O(N) копии
+    val incrementalBids = domViewModel.incrementalBids
+    val incrementalAsks = domViewModel.incrementalAsks
+
     val incrementalBestBid by domViewModel.incrementalBestBid.collectAsState()
     val incrementalBestAsk by domViewModel.incrementalBestAsk.collectAsState()
     val incrementalBestBidQuantity by domViewModel.incrementalBestBidQuantity.collectAsState()
     val incrementalBestAskQuantity by domViewModel.incrementalBestAskQuantity.collectAsState()
-    
-    // Вычисляем отображаемый unified order book с агрегацией из инкрементальных данных
-    val displayUnifiedOrderBook =
-        remember(domOptions.aggregation, symbolTickSize, incrementalBids, incrementalAsks, incrementalBestBid, incrementalBestAsk) {
-            // Создаём UnifiedOrderBook из инкрементальных данных
-            val priceMap = mutableMapOf<String, OrderBookLevel>()
-            
-            val bestBid = incrementalBestBid
-            val bestAsk = incrementalBestAsk
-            
-            // Добавляем bids, фильтруя по bestBid:
-            // Bid не может быть выше bestBid (лучший bid — самая высокая цена покупки).
-            // Если цена > bestBid — это stale данные, пропускаем.
-            incrementalBids.forEach { (price, quantity) ->
-                if (bestBid != null && price > bestBid) {
-                    return@forEach
-                }
-                priceMap[price.toString()] = OrderBookLevel(
-                    price = price.toString(),
-                    quantity = quantity.toString(),
-                    bidQty = quantity.toString(),
-                    askQty = ""
-                )
-            }
-            
-            // Добавляем asks, фильтруя по bestAsk:
-            // Ask не может быть ниже bestAsk (лучший ask — самая низкая цена продажи).
-            // Если цена < bestAsk — это stale данные, пропускаем.
-            incrementalAsks.forEach { (price, quantity) ->
-                if (bestAsk != null && price < bestAsk) {
-                    return@forEach
-                }
-                val existing = priceMap[price.toString()]
-                if (existing != null) {
-                    priceMap[price.toString()] = existing.copy(
-                        askQty = quantity.toString()
-                    )
-                } else {
-                    priceMap[price.toString()] = OrderBookLevel(
-                        price = price.toString(),
-                        quantity = quantity.toString(),
-                        bidQty = "",
-                        askQty = quantity.toString()
-                    )
-                }
-            }
-            
-            // Сортируем по цене в порядке убывания (как в стакане)
-            val sortedLevels = priceMap.values.sortedByDescending {
-                it.price.toDoubleOrNull() ?: 0.0
-            }
-            
-            val spread = if (bestBid != null && bestAsk != null) bestAsk - bestBid else null
-            val spreadPercent = if (bestBid != null && spread != null) (spread / bestBid) * 100 else null
-            
-            val unified = OrderBook(
-                symbol = domOptions.symbol.symbol,
-                levels = sortedLevels,
-                timestamp = System.currentTimeMillis(),
-                bestBid = bestBid,
-                bestAsk = bestAsk,
-                spread = spread,
-                spreadPercent = spreadPercent
-            )
-            if (domOptions.aggregation != AggregationLevel.BaseTick && symbolTickSize != null) {
-                unified.aggregate(domOptions.aggregation, symbolTickSize!!)
-            } else {
-                unified
-            }
-        }
-    
 
-    
+    // Вычисляем отображаемый unified order book с агрегацией
+    // derivedStateOf пересчитывается только когда изменились прочитанные entry
+    val displayUnifiedOrderBook by remember(domOptions.aggregation, symbolTickSize) {
+        derivedStateOf {
+            buildDisplayOrderBook(
+                bids = incrementalBids,
+                asks = incrementalAsks,
+                bestBid = incrementalBestBid,
+                bestAsk = incrementalBestAsk,
+                symbol = domOptions.symbol.symbol,
+                aggregation = domOptions.aggregation,
+                symbolTickSize = symbolTickSize
+            )
+        }
+    }
+
     // BookTicker из инкрементальных данных
     val displayBookTicker = BookTicker(
         symbol = domOptions.symbol.symbol,
@@ -167,6 +113,73 @@ fun DomWindow() {
                 .fillMaxWidth()
                 .height(180.dp)
         )
+    }
+}
+
+/**
+ * Строит OrderBook из SnapshotStateMap и BookTicker данных.
+ * Вынесено в отдельную функцию для читаемости и тестируемости.
+ */
+private fun buildDisplayOrderBook(
+    bids: Map<Double, Double>,
+    asks: Map<Double, Double>,
+    bestBid: Double?,
+    bestAsk: Double?,
+    symbol: String,
+    aggregation: AggregationLevel,
+    symbolTickSize: Double?
+): OrderBook {
+    val priceMap = mutableMapOf<String, OrderBookLevel>()
+
+    // Добавляем bids, фильтруя по bestBid
+    bids.forEach { (price, quantity) ->
+        if (bestBid != null && price > bestBid) return@forEach
+        priceMap[price.toString()] = OrderBookLevel(
+            price = price.toString(),
+            quantity = quantity.toString(),
+            bidQty = quantity.toString(),
+            askQty = ""
+        )
+    }
+
+    // Добавляем asks, фильтруя по bestAsk
+    asks.forEach { (price, quantity) ->
+        if (bestAsk != null && price < bestAsk) return@forEach
+        val existing = priceMap[price.toString()]
+        if (existing != null) {
+            priceMap[price.toString()] = existing.copy(askQty = quantity.toString())
+        } else {
+            priceMap[price.toString()] = OrderBookLevel(
+                price = price.toString(),
+                quantity = quantity.toString(),
+                bidQty = "",
+                askQty = quantity.toString()
+            )
+        }
+    }
+
+    // Сортируем по цене в порядке убывания
+    val sortedLevels = priceMap.values.sortedByDescending {
+        it.price.toDoubleOrNull() ?: 0.0
+    }
+
+    val spread = if (bestBid != null && bestAsk != null) bestAsk - bestBid else null
+    val spreadPercent = if (bestBid != null && spread != null) (spread / bestBid) * 100 else null
+
+    val unified = OrderBook(
+        symbol = symbol,
+        levels = sortedLevels,
+        timestamp = System.currentTimeMillis(),
+        bestBid = bestBid,
+        bestAsk = bestAsk,
+        spread = spread,
+        spreadPercent = spreadPercent
+    )
+
+    return if (aggregation != AggregationLevel.BaseTick && symbolTickSize != null) {
+        unified.aggregate(aggregation, symbolTickSize)
+    } else {
+        unified
     }
 }
 

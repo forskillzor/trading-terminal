@@ -62,6 +62,11 @@ sealed class DomEvent {
      * Некорректные данные логируются и пропускаются.
      */
     companion object {
+        /**
+         * Преобразует DepthUpdate в список DomEvent.
+         * Каждое изменение цены в DepthUpdate преобразуется в отдельное событие.
+         * Некорректные данные логируются и пропускаются.
+         */
         fun fromDepthUpdate(update: DepthUpdate, symbol: String): List<DomEvent> {
             val events = mutableListOf<DomEvent>()
 
@@ -92,6 +97,40 @@ sealed class DomEvent {
             }
 
             return events
+        }
+
+        /**
+         * Эмитит события depth update через callback без создания промежуточного списка.
+         * Альтернатива [fromDepthUpdate] для случаев, где важна производительность.
+         */
+        inline fun emitDepthUpdates(
+            update: DepthUpdate,
+            symbol: String,
+            emit: (DomEvent) -> Unit
+        ) {
+            update.bids.forEach { (priceStr, qtyStr) ->
+                val price = priceStr.toDoubleOrNull()
+                val quantity = qtyStr.toDoubleOrNull()
+
+                if (price == null || quantity == null) {
+                    println("⚠️ DomEvent: Failed to parse bid data: price='$priceStr', quantity='$qtyStr' for symbol $symbol")
+                    return@forEach
+                }
+
+                emit(UpdateBid(price, quantity))
+            }
+
+            update.asks.forEach { (priceStr, qtyStr) ->
+                val price = priceStr.toDoubleOrNull()
+                val quantity = qtyStr.toDoubleOrNull()
+
+                if (price == null || quantity == null) {
+                    println("⚠️ DomEvent: Failed to parse ask data: price='$priceStr', quantity='$qtyStr' for symbol $symbol")
+                    return@forEach
+                }
+
+                emit(UpdateAsk(price, quantity))
+            }
         }
 
         fun fromBookTicker(bookTicker: BookTicker, symbol: String): DomEvent {

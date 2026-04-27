@@ -6,6 +6,9 @@ import com.aandios.nous.feature.dom.domain.model.AggregationLevel
 /**
  * Сервис агрегации уровней стакана заявок (DOM) по заданному тику.
  * Объединяет заявки, попадающие в один агрегированный уровень, суммируя их объёмы.
+ *
+ * Оптимизация: single-pass аккумуляция в LinkedHashMap вместо groupBy + map.
+ * Устраняет промежуточные аллокации List для каждой группы.
  */
 object DomAggregator {
 
@@ -27,42 +30,26 @@ object DomAggregator {
             return levels
         }
 
-        // Группируем по ключу агрегации (цена, округлённая вниз до эффективного тика)
-        val grouped = levels.groupBy { level ->
-            aggregationLevel.aggregationKey(level.price, baseTickSize)
+        // Single-pass аккумуляция: LinkedHashMap сохраняет порядок вставки
+        // Вместо groupBy { .. } + map { .. } — один проход, без промежуточных списков
+        val aggregated = linkedMapOf<String, AggregatedBucket>()
+        for (level in levels) {
+            val key = aggregationLevel.aggregationKey(level.price, baseTickSize)
+            val bucket = aggregated.getOrPut(key) { AggregatedBucket() }
+            bucket.totalQty += level.quantity.toDoubleOrNull() ?: 0.0
+            bucket.totalBidQty += level.bidQty.takeIf { it.isNotBlank() }?.toDoubleOrNull() ?: 0.0
+            bucket.totalAskQty += level.askQty.takeIf { it.isNotBlank() }?.toDoubleOrNull() ?: 0.0
         }
 
-        // Для каждой группы создаём агрегированный уровень
-        return grouped.map { (aggregatedPrice, group) ->
-            // Суммируем quantity
-            val totalQuantity = group.sumOf { level ->
-                level.quantity.toDoubleOrNull() ?: 0.0
-            }
-
-            // Суммируем bidQty и askQty, если они присутствуют (для унифицированного стакана)
-            val totalBidQty = group.sumOf { level ->
-                level.bidQty.takeIf { it.isNotBlank() }?.toDoubleOrNull() ?: 0.0
-            }
-            val totalAskQty = group.sumOf { level ->
-                level.askQty.takeIf { it.isNotBlank() }?.toDoubleOrNull() ?: 0.0
-            }
-
-            // Берём первый уровень как образец для остальных полей (price используем агрегированную)
-            val sample = group.first()
+        return aggregated.map { (aggregatedPrice, bucket) ->
             OrderBookLevel(
                 price = aggregatedPrice,
-                quantity = totalQuantity.toString(),
-                total = "", // total будет пересчитан позже в calculateTotals
-                bidQty = if (totalBidQty > 0.0) totalBidQty.toString() else "",
-                askQty = if (totalAskQty > 0.0) totalAskQty.toString() else ""
+                quantity = bucket.totalQty.toString(),
+                total = "",
+                bidQty = if (bucket.totalBidQty > 0.0) bucket.totalBidQty.toString() else "",
+                askQty = if (bucket.totalAskQty > 0.0) bucket.totalAskQty.toString() else ""
             )
-        }
-        // Сохраняем исходный порядок: для этого сортируем по цене как в исходном списке.
-        // Поскольку ключ агрегации может изменить порядок, нужно отсортировать по агрегированной цене
-        // в том же направлении, что и исходный список.
-        .sortedBy { it.price.toDoubleOrNull() ?: 0.0 }
-        // Направление сортировки определяется вызывающим кодом (bids descending, asks ascending).
-        // Здесь мы просто возвращаем список, который потом будет отсортирован соответствующим образом.
+        }.sortedBy { it.price.toDoubleOrNull() ?: 0.0 }
     }
 
     /**
@@ -103,28 +90,36 @@ object DomAggregator {
     ): List<OrderBookLevel> {
         if (unifiedLevels.isEmpty() || baseTickSize <= 0.0) return emptyList()
 
-        // Группируем по ключу агрегации
-        val grouped = unifiedLevels.groupBy { level ->
-            aggregationLevel.aggregationKey(level.price, baseTickSize)
+        // Single-pass аккумуляция вместо groupBy
+        val aggregated = linkedMapOf<String, AggregatedUnifiedBucket>()
+        for (level in unifiedLevels) {
+            val key = aggregationLevel.aggregationKey(level.price, baseTickSize)
+            val bucket = aggregated.getOrPut(key) { AggregatedUnifiedBucket() }
+            bucket.totalBidQty += level.bidQty.takeIf { it.isNotBlank() }?.toDoubleOrNull() ?: 0.0
+            bucket.totalAskQty += level.askQty.takeIf { it.isNotBlank() }?.toDoubleOrNull() ?: 0.0
         }
 
-        return grouped.map { (aggregatedPrice, group) ->
-            // Суммируем bidQty и askQty
-            val totalBidQty = group.sumOf { level ->
-                level.bidQty.takeIf { it.isNotBlank() }?.toDoubleOrNull() ?: 0.0
-            }
-            val totalAskQty = group.sumOf { level ->
-                level.askQty.takeIf { it.isNotBlank() }?.toDoubleOrNull() ?: 0.0
-            }
-
-            val sample = group.first()
+        return aggregated.map { (aggregatedPrice, bucket) ->
             OrderBookLevel(
                 price = aggregatedPrice,
-                quantity = "", // quantity не используется в унифицированном стакане
+                quantity = "",
                 total = "",
-                bidQty = totalBidQty.toString(),
-                askQty = totalAskQty.toString()
+                bidQty = if (bucket.totalBidQty > 0.0) bucket.totalBidQty.toString() else "",
+                askQty = if (bucket.totalAskQty > 0.0) bucket.totalAskQty.toString() else ""
             )
         }.sortedByDescending { it.price.toDoubleOrNull() ?: 0.0 }
+    }
+
+    /** Внутренний класс для накопления сумм в один проход */
+    private class AggregatedBucket {
+        var totalQty: Double = 0.0
+        var totalBidQty: Double = 0.0
+        var totalAskQty: Double = 0.0
+    }
+
+    /** Внутренний класс для накопления сумм unified levels в один проход */
+    private class AggregatedUnifiedBucket {
+        var totalBidQty: Double = 0.0
+        var totalAskQty: Double = 0.0
     }
 }

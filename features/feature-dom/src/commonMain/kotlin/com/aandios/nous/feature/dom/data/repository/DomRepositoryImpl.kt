@@ -79,6 +79,8 @@ class DomRepositoryImpl(
 
                 // Переключаем depth на прямую валидацию (без буфера)
                 depthJob.cancel()
+                var reinitRequested = false
+
                 val depthDirectJob = launch {
                     domAdapter.subscribeToDepthUpdates(symbol, depth)
                         .catch { e -> println("⚠️ Depth updates error: ${e.message}") }
@@ -86,23 +88,25 @@ class DomRepositoryImpl(
                             if (!state.applyUpdateWithValidation(depthUpdate)) {
                                 println("⚠️ Binance order book sync failed for $symbol, re-initializing")
                                 trySend(DomEvent.Reset)
-                                throw ReinitializationException("Order book sync failed for $symbol")
+                                reinitRequested = true
+                                return@collect
                             }
 
-                            DomEvent.fromDepthUpdate(depthUpdate, symbol).forEach { event ->
+                            // Без промежуточного List — callback напрямую
+                            DomEvent.emitDepthUpdates(depthUpdate, symbol) { event ->
                                 trySend(event)
                             }
                         }
                 }
 
                 // Ждём завершения любого из потоков
-                try {
-                    bookTickerJob.join()
-                    depthDirectJob.join()
-                } catch (e: ReinitializationException) {
+                bookTickerJob.join()
+                depthDirectJob.join()
+
+                if (reinitRequested) {
                     bookTickerJob.cancel()
                     depthDirectJob.cancel()
-                    throw e
+                    throw ReinitializationException("Order book sync failed for $symbol")
                 }
 
                 reconnectAttempts = 0

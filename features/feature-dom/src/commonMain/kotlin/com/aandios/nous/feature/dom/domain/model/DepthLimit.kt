@@ -33,7 +33,7 @@ data class DepthLimit(
         /**
          * Список стандартных значений для выбора в UI.
          */
-        val standardValues = listOf(10, 20, 50, 100, 500, 1000)
+        val standardValues = listOf(10, 20, 50, 100, 200, 500, 1000)
     }
 
     /**

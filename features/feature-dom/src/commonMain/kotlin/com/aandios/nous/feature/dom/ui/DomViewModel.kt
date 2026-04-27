@@ -1,5 +1,6 @@
 package com.aandios.nous.feature.dom.ui
 
+import androidx.compose.runtime.mutableStateMapOf
 import com.aandios.nous.api.market.commands.*
 import com.aandios.nous.core.domain.repository.DomRepository
 import com.aandios.nous.core.domain.repository.SymbolInfoRepository
@@ -41,30 +42,24 @@ class DomViewModel(
     private val _symbolTickSize = MutableStateFlow<Double?>(null)
     val symbolTickSize: StateFlow<Double?> = _symbolTickSize.asStateFlow()
 
-    // Инкрементальные данные DOM
-    private val _domEvents = MutableStateFlow<List<DomEvent>>(emptyList())
-    val domEvents: StateFlow<List<DomEvent>> = _domEvents.asStateFlow()
-    
-    // Константы для управления памятью
-    private companion object {
-        const val MAX_DOM_EVENTS = 50
-    }
-    
-    private val _incrementalBids = MutableStateFlow<Map<Double, Double>>(emptyMap())
-    val incrementalBids: StateFlow<Map<Double, Double>> = _incrementalBids.asStateFlow()
-    
-    private val _incrementalAsks = MutableStateFlow<Map<Double, Double>>(emptyMap())
-    val incrementalAsks: StateFlow<Map<Double, Double>> = _incrementalAsks.asStateFlow()
-    
+    // Инкрементальные данные DOM — SnapshotStateMap для in-place мутации
+    // Compose отслеживает изменения по entry, без O(N) копии
+    private val _incrementalBids = mutableStateMapOf<Double, Double>()
+    val incrementalBids: Map<Double, Double> = _incrementalBids
+
+    private val _incrementalAsks = mutableStateMapOf<Double, Double>()
+    val incrementalAsks: Map<Double, Double> = _incrementalAsks
+
+    // Best prices из BookTicker (отдельный стрим, не в картах)
     private val _incrementalBestBid = MutableStateFlow<Double?>(null)
     val incrementalBestBid: StateFlow<Double?> = _incrementalBestBid.asStateFlow()
-    
+
     private val _incrementalBestAsk = MutableStateFlow<Double?>(null)
     val incrementalBestAsk: StateFlow<Double?> = _incrementalBestAsk.asStateFlow()
-    
+
     private val _incrementalBestBidQuantity = MutableStateFlow<Double?>(null)
     val incrementalBestBidQuantity: StateFlow<Double?> = _incrementalBestBidQuantity.asStateFlow()
-    
+
     private val _incrementalBestAskQuantity = MutableStateFlow<Double?>(null)
     val incrementalBestAskQuantity: StateFlow<Double?> = _incrementalBestAskQuantity.asStateFlow()
 
@@ -75,7 +70,7 @@ class DomViewModel(
             val defaultSymbol = _domOptions.value.symbol.symbol
             fetchSymbolTickSize(defaultSymbol)
         }
-        
+
         // Запускаем начальную подписку
         restartSubscription(_domOptions.value)
     }
@@ -85,13 +80,13 @@ class DomViewModel(
      */
     fun updateDomOptions(newOptions: DomOptions) {
         val oldOptions = _domOptions.value
-        
+
         if (oldOptions != newOptions) {
             println("📊 VM: DomOptions updated")
             _domOptions.value = newOptions
-            
+
             // Проверяем, изменились ли параметры, влияющие на подписку
-            val subscriptionChanged = 
+            val subscriptionChanged =
                 oldOptions.provider != newOptions.provider ||
                 oldOptions.symbol != newOptions.symbol ||
                 oldOptions.depth != newOptions.depth
@@ -113,19 +108,19 @@ class DomViewModel(
             subscribeToIncrementalDom(options)
         }
     }
-    
+
     /**
      * Подписывается на инкрементальные события DOM и обновляет соответствующие StateFlow.
      */
     private suspend fun subscribeToIncrementalDom(options: DomOptions) {
-        // Сбрасываем инкрементальные данные
-        _incrementalBids.value = emptyMap()
-        _incrementalAsks.value = emptyMap()
+        // Сбрасываем инкрементальные данные — in-place мутация, без аллокаций
+        _incrementalBids.clear()
+        _incrementalAsks.clear()
         _incrementalBestBid.value = null
         _incrementalBestAsk.value = null
         _incrementalBestBidQuantity.value = null
         _incrementalBestAskQuantity.value = null
-        
+
         domRepository.subscribeToDomEvents(
             symbol = options.symbol.symbol,
             depth = options.depth.value
@@ -136,91 +131,75 @@ class DomViewModel(
             processDomEvent(event)
         }
     }
-    
+
     /**
-     * Обрабатывает событие DomEvent и обновляет соответствующие StateFlow.
+     * Обрабатывает событие DomEvent и обновляет соответствующие коллекции.
+     * SnapshotStateMap позволяет мутировать in-place без копирования всей карты.
      */
     private fun processDomEvent(event: DomEvent) {
         when (event) {
             is DomEvent.Snapshot -> {
-                // Очищаем текущие данные и загружаем из снапшота
-                val bids = mutableMapOf<Double, Double>()
-                val asks = mutableMapOf<Double, Double>()
-                
+                // Очищаем и загружаем из снапшота — in-place
+                _incrementalBids.clear()
+                _incrementalAsks.clear()
+
                 event.snapshot.bids.forEach { (priceStr, qtyStr) ->
                     val price = priceStr.toDoubleOrNull()
                     val quantity = qtyStr.toDoubleOrNull()
-                    
+
                     if (price == null || quantity == null) {
                         println("⚠️ DomViewModel: Failed to parse snapshot bid data: price='$priceStr', quantity='$qtyStr'")
                         return@forEach
                     }
-                    
-                    if (quantity > 0.0) bids[price] = quantity
+
+                    if (quantity > 0.0) _incrementalBids[price] = quantity
                 }
-                
+
                 event.snapshot.asks.forEach { (priceStr, qtyStr) ->
                     val price = priceStr.toDoubleOrNull()
                     val quantity = qtyStr.toDoubleOrNull()
-                    
+
                     if (price == null || quantity == null) {
                         println("⚠️ DomViewModel: Failed to parse snapshot ask data: price='$priceStr', quantity='$qtyStr'")
                         return@forEach
                     }
-                    
-                    if (quantity > 0.0) asks[price] = quantity
+
+                    if (quantity > 0.0) _incrementalAsks[price] = quantity
                 }
-                
-                _incrementalBids.value = bids
-                _incrementalAsks.value = asks
             }
-            
+
             is DomEvent.UpdateBid -> {
-                val currentBids = _incrementalBids.value.toMutableMap()
                 if (event.quantity == 0.0) {
-                    currentBids.remove(event.price)
+                    _incrementalBids.remove(event.price)
                 } else {
-                    currentBids[event.price] = event.quantity
+                    _incrementalBids[event.price] = event.quantity
                 }
-                _incrementalBids.value = currentBids
             }
-            
+
             is DomEvent.UpdateAsk -> {
-                val currentAsks = _incrementalAsks.value.toMutableMap()
                 if (event.quantity == 0.0) {
-                    currentAsks.remove(event.price)
+                    _incrementalAsks.remove(event.price)
                 } else {
-                    currentAsks[event.price] = event.quantity
+                    _incrementalAsks[event.price] = event.quantity
                 }
-                _incrementalAsks.value = currentAsks
             }
-            
+
             is DomEvent.BestPrices -> {
                 _incrementalBestBid.value = event.bestBid
                 _incrementalBestAsk.value = event.bestAsk
                 _incrementalBestBidQuantity.value = event.bestBidQuantity
                 _incrementalBestAskQuantity.value = event.bestAskQuantity
             }
-            
+
             DomEvent.Reset -> {
-                _incrementalBids.value = emptyMap()
-                _incrementalAsks.value = emptyMap()
+                _incrementalBids.clear()
+                _incrementalAsks.clear()
                 _incrementalBestBid.value = null
                 _incrementalBestAsk.value = null
                 _incrementalBestBidQuantity.value = null
                 _incrementalBestAskQuantity.value = null
             }
         }
-        
-        // Обновляем список событий для отладки (ограничиваем размер)
-        val currentEvents = _domEvents.value
-        val newEvents = if (currentEvents.size >= MAX_DOM_EVENTS) {
-            // Используем более эффективный подход: создаем новый список с удалением первого элемента
-            currentEvents.drop(1) + event
-        } else {
-            currentEvents + event
-        }
-        _domEvents.value = newEvents
     }
 
     // Единый метод для выполнения команд
@@ -255,7 +234,7 @@ class DomViewModel(
     fun updateOrderQuantity(quantity: String) {
         _orderQuantity.value = quantity
     }
-    
+
     fun handleOrderIntent(intent: OrderIntent) {
         val command = when (intent) {
             is OrderIntent.MarketBuy -> BuyMarketCommand(intent.symbol, intent.quantity) { result ->
@@ -282,10 +261,10 @@ class DomViewModel(
         }
         executeCommand(command)
     }
-    
+
     private fun fetchSymbolTickSize(symbol: String) {
         if (symbolInfoRepository == null) return
-        
+
         viewModelScope.launch {
             try {
                 val symbolInfo = symbolInfoRepository.getSymbolInfo(symbol)

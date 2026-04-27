@@ -135,12 +135,12 @@ class DomViewModelTest {
         fakeDomRepository.domEventsFlow.emit(event)
         advanceUntilIdle()
 
-        val bids = viewModel.incrementalBids.first()
+        val bids = viewModel.incrementalBids
         assertEquals(2, bids.size)
         assertEquals(1.5, bids[50000.0])
         assertEquals(2.0, bids[49900.0])
 
-        val asks = viewModel.incrementalAsks.first()
+        val asks = viewModel.incrementalAsks
         assertEquals(2, asks.size)
         assertEquals(0.8, asks[50100.0])
         assertEquals(1.2, asks[50200.0])
@@ -161,14 +161,13 @@ class DomViewModelTest {
         fakeDomRepository.domEventsFlow.emit(DomEvent.UpdateBid(50000.0, 0.0)) // remove
         advanceUntilIdle()
 
-        val bids = viewModel.incrementalBids.first()
-        assertTrue(bids.isEmpty())
+        assertTrue(viewModel.incrementalBids.isEmpty())
 
         // Add new bid
         fakeDomRepository.domEventsFlow.emit(DomEvent.UpdateBid(49900.0, 3.0))
         advanceUntilIdle()
 
-        val updatedBids = viewModel.incrementalBids.first()
+        val updatedBids = viewModel.incrementalBids
         assertEquals(1, updatedBids.size)
         assertEquals(3.0, updatedBids[49900.0])
     }
@@ -202,8 +201,8 @@ class DomViewModelTest {
         fakeDomRepository.domEventsFlow.emit(DomEvent.Reset)
         advanceUntilIdle()
 
-        assertTrue(viewModel.incrementalBids.first().isEmpty())
-        assertTrue(viewModel.incrementalAsks.first().isEmpty())
+        assertTrue(viewModel.incrementalBids.isEmpty())
+        assertTrue(viewModel.incrementalAsks.isEmpty())
         assertNull(viewModel.incrementalBestBid.first())
         assertNull(viewModel.incrementalBestAsk.first())
         assertNull(viewModel.incrementalBestBidQuantity.first())
