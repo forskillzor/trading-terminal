@@ -129,8 +129,7 @@ fun CandleStickChart(
                 }
             }
             // Зум колесиком мыши — всегда относительно свечи под курсором
-            .pointerInput(candles.size) {
-                val pxPriceScaleWidth = with(density) { priceScaleWidth.toPx() }
+            .pointerInput(Unit) {
                 awaitPointerEventScope {
                     while (true) {
                         val event = awaitPointerEvent()
@@ -139,13 +138,14 @@ fun CandleStickChart(
                         if (event.type == PointerEventType.Scroll && sd != Offset.Zero) {
                             val factor = if (sd.y < 0) 1.15f else 1f / 1.15f
                             val oldZoom = zoomLevel
-                            val newZoom = (oldZoom * factor).coerceIn(0.3f, 5.0f)
+                            val newZoom = (oldZoom * factor).coerceIn(0.3f, 20.0f)
                             val actualFactor = newZoom / oldZoom
-                            val mouseX = change.position.x
 
-                            // Зум относительно свечи под курсором
+                            // Сохраняем свечу под курсором мыши неподвижной
+                            val mouseX = change.position.x
                             val virtualPos = mouseX + scrollOffset
                             val newScrollOffset = virtualPos * actualFactor - mouseX
+
                             zoomLevel = newZoom
                             scrollOffset = newScrollOffset.coerceIn(-maxScrollLeft, Float.MAX_VALUE)
 
@@ -222,11 +222,11 @@ fun CandleStickChart(
 
         // Расчет метрик свечей и скролла
         val chartWidthPx = layout.chartMainArea.width
-        val candleMetrics = remember(candles.size, chartWidthPx, zoomLevel) {
-            calculateCandleMetrics(candles.size, chartWidthPx * zoomLevel)
+        val candleMetrics = remember(zoomLevel) {
+            calculateCandleMetrics(zoomLevel)
         }
         val totalW = candleMetrics.width + candleMetrics.spacing
-        val maxScroll = max(0f, chartWidthPx * zoomLevel - chartWidthPx)
+        val maxScroll = max(0f, candles.size * totalW - chartWidthPx)
 
         // При загрузке новых данных (смена символа/таймфрейма) показываем последние свечи
         // НЕ срабатывает при prepend исторических свечей (historyLoadCount > 0)
@@ -446,7 +446,7 @@ private fun findNearestCandleIndex(
 ): Int {
     if (candles.isEmpty()) return -1
 
-    val candleMetrics = calculateCandleMetrics(candles.size, chartWidth * zoomLevel)
+    val candleMetrics = calculateCandleMetrics(zoomLevel)
     val totalWidthPerCandle = candleMetrics.width + candleMetrics.spacing
 
     // mouseX — координата на видимой области, свечи смещены на -scrollOffset в виртуальном пространстве
@@ -667,7 +667,7 @@ private fun DrawScope.drawChart(
         drawGrid(config, chartArea.width, chartArea.height)
 
         // Потом свечи — только видимые
-        val candleMetrics = calculateCandleMetrics(candles.size, chartArea.width * zoomLevel)
+        val candleMetrics = calculateCandleMetrics(zoomLevel)
         val totalW = candleMetrics.width + candleMetrics.spacing
         for (i in visibleStartIndex until visibleEndIndex) {
             if (i in candles.indices) {
@@ -835,7 +835,7 @@ private fun DrawScope.drawTimeScale(
         )
 
         // Рассчитываем метрики свечей для правильного позиционирования меток времени
-        val candleMetrics = calculateCandleMetrics(candles.size, timeScaleArea.width * zoomLevel)
+        val candleMetrics = calculateCandleMetrics(zoomLevel)
         val totalW = candleMetrics.width + candleMetrics.spacing
 
         // Определяем видимый диапазон индексов по скроллу
@@ -1028,11 +1028,14 @@ private fun DrawScope.drawCurrentPriceLine(
     )
 }
 
+// Базовая ширина свечи в пикселях (при zoomLevel=1)
+private const val BASE_CANDLE_WIDTH = 8f
+
 // Функция для расчета метрик свечей
-private fun calculateCandleMetrics(candleCount: Int, availableWidth: Float): CandleMetrics {
-    val totalWidth = availableWidth / candleCount
-    val width = totalWidth * 0.7f
-    val spacing = totalWidth * 0.3f
+// Ширина свечи НЕ зависит от количества свечей — только от zoomLevel
+private fun calculateCandleMetrics(zoomLevel: Float): CandleMetrics {
+    val width = BASE_CANDLE_WIDTH * zoomLevel
+    val spacing = width * 0.3f / 0.7f  // сохраняем пропорцию 70/30
 
     return CandleMetrics(width, spacing)
 }
@@ -1158,3 +1161,4 @@ private fun generatePriceLevels(min: Float, max: Float, count: Int): List<Float>
 }
 
 // Функция форматирования цены
+
