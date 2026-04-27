@@ -2,6 +2,8 @@ package com.aandios.nous.feature.chart.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -95,25 +97,23 @@ fun CandleStickChart(
             // Обработка жестов: pan (crosshair off) или crosshair (crosshair on)
             .pointerInput(crosshairEnabled) {
                 if (crosshairEnabled) {
-                    detectTapGestures(
-                        onTap = {
-                            isCrosshairVisible = false
-                            mousePosition = null
-                        }
-                    )
-                    detectDragGestures(
-                        onDragStart = { offset ->
-                            isCrosshairVisible = true
-                            mousePosition = offset
-                        },
-                        onDrag = { change, _ ->
-                            isCrosshairVisible = true
-                            mousePosition = change.position
-                        },
-                        onDragEnd = {
-                            // Не скрываем после перетаскивания
-                        }
-                    )
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        isCrosshairVisible = true
+                        mousePosition = down.position
+                        do {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull() ?: break
+                            if (change.pressed) {
+                                isCrosshairVisible = true
+                                mousePosition = change.position
+                                change.consume()
+                            } else {
+                                change.consume()
+                                break
+                            }
+                        } while (true)
+                    }
                 } else {
                     detectDragGestures(
                         onDrag = { change, _ ->
