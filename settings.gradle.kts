@@ -19,6 +19,7 @@ dependencyResolutionManagement {
 include(":composeApp")
 include(":core:core-dependencies")
 include(":features:feature-dom")
+include(":features:feature-chart")
 include("public-api:api-market")
 include("public-api:api-trading")
 include("public-api:api-ui")
