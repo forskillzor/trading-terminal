@@ -1,126 +1,67 @@
-# План: Исправление багов после загрузки истории
+# План: Доработка фич после истории
 
-## Баг 1: LaunchedEffect(timestamp) перетирает scrollOffset
+## Контекст
 
-**Файл:** `CandleStickChartWidget.kt:231-233`
+Файл уже содержит исправленный `calculateCandleMetrics(zoomLevel)` с `BASE_CANDLE_WIDTH = 8f`:
+- `calculateCandleMetrics(zoomLevel)` — ширина свечи = `8px * zoomLevel`
+- `candleMetrics = remember(zoomLevel)` — не зависит от candleCount
+- `maxScroll = max(0f, candles.size * totalW - chartWidthPx)` — корректный (зависит от candleCount через totalW)
 
-**Проблема:**
-```kotlin
-LaunchedEffect(candles.firstOrNull()?.timestamp ?: 0L) {
-    scrollOffset = maxScroll
-}
-```
+## Задача A: Zoom limits
 
-После prepend исторических свечей `candles.firstOrNull()?.timestamp` меняется (первая свеча теперь старше). LaunchedEffect срабатывает снова и устанавливает `scrollOffset = maxScroll` — крайнее правое положение. Это **перетирает** коррекцию из `LaunchedEffect(historyLoadCount, candles.size)`.
+**Сейчас:** `coerceIn(0.3f, 20.0f)` — слишком большой диапазон (20x зум).
 
-**Последовательность:**
-1. Пользователь тянет влево → scrollOffset < 0 → onNeedMoreHistory()
-2. loadMoreHistory() добавляет 200 свечей → candles = 400
-3. LaunchedEffect(historyLoadCount=200, candles.size=400) → scrollOffset += 200 * totalW ✅
-4. LaunchedEffect(timestamp=newOldest) → scrollOffset = maxScroll ❌ — прыжок направо!
+**Нужно:** максимальное увеличение в 4 раза, минимальное уменьшение в 4 раза.
 
-**Фикс:** Добавить guard `if (historyLoadCount == 0)`, чтобы LaunchedEffect срабатывал только при смене символа/таймфрейма, а не после prepend истории.
-
----
-
-## Баг 2: Zoom без Ctrl — прыгает
-
-**Файл:** `CandleStickChartWidget.kt:132-155`
-
-**Текущее поведение:** Zoom всегда относительно свечи под курсором.
-
-**Требование:**
-- **Ctrl + scroll** — zoom относительно свечи под курсором (keep cursor stationary)
-- **scroll (без Ctrl)** — zoom относительно последней (самой новой, правой) свечи (keep rightmost stationary)
-
-**Формулы:**
-
-Для удержания правой свечи неподвижной:
-```
-rightmostVirtual = (candles.size - 1) * totalW
-newScrollOffset = rightmostVirtual * (actualFactor - 1) + scrollOffset
-```
-
-Для удержания свечи под курсором (как сейчас):
-```
-virtualPos = mouseX + scrollOffset
-newScrollOffset = virtualPos * actualFactor - mouseX
-```
-
-**Детекция Ctrl:** `event.keyboardModifiers.isCtrlPressed` на `PointerEvent`
-
----
-
-## Изменения в коде
-
-### 1. CandleStickChartWidget.kt:231-233 — guard на LaunchedEffect
+→ Изменить 141 строку в `CandleStickChartWidget.kt`:
 
 ```kotlin
-// Было:
-LaunchedEffect(candles.firstOrNull()?.timestamp ?: 0L) {
-    scrollOffset = maxScroll
-}
+// Было (строка 141):
+val newZoom = (oldZoom * factor).coerceIn(0.3f, 20.0f)
 
 // Стало:
-LaunchedEffect(candles.firstOrNull()?.timestamp ?: 0L) {
-    if (historyLoadCount == 0) {
-        scrollOffset = maxScroll
+val newZoom = (oldZoom * factor).coerceIn(0.25f, 4.0f)
+```
+
+## Задача B: Dynamic price range по видимым свечам
+
+**Сейчас:** `priceRange` считается по ВСЕМ свечам (строка 90, до BoxWithConstraints).
+
+**Нужно:** при зуме/панарамировании `priceRange` считается только по ВИДИМЫМ свечам (startIdx..endIdx), чтобы график всегда занимал максимум по высоте.
+
+### Изменения
+
+**1. Удалить строки 89–92** (старый priceRange):
+```kotlin
+    // Расчет минимальной и максимальной цены
+    val priceRange = remember(candles, currentPrice) {
+        calculatePriceRangeWithCurrentPrice(candles, currentPrice)
     }
-}
 ```
 
-### 2. CandleStickChartWidget.kt:132-155 — zoom с поддержкой Ctrl
-
+**2. Вставить новый priceRange ПОСЛЕ endIdx** (после строки 244):
 ```kotlin
-.pointerInput(Unit) {
-    awaitPointerEventScope {
-        while (true) {
-            val event = awaitPointerEvent()
-            val change = event.changes.firstOrNull() ?: continue
-            val sd = change.scrollDelta
-            if (event.type == PointerEventType.Scroll && sd != Offset.Zero) {
-                val factor = if (sd.y < 0) 1.15f else 1f / 1.15f
-                val oldZoom = zoomLevel
-                val newZoom = (oldZoom * factor).coerceIn(0.3f, 5.0f)
-                val actualFactor = newZoom / oldZoom
-
-                val mouseX = change.position.x
-                val ctrlHeld = event.keyboardModifiers.isCtrlPressed
-
-                val newScrollOffset = if (ctrlHeld) {
-                    // Ctrl+scroll: keep candle under cursor stationary
-                    val virtualPos = mouseX + scrollOffset
-                    virtualPos * actualFactor - mouseX
-                } else {
-                    // Default scroll: keep rightmost (newest) candle stationary
-                    val rightmostVirtual = (candles.size - 1) * totalW
-                    rightmostVirtual * (actualFactor - 1) + scrollOffset
-                }
-
-                zoomLevel = newZoom
-                scrollOffset = newScrollOffset.coerceIn(-maxScrollLeft, Float.MAX_VALUE)
-                change.consume()
-            }
-        }
+    // Price range ТОЛЬКО по видимым свечам — автоподстройка Y при зуме/панарамировании
+    val visibleCandles = remember(startIdx, endIdx) {
+        candles.subList(startIdx, endIdx.coerceAtMost(candles.size))
     }
-}
+    val priceRange = remember(visibleCandles, currentPrice) {
+        calculatePriceRangeWithCurrentPrice(visibleCandles, currentPrice)
+    }
 ```
 
-**Важно:** `candles` и `totalW` доступны внутри `.pointerInput(Unit)`, но могут устареть. `totalW` — это константа на основе candleWidth + candleGap. `candles.size` может измениться. Для корректного захвата используем `remember(candles.size, candleWidth, candleGap)` или просто захватываем свежие значения через `currentComposition`.
+**3. Импорт** — `subList` уже есть из `kotlin.collections`, ничего добавлять не нужно.
 
-Лучше использовать:
-```kotlin
-val candlesSize = candles.size
-```
-в композиции, а внутри pointerInput захватить эту переменную. Или использовать `remember` для totalW и candles.size, чтобы pointerInput имел свежие значения.
+### Как это работает
 
-На практике `candles.size` как `remember` переменная снаружи, а внутри pointerInput используется `candlesSize` или `totalW`.
+- `startIdx`/`endIdx` зависят от `scrollOffset`, `zoomLevel`, `chartWidthPx`
+- `visibleCandles` пересчитывается при изменении индексов (зум/панарамирование)
+- `priceRange` пересчитывается только для этих свечей → Y-ось масштабируется под видимый диапазон
+- При загрузке новых данных `candles` меняется, но `subList` по тем же индексам возвращает новые свечи
 
-Фактически, проще всего вынести candles.size в локальную переменную перед pointerInput.
+## Итоговый порядок применения
 
-### 3. CandleStickChartWidget.kt — добавить импорт `isCtrlPressed`
-
-```kotlin
-import androidx.compose.ui.input.pointer.PointerEventType
-```
-Уже есть. Нужен только `keyboardModifiers` — он доступен на `PointerEvent` без дополнительного импорта.
+1. Сначала примени задачу A (строка 141: `0.25f..4.0f`)
+2. Потом задачу B (удалить priceRange в начале, добавить после endIdx)
+3. Собрать: `./gradlew :features:feature-chart:compileKotlinJvm`
+4. Запустить: `./gradlew :features:feature-chart:run`

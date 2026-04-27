@@ -86,11 +86,6 @@ fun CandleStickChart(
     // Максимальное пустое место слева (в пикселях) — триггер для загрузки истории
     val maxScrollLeft = 300f
 
-    // Расчет минимальной и максимальной цены
-    val priceRange = remember(candles, currentPrice) {
-        calculatePriceRangeWithCurrentPrice(candles, currentPrice)
-    }
-
     // TextMeasurer для измерения текста
     val textMeasurer = rememberTextMeasurer()
     val density = LocalDensity.current
@@ -138,7 +133,7 @@ fun CandleStickChart(
                         if (event.type == PointerEventType.Scroll && sd != Offset.Zero) {
                             val factor = if (sd.y < 0) 1.15f else 1f / 1.15f
                             val oldZoom = zoomLevel
-                            val newZoom = (oldZoom * factor).coerceIn(0.3f, 20.0f)
+                            val newZoom = (oldZoom * factor).coerceIn(0.25f, 4.0f)
                             val actualFactor = newZoom / oldZoom
 
                             // Сохраняем свечу под курсором мыши неподвижной
@@ -242,6 +237,14 @@ fun CandleStickChart(
         // Вычисление видимого диапазона свечей
         val startIdx = (clampedOffset / totalW).toInt().coerceIn(0, max(0, candles.size - 1))
         val endIdx = ((clampedOffset + chartWidthPx) / totalW + 1).toInt().coerceIn(startIdx + 1, candles.size)
+
+        // PriceRange только по видимым свечам (Y-масштаб адаптируется при зум/скролле)
+        val visibleCandles = remember(startIdx, endIdx) {
+            candles.subList(startIdx, endIdx.coerceAtMost(candles.size))
+        }
+        val priceRange = remember(visibleCandles, currentPrice) {
+            calculatePriceRangeWithCurrentPrice(visibleCandles, currentPrice)
+        }
 
         // Lazy loading historical candles: когда пользователь скроллит левее первой свечи
         // (clampedOffset < 0) — появляется пустое место, вызываем загрузку истории
@@ -1159,6 +1162,3 @@ private fun generatePriceLevels(min: Float, max: Float, count: Int): List<Float>
         max - (step * i)
     }
 }
-
-// Функция форматирования цены
-
