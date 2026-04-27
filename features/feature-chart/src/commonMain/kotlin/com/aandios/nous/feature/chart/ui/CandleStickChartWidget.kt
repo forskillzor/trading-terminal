@@ -5,11 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
@@ -19,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
@@ -36,6 +33,7 @@ import com.aandios.nous.api.market.model.Candle
 import com.aandios.nous.feature.chart.utils.formatPrice
 import com.aandios.nous.feature.chart.utils.formatTime
 import kotlin.math.abs
+import kotlin.math.max
 
 
 data class PriceRange(
@@ -71,13 +69,15 @@ fun CandleStickChart(
     config: ChartConfig = DefaultChartConfig,
     showPriceScale: Boolean = true,
     priceScaleWidth: Dp = 60.dp,
-    showCrosshair: Boolean = true,
+    crosshairEnabled: Boolean = false,
+    onCrosshairEnabledChange: (Boolean) -> Unit = {},
 ) {
     if (candles.isEmpty()) return
 
     var mousePosition by remember { mutableStateOf<Offset?>(null) }
-
     var isCrosshairVisible by remember { mutableStateOf(false) }
+    var scrollOffset by remember { mutableFloatStateOf(0f) }
+    var zoomLevel by remember { mutableFloatStateOf(1f) }
 
     // Расчет минимальной и максимальной цены
     val priceRange = remember(candles, currentPrice) {
@@ -92,32 +92,51 @@ fun CandleStickChart(
         modifier = modifier
             .fillMaxSize()
             .background(config.backgroundColor)
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onTap = {
-                        isCrosshairVisible = false
-                        mousePosition = null
-                    }
-                )
-            }
-            .pointerInput(Unit) {
-                detectDragGestures(
-                    onDragStart = { offset ->
-                        if (showCrosshair) {
+            // Обработка жестов: pan (crosshair off) или crosshair (crosshair on)
+            .pointerInput(crosshairEnabled) {
+                if (crosshairEnabled) {
+                    detectTapGestures(
+                        onTap = {
+                            isCrosshairVisible = false
+                            mousePosition = null
+                        }
+                    )
+                    detectDragGestures(
+                        onDragStart = { offset ->
                             isCrosshairVisible = true
                             mousePosition = offset
-                        }
-                    },
-                    onDrag = { change, _ ->
-                        if (showCrosshair) {
+                        },
+                        onDrag = { change, _ ->
                             isCrosshairVisible = true
                             mousePosition = change.position
+                        },
+                        onDragEnd = {
+                            // Не скрываем после перетаскивания
                         }
-                    },
-                    onDragEnd = {
-                        // Не скрываем после перетаскивания
+                    )
+                } else {
+                    detectDragGestures(
+                        onDrag = { change, _ ->
+                            val deltaX = change.position.x - change.previousPosition.x
+                            scrollOffset = (scrollOffset - deltaX).coerceIn(0f, Float.MAX_VALUE)
+                        },
+                    )
+                }
+            }
+            // Зум колесиком мыши
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        val change = event.changes.firstOrNull() ?: continue
+                        val sd = change.scrollDelta
+                        if (event.type == PointerEventType.Scroll && sd != Offset.Zero) {
+                            val factor = if (sd.y < 0) 1.15f else 1f / 1.15f
+                            zoomLevel = (zoomLevel * factor).coerceIn(0.3f, 5.0f)
+                            change.consume()
+                        }
                     }
-                )
+                }
             }
 
     ) {
@@ -127,7 +146,7 @@ fun CandleStickChart(
 
         val density = LocalDensity.current
 
-        // Рассчитываем layout графика - теперь без constraints в remember
+        // Рассчитываем layout графика
         val layout = remember(priceScaleWidth, canvasWidth, canvasHeight) {
             val widthPx = with(density){ canvasWidth.toPx()}
             val heightPx = with(density){ canvasHeight.toPx()}
@@ -184,6 +203,27 @@ fun CandleStickChart(
                 timeScaleArea = timeScaleArea
             )
         }
+
+        // Расчет метрик свечей и скролла
+        val chartWidthPx = layout.chartMainArea.width
+        val candleMetrics = remember(candles.size, chartWidthPx, zoomLevel) {
+            calculateCandleMetrics(candles.size, chartWidthPx * zoomLevel)
+        }
+        val totalW = candleMetrics.width + candleMetrics.spacing
+        val maxScroll = max(0f, chartWidthPx * zoomLevel - chartWidthPx)
+
+        // При загрузке новых данных (смена символа/таймфрейма) показываем последние свечи
+        LaunchedEffect(candles.firstOrNull()?.timestamp ?: 0L) {
+            scrollOffset = maxScroll
+        }
+
+        // Клиппинг scrollOffset
+        val clampedOffset = scrollOffset.coerceIn(0f, maxScroll)
+
+        // Вычисление видимого диапазона свечей
+        val startIdx = (clampedOffset / totalW).toInt().coerceIn(0, max(0, candles.size - 1))
+        val endIdx = ((clampedOffset + chartWidthPx) / totalW + 1).toInt().coerceIn(startIdx + 1, candles.size)
+
         // Основной Canvas для графика
         Canvas(
             modifier = Modifier
@@ -197,14 +237,20 @@ fun CandleStickChart(
                 config = config,
                 chartArea = layout.chartArea,
                 currentPrice = currentPrice,
-                textMeasurer = textMeasurer
+                textMeasurer = textMeasurer,
+                scrollOffset = clampedOffset,
+                zoomLevel = zoomLevel,
+                visibleStartIndex = startIdx,
+                visibleEndIndex = endIdx,
             )
 
             drawTimeScale(
                 candles = candles,
                 config = config,
                 timeScaleArea = layout.timeScaleArea,
-                textMeasurer = textMeasurer
+                textMeasurer = textMeasurer,
+                scrollOffset = clampedOffset,
+                zoomLevel = zoomLevel,
             )
 
             // Рисуем шкалу цен
@@ -225,15 +271,17 @@ fun CandleStickChart(
                     strokeWidth = 1f
                 )
             }
-            // Рисуем перекрестие если оно видимо и есть позиция курсора
-            if (showCrosshair && isCrosshairVisible && mousePosition != null) {
+            // Рисуем перекрестие если crosshair включен и есть позиция курсора
+            if (crosshairEnabled && isCrosshairVisible && mousePosition != null) {
                 drawCrosshair(
                     mousePosition = mousePosition!!,
                     candles = candles,
                     priceRange = priceRange,
                     config = config,
                     chartLayout = layout,
-                    textMeasurer = textMeasurer
+                    textMeasurer = textMeasurer,
+                    scrollOffset = clampedOffset,
+                    zoomLevel = zoomLevel,
                 )
             }
         }
@@ -247,7 +295,9 @@ private fun DrawScope.drawCrosshair(
     priceRange: PriceRange,
     config: ChartConfig,
     chartLayout: ChartLayout,
-    textMeasurer: TextMeasurer
+    textMeasurer: TextMeasurer,
+    scrollOffset: Float = 0f,
+    zoomLevel: Float = 1f,
 ) {
     // Проверяем находится ли курсор в области графика (без шкалы времени)
     if (mousePosition.x < chartLayout.chartMainArea.left ||
@@ -276,7 +326,9 @@ private fun DrawScope.drawCrosshair(
     val candleIndex = findNearestCandleIndex(
         mouseX = mousePosition.x,
         candles = candles,
-        chartWidth = chartLayout.chartMainArea.width
+        chartWidth = chartLayout.chartMainArea.width,
+        scrollOffset = scrollOffset,
+        zoomLevel = zoomLevel,
     )
 
     // 4. Если нашли свечу, показываем информацию о ней
@@ -348,14 +400,18 @@ private fun DrawScope.drawCrosshair(
 private fun findNearestCandleIndex(
     mouseX: Float,
     candles: List<Candle>,
-    chartWidth: Float
+    chartWidth: Float,
+    scrollOffset: Float = 0f,
+    zoomLevel: Float = 1f,
 ): Int {
     if (candles.isEmpty()) return -1
 
-    val candleMetrics = calculateCandleMetrics(candles.size, chartWidth)
+    val candleMetrics = calculateCandleMetrics(candles.size, chartWidth * zoomLevel)
     val totalWidthPerCandle = candleMetrics.width + candleMetrics.spacing
 
-    val index = (mouseX / totalWidthPerCandle).toInt()
+    // mouseX — координата на видимой области, свечи смещены на -scrollOffset в виртуальном пространстве
+    val virtualX = mouseX + scrollOffset
+    val index = (virtualX / totalWidthPerCandle).toInt()
     return index.coerceIn(0, candles.size - 1)
 }
 
@@ -556,7 +612,11 @@ private fun DrawScope.drawChart(
     config: ChartConfig,
     chartArea: Rect,
     currentPrice: Float?,
-    textMeasurer: TextMeasurer
+    textMeasurer: TextMeasurer,
+    scrollOffset: Float = 0f,
+    zoomLevel: Float = 1f,
+    visibleStartIndex: Int = 0,
+    visibleEndIndex: Int = 0,
 ) {
     // Сохраняем область рисования для графика
     withTransform({
@@ -566,18 +626,21 @@ private fun DrawScope.drawChart(
         // Сначала сетка
         drawGrid(config, chartArea.width, chartArea.height)
 
-        // Потом свечи
-        val candleMetrics = calculateCandleMetrics(candles.size, chartArea.width)
-        candles.forEachIndexed { index, candle ->
-            val x = index * (candleMetrics.width + candleMetrics.spacing) + candleMetrics.width / 2
-            drawCandle(
-                candle = candle,
-                centerX = x,
-                priceRange = priceRange,
-                metrics = candleMetrics,
-                config = config,
-                chartHeight = chartArea.height
-            )
+        // Потом свечи — только видимые
+        val candleMetrics = calculateCandleMetrics(candles.size, chartArea.width * zoomLevel)
+        val totalW = candleMetrics.width + candleMetrics.spacing
+        for (i in visibleStartIndex until visibleEndIndex) {
+            if (i in candles.indices) {
+                val x = i * totalW - scrollOffset + candleMetrics.width / 2
+                drawCandle(
+                    candle = candles[i],
+                    centerX = x,
+                    priceRange = priceRange,
+                    metrics = candleMetrics,
+                    config = config,
+                    chartHeight = chartArea.height
+                )
+            }
         }
 
         // Линия текущей цены
@@ -706,7 +769,9 @@ private fun DrawScope.drawTimeScale(
     candles: List<Candle>,
     config: ChartConfig,
     timeScaleArea: Rect,
-    textMeasurer: TextMeasurer
+    textMeasurer: TextMeasurer,
+    scrollOffset: Float = 0f,
+    zoomLevel: Float = 1f,
 ) {
     if (candles.isEmpty()) return
 
@@ -730,18 +795,26 @@ private fun DrawScope.drawTimeScale(
         )
 
         // Рассчитываем метрики свечей для правильного позиционирования меток времени
-        val candleMetrics = calculateCandleMetrics(candles.size, timeScaleArea.width)
+        val candleMetrics = calculateCandleMetrics(candles.size, timeScaleArea.width * zoomLevel)
+        val totalW = candleMetrics.width + candleMetrics.spacing
 
-        // Выбираем несколько свечей для отображения времени (чтобы не было слишком много меток)
-        val step = (candles.size / 5).coerceAtLeast(1) // Показываем примерно 5 меток
+        // Определяем видимый диапазон индексов по скроллу
+        val visibleStartIdx = (scrollOffset / totalW).toInt().coerceIn(0, max(0, candles.size - 1))
+        val visibleEndIdx = ((scrollOffset + timeScaleArea.width) / totalW + 1).toInt().coerceIn(0, candles.size)
+        val visibleCount = visibleEndIdx - visibleStartIdx
 
-        candles.forEachIndexed { index, candle ->
-            // Показываем метку времени только для каждого step-ного элемента
-            if (index % step == 0 || index == candles.size - 1) {
-                val x = index * (candleMetrics.width + candleMetrics.spacing) + candleMetrics.width / 2
+        // Выбираем шаг меток — примерно 5–7 на видимую область
+        val step = (visibleCount / 6).coerceAtLeast(1)
+
+        // Показываем метку на первой видимой свече
+        val firstLabelIdx = visibleStartIdx + (step - visibleStartIdx % step) % step
+
+        for (i in firstLabelIdx until visibleEndIdx step step) {
+            if (i in candles.indices) {
+                val x = i * totalW - scrollOffset + candleMetrics.width / 2
 
                 // Форматируем время
-                val timeText = formatTime(candle.timestamp)
+                val timeText = formatTime(candles[i].timestamp)
 
                 // Стиль текста для шкалы времени
                 val textStyle = TextStyle(

@@ -36,6 +36,8 @@ fun ChartToolbar(
     availableSymbols: List<String>,
     onSymbolChange: (String) -> Unit,
     onTimeframeChange: (String) -> Unit,
+    crosshairEnabled: Boolean = false,
+    onCrosshairToggle: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -52,11 +54,40 @@ fun ChartToolbar(
 
         Spacer(Modifier.width(12.dp))
 
+        CrosshairToggleButton(
+            enabled = crosshairEnabled,
+            onToggle = onCrosshairToggle,
+        )
+
+        Spacer(Modifier.width(8.dp))
+
         TimeframeSelector(
             currentTimeframe = currentTimeframe,
             onTimeframeChange = onTimeframeChange,
         )
     }
+}
+
+@Composable
+private fun CrosshairToggleButton(
+    enabled: Boolean,
+    onToggle: () -> Unit,
+) {
+    Text(
+        text = "\u29C9",  // ⧉ — символ перекрестия
+        color = if (enabled) accentColor else inactiveTfColor,
+        fontSize = 14.sp,
+        fontWeight = FontWeight.Bold,
+        fontFamily = FontFamily.Monospace,
+        modifier = Modifier
+            .clickable { onToggle() }
+            .background(
+                if (enabled) accentColor.copy(alpha = 0.25f)
+                else Color.Transparent,
+                RoundedCornerShape(3.dp),
+            )
+            .padding(horizontal = 6.dp, vertical = 3.dp),
+    )
 }
 
 @Composable
@@ -182,7 +213,6 @@ private fun SymbolSelector(
         }
     }
 }
-
 @Composable
 private fun TimeframeSelector(
     currentTimeframe: String,
@@ -214,3 +244,4 @@ private fun TimeframeSelector(
         }
     }
 }
+

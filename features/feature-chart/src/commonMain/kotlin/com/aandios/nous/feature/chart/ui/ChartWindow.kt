@@ -27,6 +27,8 @@ fun ChartWindow() {
     val currentTimeframe by chartViewModel.currentTimeframe.collectAsState()
     val symbols by chartViewModel.symbols.collectAsState()
 
+    var crosshairEnabled by remember { mutableStateOf(false) }
+
     // Загружаем данные при первом рендере
     LaunchedEffect(Unit) {
         chartViewModel.loadChart()
@@ -76,6 +78,8 @@ fun ChartWindow() {
                     CandleStickChart(
                         candles = state.candles,
                         currentPrice = state.currentPrice,
+                        crosshairEnabled = crosshairEnabled,
+                        onCrosshairEnabledChange = { crosshairEnabled = it },
                         modifier = Modifier.fillMaxSize()
                     )
 
