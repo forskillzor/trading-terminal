@@ -2,6 +2,11 @@ package com.aandios.nous.feature.chart.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.type
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -83,6 +88,11 @@ fun CandleStickChart(
     var isCrosshairVisible by remember { mutableStateOf(false) }
     var scrollOffset by remember { mutableFloatStateOf(0f) }
     var zoomLevel by remember { mutableFloatStateOf(1f) }
+    // Ширина области графика в пикселях — обновляется внутри BoxWithConstraints, нужна для зума
+    var chartWidthPx by remember { mutableFloatStateOf(0f) }
+    // Максимальный скролл (полная ширина свечей минус ширина области графика) — ограничивает скролл справа
+    var maxScroll by remember { mutableFloatStateOf(0f) }
+    var isCtrlPressed by remember { mutableStateOf(false) }
     // Максимальное пустое место слева (в пикселях) — триггер для загрузки истории
     val maxScrollLeft = 300f
 
@@ -94,6 +104,14 @@ fun CandleStickChart(
         modifier = modifier
             .fillMaxSize()
             .background(config.backgroundColor)
+            .onKeyEvent { event ->
+                if (event.key == Key.CtrlLeft || event.key == Key.CtrlRight) {
+                    isCtrlPressed = event.type == KeyEventType.KeyDown
+                    true
+                } else {
+                    false
+                }
+            }
             // Обработка жестов: pan (crosshair off) или crosshair (crosshair on)
             .pointerInput(crosshairEnabled) {
                 if (crosshairEnabled) {
@@ -118,12 +136,12 @@ fun CandleStickChart(
                     detectDragGestures(
                         onDrag = { change, _ ->
                             val deltaX = change.position.x - change.previousPosition.x
-                            scrollOffset = (scrollOffset - deltaX).coerceIn(-maxScrollLeft, Float.MAX_VALUE)
+                            scrollOffset = (scrollOffset - deltaX).coerceIn(-maxScrollLeft, maxScroll)
                         },
                     )
                 }
             }
-            // Зум колесиком мыши — всегда относительно свечи под курсором
+            // Зум: без Ctrl — от правого края, с Ctrl — от свечи под курсором
             .pointerInput(Unit) {
                 awaitPointerEventScope {
                     while (true) {
@@ -136,13 +154,19 @@ fun CandleStickChart(
                             val newZoom = (oldZoom * factor).coerceIn(0.25f, 4.0f)
                             val actualFactor = newZoom / oldZoom
 
-                            // Сохраняем свечу под курсором мыши неподвижной
                             val mouseX = change.position.x
-                            val virtualPos = mouseX + scrollOffset
-                            val newScrollOffset = virtualPos * actualFactor - mouseX
+                            val newScrollOffset = if (isCtrlPressed) {
+                                // Ctrl+zoom: фиксируем свечу под курсором
+                                val virtualPos = mouseX + scrollOffset
+                                virtualPos * actualFactor - mouseX
+                            } else {
+                                // Обычный зум: фиксируем правый край (самую новую свечу)
+                                val rightEdge = scrollOffset + chartWidthPx
+                                rightEdge * actualFactor - chartWidthPx
+                            }
 
                             zoomLevel = newZoom
-                            scrollOffset = newScrollOffset.coerceIn(-maxScrollLeft, Float.MAX_VALUE)
+                            scrollOffset = newScrollOffset
 
                             change.consume()
                         }
@@ -216,12 +240,12 @@ fun CandleStickChart(
         }
 
         // Расчет метрик свечей и скролла
-        val chartWidthPx = layout.chartMainArea.width
+        chartWidthPx = layout.chartMainArea.width
         val candleMetrics = remember(zoomLevel) {
             calculateCandleMetrics(zoomLevel)
         }
         val totalW = candleMetrics.width + candleMetrics.spacing
-        val maxScroll = max(0f, candles.size * totalW - chartWidthPx)
+        maxScroll = max(0f, candles.size * totalW - chartWidthPx)
 
         // При загрузке новых данных (смена символа/таймфрейма) показываем последние свечи
         // НЕ срабатывает при prepend исторических свечей (historyLoadCount > 0)
@@ -263,6 +287,7 @@ fun CandleStickChart(
                 val oldScrollOffset = scrollOffset
                 val added = historyLoadCount * totalW
                 scrollOffset += added
+                scrollOffset = scrollOffset.coerceIn(-maxScrollLeft, maxScroll)
                 println("[DEBUG-WIDGET] Corrected scrollOffset: $oldScrollOffset -> $scrollOffset (added $added, totalW=$totalW, candles.size=${candles.size})")
             }
         }
