@@ -2,6 +2,8 @@ package com.aandios.nous.feature.chart.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -104,6 +106,10 @@ fun CandleStickChart(
         modifier = modifier
             .fillMaxSize()
             .background(config.backgroundColor)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { /* no-op: make composable focusable for onKeyEvent */ }
             .onKeyEvent { event ->
                 if (event.key == Key.CtrlLeft || event.key == Key.CtrlRight) {
                     isCtrlPressed = event.type == KeyEventType.KeyDown
