@@ -70,6 +70,8 @@
 
 ## 1.4. Структура файлов модуля
 
+Модуль организован по принципам **SRP (Single Responsibility Principle)**, **GRASP (Low Coupling / High Cohesion)** и **Clean Architecture**. Вместо одного монолитного файла `CandleStickChartWidget.kt` (1164 строки) код разделён на **13 файлов в 4 пакетах**:
+
 ```
 features/feature-chart/
 ├── build.gradle.kts              # Конфигурация сборки
@@ -78,18 +80,120 @@ features/feature-chart/
         └── kotlin/
             └── com/aandios/nous/feature/chart/
                 ├── di/
-                │   └── FeatureChartModule.kt    # Koin DI модуль
+                │   └── FeatureChartModule.kt       # Koin DI модуль
+                ├── model/                          # Модели данных (SRP: Pure Fabrication)
+                │   ├── PriceRange.kt               # Диапазон цен max/min/visible
+                │   ├── CandleMetrics.kt            # Метрики свечи (width, spacing)
+                │   └── ChartLayout.kt              # Компоновка областей графика
+                ├── rendering/                      # Функции отрисовки Canvas (SRP: Protected Variations)
+                │   ├── CandleRenderer.kt           # Свечи, сетка, линия цены
+                │   ├── ChartPriceScaleRenderer.kt  # Шкала цен и badge
+                │   ├── ChartTimeScaleRenderer.kt   # Шкала времени
+                │   ├── ChartCrosshairRenderer.kt   # Перекрестие и инфо-панель
+                │   └── ChartTextRenderer.kt        # Утилита текста
                 ├── ui/
-                │   ├── CandleStickChartWidget.kt # Главный виджет графика (1164 строки)
-                │   ├── ChartWindow.kt            # Точка входа для изолированного запуска
-                │   ├── ChartViewModel.kt         # ViewModel с бизнес-логикой
-                │   ├── ChartToolbar.kt            # Панель инструментов
-                │   └── ChartConfig.kt            # Конфигурация отрисовки
+                │   ├── chart/
+                │   │   ├── CandleStickChart.kt     # Тонкая обёртка (20 строк, только @Composable)
+                │   │   └── ChartInteraction.kt     # Вся интерактивная логика (~14KB)
+                │   ├── ChartWindow.kt              # Точка входа для изолированного запуска
+                │   ├── ChartViewModel.kt           # ViewModel с бизнес-логикой
+                │   ├── ChartToolbar.kt             # Панель инструментов
+                │   └── ChartConfig.kt              # Конфигурация отрисовки
                 └── utils/
-                    └── Format.kt                 # Форматирование цен и времени
+                    ├── ChartConstants.kt           # Константы (BASE_CANDLE_WIDTH)
+                    ├── ChartCalculator.kt          # Чистые функции расчёта (6 шт.)
+                    └── Format.kt                   # Форматирование цен и времени
 ```
 
----
+**Ключевые изменения:**
+- `model/` — data class'ы без логики (PriceRange, CandleMetrics, ChartLayout)
+- `rendering/` — все `fun DrawScope.*` extension функции, каждая в своём файле
+- `ui/chart/CandleStickChart.kt` — тонкая обёртка (делегирует `CandleStickChartInteraction`)
+- `ui/chart/ChartInteraction.kt` — вся сложная логика взаимодействия, layout и Canvas
+- `utils/ChartCalculator.kt` — чистые функции (calculateCandleMetrics, priceToY и др.)
+- Старый `CandleStickChartWidget.kt` удалён
+
+## 1.5. Диаграмма архитектуры
+
+```mermaid
+graph TB
+    subgraph ui["📁 ui/"]
+        direction TB
+        ChartWindow["ChartWindow.kt<br/>Точка входа"]
+        ChartViewModel["ChartViewModel.kt<br/>Бизнес-логика"]
+        ChartToolbar["ChartToolbar.kt<br/>Панель инструментов"]
+        ChartConfig["ChartConfig.kt<br/>Настройки отображения"]
+        subgraph ui_chart["📁 ui/chart/"]
+            CandleStickChart["CandleStickChart.kt<br/>Тонкая обёртка"]
+            ChartInteraction["ChartInteraction.kt<br/>Логика взаимодействия"]
+        end
+    end
+
+    subgraph model["📁 model/"]
+        PriceRange["PriceRange.kt<br/>Диапазон цен"]
+        CandleMetrics["CandleMetrics.kt<br/>Метрики свечи"]
+        ChartLayout["ChartLayout.kt<br/>Компоновка"]
+    end
+
+    subgraph rendering["📁 rendering/"]
+        CandleRenderer["CandleRenderer.kt<br/>Свечи, сетка, цена"]
+        PriceScaleRenderer["ChartPriceScaleRenderer.kt<br/>Шкала цен, badge"]
+        TimeScaleRenderer["ChartTimeScaleRenderer.kt<br/>Шкала времени"]
+        CrosshairRenderer["ChartCrosshairRenderer.kt<br/>Перекрестие, панель"]
+        TextRenderer["ChartTextRenderer.kt<br/>Утилита текста"]
+    end
+
+    subgraph utils["📁 utils/"]
+        ChartConstants["ChartConstants.kt<br/>Константы"]
+        ChartCalculator["ChartCalculator.kt<br/>Чистые функции"]
+        Format["Format.kt<br/>Форматирование"]
+    end
+
+    subgraph di["📁 di/"]
+        FeatureChartModule["FeatureChartModule.kt<br/>Koin DI"]
+    end
+
+    %% Call flows
+    ChartWindow --> CandleStickChart
+    ChartWindow --> ChartToolbar
+    ChartWindow --> ChartViewModel
+    ChartViewModel --> FeatureChartModule
+    
+    CandleStickChart --> ChartInteraction
+    ChartInteraction --> ChartConfig
+    ChartInteraction --> ChartLayout
+    ChartInteraction --> ChartCalculator
+    
+    ChartInteraction --> CandleRenderer
+    ChartInteraction --> PriceScaleRenderer
+    ChartInteraction --> TimeScaleRenderer
+    ChartInteraction --> CrosshairRenderer
+
+    CandleRenderer --> ChartCalculator
+    CandleRenderer --> ChartConstants
+    PriceScaleRenderer --> ChartCalculator
+    PriceScaleRenderer --> ChartConstants
+    TimeScaleRenderer --> ChartCalculator
+    TimeScaleRenderer --> ChartConstants
+    CrosshairRenderer --> ChartCalculator
+    CrosshairRenderer --> ChartConstants
+    TextRenderer --> Format
+    
+    ChartLayout --> PriceRange
+    ChartLayout --> CandleMetrics
+    
+    %% Annotations
+    classDef pureFab fill:#e1f5fe,stroke:#01579b
+    classDef srp fill:#f3e5f5,stroke:#7b1fa2
+    classDef thinWrapper fill:#fff9c4,stroke:#f57f17
+    classDef utils fill:#e8f5e9,stroke:#2e7d32
+    
+    class PriceRange,CandleMetrics,ChartLayout pureFab
+    class CandleRenderer,PriceScaleRenderer,TimeScaleRenderer,CrosshairRenderer,TextRenderer srp
+    class CandleStickChart thinWrapper
+    class ChartCalculator,ChartConstants,Format utils
+```
+
 
 # 2. Архитектура KMP-модуля
 
@@ -629,11 +733,17 @@ when (val state = chartState) {
 
 # 7. CandleStickChart — сердце графика
 
-Файл `CandleStickChartWidget.kt` — самый большой (1164 строки) и сложный файл модуля. Это кастомный Canvas-виджет, полностью рисующий график вручную.
+После рефакторинга старый монолитный `CandleStickChartWidget.kt` (1164 строки) разделён на **два файла** в пакете [`ui/chart/`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/ui/chart/):
 
-## 7.1. Сигнатура функции
+1. [`CandleStickChart.kt`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/ui/chart/CandleStickChart.kt) — **тонкая обёртка** (~20 строк), только `@Composable` сигнатура
+2. [`ChartInteraction.kt`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/ui/chart/ChartInteraction.kt) — **вся интерактивная логика** (~14KB): состояния, жесты, layout, Canvas
+
+Это разделение следует **SRP (Single Responsibility Principle)** и **GRASP Pure Fabrication** — `CandleStickChart` отвечает только за публичный API, а `CandleStickChartInteraction` — за всю сложность взаимодействия.
+
+## 7.1. CandleStickChart — тонкая обёртка
 
 ```kotlin
+// features/feature-chart/src/commonMain/.../ui/chart/CandleStickChart.kt
 @Composable
 fun CandleStickChart(
     candles: List<Candle>,
@@ -647,7 +757,21 @@ fun CandleStickChart(
     onNeedMoreHistory: () -> Unit = {},
     historyLoadCount: Int = 0,
     hasMoreHistory: Boolean = true,
-)
+) {
+    CandleStickChartInteraction(
+        candles = candles,
+        currentPrice = currentPrice,
+        modifier = modifier,
+        config = config,
+        showPriceScale = showPriceScale,
+        priceScaleWidth = priceScaleWidth,
+        crosshairEnabled = crosshairEnabled,
+        onCrosshairEnabledChange = onCrosshairEnabledChange,
+        onNeedMoreHistory = onNeedMoreHistory,
+        historyLoadCount = historyLoadCount,
+        hasMoreHistory = hasMoreHistory,
+    )
+}
 ```
 
 ### Параметры:
@@ -666,76 +790,82 @@ fun CandleStickChart(
 | `historyLoadCount` | `Int` | `0` | Сколько свечей загружено исторически |
 | `hasMoreHistory` | `Boolean` | `true` | Есть ещё история для загрузки |
 
-## 7.2. Внутренние состояния
+## 7.2. CandleStickChartInteraction — вся логика
+
+Файл [`ChartInteraction.kt`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/ui/chart/ChartInteraction.kt) содержит:
+
+### 7.2.1. Внутренние состояния
 
 ```kotlin
-// Если свечей нет — ничего не рисуем
 if (candles.isEmpty()) return
 
-// Позиция мыши для crosshair
 var mousePosition by remember { mutableStateOf<Offset?>(null) }
 var isCrosshairVisible by remember { mutableStateOf(false) }
-
-// Скролл и зум
 var scrollOffset by remember { mutableFloatStateOf(0f) }
 var zoomLevel by remember { mutableFloatStateOf(1f) }
-
-// Ширина области графика (нужна в pointerInput scope)
 var chartWidthPx by remember { mutableFloatStateOf(0f) }
-
-// Ctrl для зума под курсором
+var maxScroll by remember { mutableFloatStateOf(0f) }       // ← maxScroll как STATE
 var isCtrlPressed by remember { mutableStateOf(false) }
 
-// Максимум пустого места слева (триггер загрузки истории)
-val maxScrollLeft = 300f
+val maxScrollLeft = 300f  // триггер загрузки истории
 ```
 
-### 7.2.1. `mutableFloatStateOf` vs `mutableStateOf`
+### 7.2.2. `mutableFloatStateOf` vs `mutableStateOf`
 
 `mutableFloatStateOf` — это оптимизированная версия `mutableStateOf` для `Float`. Она избегает автоупаковки (boxing) Float в объект.
 
-### 7.2.2. `remember { }`
-
-`remember` — функция Compose, которая сохраняет значение между рекомпозициями. Без `remember` переменная бы сбрасывалась при каждом обновлении UI.
-
-## 7.3. Структура Composable
+### 7.2.3. Структура Composable
 
 ```kotlin
 BoxWithConstraints(modifier = modifier
     .fillMaxSize()
-    .background(config.backgroundColor)
-    .onPreviewKeyEvent { ... }       // ← Отслеживание Ctrl
+    .clickable(                        // ← focusability для onKeyEvent
+        interactionSource = remember { MutableInteractionSource() },
+        indication = null
+    ) { /* no-op */ }
+    .onKeyEvent { event ->             // ← Отслеживание Ctrl
+        if (event.key == Key.CtrlLeft || event.key == Key.CtrlRight) {
+            isCtrlPressed = event.type == KeyEventType.KeyDown
+            true
+        } else false
+    }
     .pointerInput(crosshairEnabled) { ... }  // ← Drag или Crosshair
-    .pointerInput(Unit) { ... }      // ← Zoom колёсиком
+    .pointerInput(Unit) { ... }              // ← Zoom колёсиком
 ) {
-    // Здесь — layout и Canvas
     val layout = remember(...) { calculateLayout(...) }
-    
     chartWidthPx = layout.chartMainArea.width
-    
+
     val candleMetrics = remember(zoomLevel) { calculateCandleMetrics(zoomLevel) }
-    val maxScroll = max(0f, candles.size * totalW - chartWidthPx)
-    
+    maxScroll = max(0f, candles.size * totalW - chartWidthPx)  // ← обновление maxScroll
+
     // LaunchedEffect для управления скроллом
     LaunchedEffect(...) { ... }
-    
-    // Canvas — основная отрисовка
+
+    // Основной Canvas — делегирует rendering/ пакету
     Canvas(modifier = Modifier.fillMaxSize().clipToBounds()) {
-        drawChart(...)
-        drawTimeScale(...)
-        drawPriceScale(...)
-        drawCrosshair(...)
+        drawChart(...)          // CandleRenderer.kt
+        drawTimeScale(...)      // ChartTimeScaleRenderer.kt
+        drawPriceScale(...)     // ChartPriceScaleRenderer.kt
+        drawCrosshair(...)      // ChartCrosshairRenderer.kt
     }
 }
 ```
+
+**Ключевые отличия от старой структуры:**
+1. `maxScroll` — это `mutableFloatStateOf`, а не локальная `val`; обновляется внутри `BoxWithConstraints`
+2. `clickable(indication = null)` — обязателен для focusability (без него `onKeyEvent` не срабатывает)
+3. Все функции отрисовки — `DrawScope` extension из `rendering/` пакета (импортируются через `import com.aandios.nous.feature.chart.rendering.*`)
 
 ---
 
 # 8. Система координат и компоновка (ChartLayout)
 
+Модель [`ChartLayout`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/model/ChartLayout.kt) находится в пакете [`model/`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/model/) вместе с другими data class'ами. Это **Pure Fabrication** (GRASP) — искусственная сущность, не имеющая аналога в предметной области, но упрощающая передачу layout-параметров между компонентами.
+
 ## 8.1. Структура ChartLayout
 
 ```kotlin
+// features/feature-chart/src/commonMain/.../model/ChartLayout.kt
 data class ChartLayout(
     val canvasWidth: Float,
     val canvasHeight: Float,
@@ -823,24 +953,44 @@ val widthPx = with(density) { canvasWidth.toPx() }
 
 # 9. Canvas-рендеринг: Как рисуются свечи
 
+Все функции отрисовки вынесены в отдельный пакет [`rendering/`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/rendering/) как `fun DrawScope.*` extension-функции. Каждый файл отвечает за свою часть рендеринга (SRP):
+
+| Файл | Ответственность |
+|---|---|
+| [`CandleRenderer.kt`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/rendering/CandleRenderer.kt) | Свечи (`drawChart`, `drawCandle`), сетка (`drawGrid`), линия цены (`drawCurrentPriceLine`) |
+| [`ChartPriceScaleRenderer.kt`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/rendering/ChartPriceScaleRenderer.kt) | Шкала цен (`drawPriceScale`), badge (`drawCurrentPriceBadge`, `drawCurrentPriceLabel`), уровень цены (`drawPriceLevel`) |
+| [`ChartTimeScaleRenderer.kt`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/rendering/ChartTimeScaleRenderer.kt) | Шкала времени (`drawTimeScale`) |
+| [`ChartCrosshairRenderer.kt`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/rendering/ChartCrosshairRenderer.kt) | Перекрестие (`drawCrosshair`), инфо-панель (`drawInfoPanel`), метки на осях (`drawPriceLabelOnAxis`, `drawTimeLabelOnAxis`) |
+| [`ChartTextRenderer.kt`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/rendering/ChartTextRenderer.kt) | Утилита текста (`drawTextLine`) |
+
+Импорт в [`ChartInteraction.kt`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/ui/chart/ChartInteraction.kt):
+
+```kotlin
+import com.aandios.nous.feature.chart.rendering.drawChart
+import com.aandios.nous.feature.chart.rendering.drawCrosshair
+import com.aandios.nous.feature.chart.rendering.drawPriceScale
+import com.aandios.nous.feature.chart.rendering.drawTimeScale
+```
+
 ## 9.1. DrawScope и Canvas
 
 ```kotlin
 Canvas(modifier = Modifier.fillMaxSize().clipToBounds()) {
     // this — DrawScope
-    drawChart(...)   // Свечи и сетка
-    drawTimeScale(...)
-    drawPriceScale(...)
-    drawCrosshair(...)
+    drawChart(...)      // из CandleRenderer.kt
+    drawTimeScale(...)  // из ChartTimeScaleRenderer.kt
+    drawPriceScale(...) // из ChartPriceScaleRenderer.kt
+    drawCrosshair(...)  // из ChartCrosshairRenderer.kt
 }
 ```
 
 `Canvas` — это Compose-компонент, предоставляющий `DrawScope` для низкоуровневой 2D-отрисовки.
 
-## 9.2. Функция drawChart()
+## 9.2. Функция drawChart() (CandleRenderer.kt)
 
 ```kotlin
-private fun DrawScope.drawChart(
+// features/feature-chart/src/commonMain/.../rendering/CandleRenderer.kt
+fun DrawScope.drawChart(
     candles: List<Candle>,
     priceRange: PriceRange,
     config: ChartConfig,
@@ -856,10 +1006,8 @@ private fun DrawScope.drawChart(
         translate(left = chartArea.left, top = chartArea.top)
         clipRect(0f, 0f, chartArea.width, chartArea.height)
     }) {
-        // Сначала сетка
         drawGrid(config, chartArea.width, chartArea.height)
         
-        // Потом свечи — только видимые
         val candleMetrics = calculateCandleMetrics(zoomLevel)
         val totalW = candleMetrics.width + candleMetrics.spacing
         for (i in visibleStartIndex until visibleEndIndex) {
@@ -876,7 +1024,6 @@ private fun DrawScope.drawChart(
             }
         }
         
-        // Линия текущей цены
         if (currentPrice != null) {
             drawCurrentPriceLine(currentPrice, priceRange, config, chartArea.height, chartArea.width)
         }
@@ -1012,10 +1159,19 @@ Y = height (низ)      ← visibleMin (мин. цена)
 
 # 10. Сетка и шкала цен
 
+Функции сетки и шкалы цен находятся в отдельных файлах пакета [`rendering/`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/rendering/):
+- [`drawGrid()`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/rendering/CandleRenderer.kt:143) — в `CandleRenderer.kt`
+- [`drawPriceScale()`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/rendering/ChartPriceScaleRenderer.kt:25), [`drawCurrentPriceBadge()`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/rendering/ChartPriceScaleRenderer.kt:81), [`drawPriceLevel()`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/rendering/ChartPriceScaleRenderer.kt:187) — в `ChartPriceScaleRenderer.kt`
+
 ## 10.1. Отрисовка сетки
 
 ```kotlin
-private fun DrawScope.drawGrid(config: ChartConfig, width: Float, height: Float) {
+// features/feature-chart/src/commonMain/.../rendering/CandleRenderer.kt
+fun DrawScope.drawGrid(
+    config: ChartConfig,
+    width: Float,
+    height: Float
+) {
     if (!config.showGrid) return
     
     // Горизонтальные линии
@@ -1039,7 +1195,8 @@ private fun DrawScope.drawGrid(config: ChartConfig, width: Float, height: Float)
 ## 10.2. Шкала цен (Price Scale)
 
 ```kotlin
-private fun DrawScope.drawPriceScale(
+// features/feature-chart/src/commonMain/.../rendering/ChartPriceScaleRenderer.kt
+fun DrawScope.drawPriceScale(
     priceRange: PriceRange,
     config: ChartConfig,
     priceScaleArea: Rect,
@@ -1057,13 +1214,11 @@ private fun DrawScope.drawPriceScale(
             count = numberOfLevels
         )
         
-        // Обычные уровни цен
         priceLevels.forEach { price ->
             val y = priceToY(price, priceRange, priceScaleArea.height)
             drawPriceLevel(price, y, config, priceScaleArea.width, textMeasurer)
         }
         
-        // Badge текущей цены (поверх остальных)
         if (currentPrice != null) {
             val y = priceToY(currentPrice, priceRange, priceScaleArea.height)
             drawCurrentPriceBadge(currentPrice, y, ...)
@@ -1075,6 +1230,7 @@ private fun DrawScope.drawPriceScale(
 ### 10.2.1. generatePriceLevels()
 
 ```kotlin
+// Частная функция внутри ChartPriceScaleRenderer.kt
 private fun generatePriceLevels(min: Float, max: Float, count: Int): List<Float> {
     val range = max - min
     val step = range / (count - 1)
@@ -1089,20 +1245,21 @@ private fun generatePriceLevels(min: Float, max: Float, count: Int): List<Float>
 Текущая цена рисуется отдельно — с зелёным фоном и жирным шрифтом, чтобы выделяться:
 
 ```kotlin
-private fun DrawScope.drawCurrentPriceBadge(...) {
-    // Размеры badge
+// features/feature-chart/src/commonMain/.../rendering/ChartPriceScaleRenderer.kt
+fun DrawScope.drawCurrentPriceBadge(
+    price: Float,
+    ...
+) {
     val padding = 4f
     val badgeWidth = textWidth + padding * 2
     val badgeHeight = textHeight + padding * 2
     
-    // Фон badge
     drawRect(
         color = Color.Green.copy(alpha = 0.2f),
         topLeft = Offset(badgeLeft, adjustedBadgeTop),
         size = Size(badgeWidth, badgeHeight)
     )
     
-    // Текст цены
     drawText(textLayoutResult = textLayoutResult, topLeft = ...)
 }
 ```
@@ -1111,10 +1268,13 @@ private fun DrawScope.drawCurrentPriceBadge(...) {
 
 # 11. Шкала времени
 
+Функция [`drawTimeScale()`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/rendering/ChartTimeScaleRenderer.kt:21) находится в [`ChartTimeScaleRenderer.kt`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/rendering/ChartTimeScaleRenderer.kt) пакета [`rendering/`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/rendering/). Все вспомогательные вычисления (такие как `calculateCandleMetrics()`) вынесены в [`ChartCalculator.kt`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/utils/ChartCalculator.kt) пакета [`utils/`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/utils/).
+
 ## 11.1. Функция drawTimeScale()
 
 ```kotlin
-private fun DrawScope.drawTimeScale(
+// features/feature-chart/src/commonMain/.../rendering/ChartTimeScaleRenderer.kt
+fun DrawScope.drawTimeScale(
     candles: List<Candle>,
     config: ChartConfig,
     timeScaleArea: Rect,
@@ -1161,11 +1321,20 @@ val step = (visibleCount / 6).coerceAtLeast(1)
 
 # 12. Система скролла (панорамирование)
 
+Вся логика скролла находится в [`ChartInteraction.kt`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/ui/chart/ChartInteraction.kt) пакета [`ui/chart/`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/ui/chart/).
+
 ## 12.1. Как работает скролл
 
 Скролл (панорамирование) реализован через `detectDragGestures`:
 
 ```kotlin
+// features/feature-chart/src/commonMain/.../ui/chart/ChartInteraction.kt
+var scrollOffset by remember { mutableFloatStateOf(0f) }
+var maxScroll by remember { mutableFloatStateOf(0f) }
+val maxScrollLeft = 300f
+
+// ...
+
 .pointerInput(crosshairEnabled) {
     if (crosshairEnabled) {
         // Crosshair mode — не скроллим
@@ -1176,7 +1345,7 @@ val step = (visibleCount / 6).coerceAtLeast(1)
             onDrag = { change, _ ->
                 val deltaX = change.position.x - change.previousPosition.x
                 scrollOffset = (scrollOffset - deltaX)
-                    .coerceIn(-maxScrollLeft, Float.MAX_VALUE)
+                    .coerceIn(-maxScrollLeft, maxScroll)  // ← FIX: было Float.MAX_VALUE
             },
         )
     }
@@ -1190,23 +1359,27 @@ val step = (visibleCount / 6).coerceAtLeast(1)
 ### 12.1.2. Расчёт смещения
 
 ```kotlin
-val deltaX = change.position.x - change.previousPosition.x
-scrollOffset = (scrollOffset - deltaX).coerceIn(-maxScrollLeft, Float.MAX_VALUE)
+scrollOffset = (scrollOffset - deltaX).coerceIn(-maxScrollLeft, maxScroll)
 ```
 
-- `deltaX` — насколько мышь переместилась по X за этот кадр
-- Вычитаем из scrollOffset (если тащим вправо, scrollOffset уменьшается — график сдвигается вправо к последним свечам)
-- `coerceIn(-maxScrollLeft, ...)` — не даём уйти слишком далеко влево (но вправо не ограничиваем)
+Ключевое отличие от старой реализации: **`maxScroll`** — это `mutableFloatStateOf`, который пересчитывается каждый раз при изменении `zoomLevel` или размера данных:
+
+```kotlin
+maxScroll = max(0f, candles.size * totalW - chartWidthPx)
+```
+
+Это гарантирует, что:
+- `coerceIn(-maxScrollLeft, maxScroll)` не даёт уйти правее последней свечи
+- `maxScroll` динамически обновляется при зумe (изменении `totalW`)
+- В старой версии было `coerceIn(-maxScrollLeft, Float.MAX_VALUE)` — скролл мог уйти за правый край
 
 ## 12.2. ClampedOffset
 
 ```kotlin
-val maxScroll = max(0f, candles.size * totalW - chartWidthPx)
 val clampedOffset = scrollOffset.coerceIn(-maxScrollLeft, maxScroll)
 ```
 
-- `maxScroll` — максимальное смещение вправо (когда последняя свеча у правого края)
-- `clampedOffset` — "зажатое" значение, которое не даёт графику уйти за правый край
+- `clampedOffset` — "зажатое" значение, которое не даёт графику уйти за правый/левый край
 - `maxScrollLeft = 300f` — разрешаем 300px пустого места слева для триггера загрузки истории
 
 ## 12.3. Вычисление видимых свечей
@@ -1225,6 +1398,8 @@ val endIdx = ((clampedOffset + chartWidthPx) / totalW + 1).toInt()
 ## 12.4. Scroll-offset при загрузке данных
 
 ```kotlin
+// При загрузке новых данных (смена символа/таймфрейма) показываем последние свечи
+// НЕ срабатывает при prepend исторических свечей (historyLoadCount > 0)
 LaunchedEffect(candles.firstOrNull()?.timestamp ?: 0L) {
     if (historyLoadCount == 0) {
         scrollOffset = maxScroll  // ← Показываем последние свечи
@@ -1232,13 +1407,59 @@ LaunchedEffect(candles.firstOrNull()?.timestamp ?: 0L) {
 }
 ```
 
-При первой загрузке (новый символ/таймфрейм) скроллим к правому краю — показываем самые свежие данные.
+При первой загрузке (новый символ/таймфрейм) скроллим к правому краю — показываем самые свежие данные. Не срабатывает при prepend исторических свечей, потому что `historyLoadCount > 0`.
+
+## 12.5. Коррекция scrollOffset после prepend истории
+
+```kotlin
+LaunchedEffect(historyLoadCount, candles.size) {
+    if (historyLoadCount > 0) {
+        val oldScrollOffset = scrollOffset
+        val added = historyLoadCount * totalW
+        scrollOffset += added
+        scrollOffset = scrollOffset.coerceIn(-maxScrollLeft, maxScroll)
+    }
+}
+```
+
+Когда новые свечи добавляются в **начало** списка (prepend), старый `scrollOffset` "отстаёт" на добавленное количество свечей. Без коррекции график бы "перепрыгивал" вперёд после загрузки истории.
 
 ---
 
 # 13. Система зума
 
-## 13.1. Обнаружение скролла колёсиком
+Вся логика зума находится в [`ChartInteraction.kt`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/ui/chart/ChartInteraction.kt) пакета [`ui/chart/`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/ui/chart/).
+
+## 13.1. Фокус для захвата клавиатуры
+
+Compose-компоненту нужно быть **focusable**, чтобы получать события клавиатуры. Для этого используется `clickable` с отключённой визуальной индикацией:
+
+```kotlin
+// features/feature-chart/src/commonMain/.../ui/chart/ChartInteraction.kt
+.clickable(
+    interactionSource = remember { MutableInteractionSource() },
+    indication = null
+) { /* no-op: make composable focusable for onKeyEvent */ }
+```
+
+Без этого трюка `onKeyEvent` не получал бы события Ctrl.
+
+## 13.2. Контроль клавиши Ctrl
+
+```kotlin
+.onKeyEvent { event ->
+    if (event.key == Key.CtrlLeft || event.key == Key.CtrlRight) {
+        isCtrlPressed = event.type == KeyEventType.KeyDown
+        true  // Потребляем событие
+    } else {
+        false
+    }
+}
+```
+
+Модификатор `onKeyEvent` отслеживает нажатие/отпускание Ctrl. Состояние хранится в `isCtrlPressed`.
+
+## 13.3. Обнаружение скролла колёсиком
 
 ```kotlin
 .pointerInput(Unit) {
@@ -1249,7 +1470,6 @@ LaunchedEffect(candles.firstOrNull()?.timestamp ?: 0L) {
             val sd = change.scrollDelta
             
             if (event.type == PointerEventType.Scroll && sd != Offset.Zero) {
-                // Определяем направление зума
                 val factor = if (sd.y < 0) 1.15f else 1f / 1.15f
                 // ... расчёт нового zoomLevel и scrollOffset
             }
@@ -1258,11 +1478,11 @@ LaunchedEffect(candles.firstOrNull()?.timestamp ?: 0L) {
 }
 ```
 
-### 13.1.1. `awaitPointerEventScope`
+### 13.3.1. `awaitPointerEventScope`
 
 Это более низкоуровневое API, чем `detectDragGestures`. Позволяет вручную обрабатывать события мыши. Используется для зума, потому что колёсико мыши не является жестом перетаскивания.
 
-### 13.1.2. Фактор зума
+### 13.3.2. Фактор зума
 
 ```kotlin
 val factor = if (sd.y < 0) 1.15f else 1f / 1.15f
@@ -1273,37 +1493,20 @@ val factor = if (sd.y < 0) 1.15f else 1f / 1.15f
 
 Каждый шаг колёсика меняет масштаб на 15%.
 
-## 13.2. Контроль клавиши Ctrl
-
-```kotlin
-.onPreviewKeyEvent { event ->
-    if (event.key == Key.CtrlLeft || event.key == Key.CtrlRight) {
-        isCtrlPressed = event.type == KeyEventType.KeyDown
-        true  // Потребляем событие
-    } else {
-        false
-    }
-}
-```
-
-Отдельный модификатор `onPreviewKeyEvent` отслеживает нажатие/отпускание Ctrl. Состояние хранится в `isCtrlPressed`.
-
-## 13.3. Расчёт нового zoomLevel и scrollOffset
+## 13.4. Расчёт нового zoomLevel и scrollOffset
 
 ```kotlin
 val oldZoom = zoomLevel
 val newZoom = (oldZoom * factor).coerceIn(0.25f, 4.0f)
 val actualFactor = newZoom / oldZoom
 
-val isCtrlHeld = isCtrlPressed
-
-val newScrollOffset = if (isCtrlHeld) {
-    // Ctrl+scroll: фиксируем свечу ПОД КУРСОРОМ
+val newScrollOffset = if (isCtrlPressed) {
+    // Ctrl+zoom: фиксируем свечу ПОД КУРСОРОМ
     val mouseX = change.position.x
     val virtualPos = mouseX + scrollOffset
     virtualPos * actualFactor - mouseX
 } else {
-    // Обычный scroll: фиксируем ПРАВУЮ свечу (последнюю по времени)
+    // Обычный зум: фиксируем ПРАВУЮ свечу (самую новую по времени) — TradingView-стиль
     val rightEdge = scrollOffset + chartWidthPx
     rightEdge * actualFactor - chartWidthPx
 }
@@ -1312,7 +1515,7 @@ zoomLevel = newZoom
 scrollOffset = newScrollOffset
 ```
 
-### 13.3.1. Зум без Ctrl: фиксация правой свечи
+### 13.4.1. Зум без Ctrl: фиксация правой свечи
 
 ```kotlin
 val rightEdge = scrollOffset + chartWidthPx
@@ -1321,7 +1524,7 @@ rightEdge * actualFactor - chartWidthPx
 
 Правая (последняя по времени) свеча остаётся на месте. Это поведение TradingView-стиля.
 
-### 13.3.2. Зум с Ctrl: фиксация под курсором
+### 13.4.2. Зум с Ctrl: фиксация под курсором
 
 ```kotlin
 val mouseX = change.position.x
@@ -1331,7 +1534,7 @@ virtualPos * actualFactor - mouseX
 
 Свеча, над которой находится курсор мыши, остаётся на месте. Позволяет "зумиться в конкретную точку".
 
-## 13.4. Границы зума
+## 13.5. Границы зума
 
 ```kotlin
 val newZoom = (oldZoom * factor).coerceIn(0.25f, 4.0f)
@@ -1340,12 +1543,13 @@ val newZoom = (oldZoom * factor).coerceIn(0.25f, 4.0f)
 - **0.25x** — минимальный зум (широкая перспектива)
 - **4.0x** — максимальный зум (детальный просмотр)
 
-## 13.5. calculateCandleMetrics()
+## 13.6. calculateCandleMetrics()
+
+Функция [`calculateCandleMetrics()`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/utils/ChartCalculator.kt) находится в [`ChartCalculator.kt`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/utils/ChartCalculator.kt) пакета [`utils/`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/utils/). Константа `BASE_CANDLE_WIDTH` — в [`ChartConstants.kt`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/utils/ChartConstants.kt).
 
 ```kotlin
-private const val BASE_CANDLE_WIDTH = 8f
-
-private fun calculateCandleMetrics(zoomLevel: Float): CandleMetrics {
+// features/feature-chart/src/commonMain/.../utils/ChartCalculator.kt
+fun calculateCandleMetrics(zoomLevel: Float): CandleMetrics {
     val width = BASE_CANDLE_WIDTH * zoomLevel          // 8px * zoom
     val spacing = width * 0.3f / 0.7f                  // 30% промежуток, 70% свеча
     return CandleMetrics(width, spacing)
@@ -1365,6 +1569,8 @@ private fun calculateCandleMetrics(zoomLevel: Float): CandleMetrics {
 
 # 14. Динамический PriceRange
 
+Model [`PriceRange`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/model/PriceRange.kt) находится в пакете [`model/`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/model/). Функция [`calculatePriceRangeWithCurrentPrice()`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/utils/ChartCalculator.kt) — в [`ChartCalculator.kt`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/utils/ChartCalculator.kt) пакета [`utils/`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/utils/).
+
 ## 14.1. Проблема
 
 Если рассчитывать min/max по ВСЕМ свечам, при скролле влево (к старым данным с другой волатильностью) шкала может "дёргаться" или быть неинформативной.
@@ -1374,6 +1580,7 @@ private fun calculateCandleMetrics(zoomLevel: Float): CandleMetrics {
 PriceRange рассчитывается только по **видимым** свечам:
 
 ```kotlin
+// features/feature-chart/src/commonMain/.../ui/chart/ChartInteraction.kt
 val visibleCandles = remember(startIdx, endIdx) {
     candles.subList(startIdx, endIdx.coerceAtMost(candles.size))
 }
@@ -1386,7 +1593,8 @@ val priceRange = remember(visibleCandles, currentPrice) {
 ## 14.3. Функция calculatePriceRangeWithCurrentPrice()
 
 ```kotlin
-private fun calculatePriceRangeWithCurrentPrice(
+// features/feature-chart/src/commonMain/.../utils/ChartCalculator.kt
+fun calculatePriceRangeWithCurrentPrice(
     candles: List<Candle>,
     currentPrice: Float?
 ): PriceRange {
@@ -1417,11 +1625,22 @@ private fun calculatePriceRangeWithCurrentPrice(
 
 Добавление 5% padding'a сверху и снизу даёт "воздух" — свечи не упираются в края графика.
 
+Также в `ChartCalculator.kt` находится утилита `priceToY()`, используемая во всех рендерерах для преобразования цены в Y-координату на канвасе:
+
+```kotlin
+fun priceToY(price: Float, priceRange: PriceRange, chartHeight: Float): Float {
+    val ratio = (price - priceRange.visibleMin) / priceRange.range
+    return chartHeight - (ratio * chartHeight)
+}
+```
+
 ---
 
 # 15. Crosshair: Перекрестие и информационная панель
 
 ## 15.1. Включение crosshair
+
+Логика crosshair находится в [`ChartInteraction.kt`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/ui/chart/ChartInteraction.kt). Рендеринг — в [`ChartCrosshairRenderer.kt`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/rendering/ChartCrosshairRenderer.kt).
 
 В `ChartWindow` есть кнопка переключения crosshair (символ `⧉` в `ChartToolbar`):
 
@@ -1434,6 +1653,7 @@ var crosshairEnabled by remember { mutableStateOf(false) }
 ## 15.2. Обработка движения мыши
 
 ```kotlin
+// features/feature-chart/src/commonMain/.../ui/chart/ChartInteraction.kt
 if (crosshairEnabled) {
     awaitEachGesture {
         val down = awaitFirstDown(requireUnconsumed = false)
@@ -1458,7 +1678,8 @@ if (crosshairEnabled) {
 ## 15.3. Отрисовка crosshair
 
 ```kotlin
-private fun DrawScope.drawCrosshair(
+// features/feature-chart/src/commonMain/.../rendering/ChartCrosshairRenderer.kt
+fun DrawScope.drawCrosshair(
     mousePosition: Offset,
     candles: List<Candle>,
     priceRange: PriceRange,
@@ -1468,7 +1689,6 @@ private fun DrawScope.drawCrosshair(
     scrollOffset: Float = 0f,
     zoomLevel: Float = 1f,
 ) {
-    // Проверка: курсор в области графика?
     if (mousePosition !in chartLayout.chartMainArea) return
     
     // 1. Вертикальная линия
@@ -1492,17 +1712,11 @@ private fun DrawScope.drawCrosshair(
     if (candleIndex in candles.indices) {
         val candle = candles[candleIndex]
         
-        // Маркеры цен на свече
         drawCircle(color = Color.Red, center = Offset(x, highY), radius = 3f)
         drawCircle(color = Color.Green, center = Offset(x, lowY), radius = 3f)
         
-        // Информационная панель
         drawInfoPanel(candle, mousePosition, chartLayout, textMeasurer, config)
-        
-        // Метка цены на оси Y
         drawPriceLabelOnAxis(...)
-        
-        // Метка времени на оси X
         drawTimeLabelOnAxis(...)
     }
 }
@@ -1511,7 +1725,8 @@ private fun DrawScope.drawCrosshair(
 ## 15.4. findNearestCandleIndex()
 
 ```kotlin
-private fun findNearestCandleIndex(
+// features/feature-chart/src/commonMain/.../utils/ChartCalculator.kt
+fun findNearestCandleIndex(
     mouseX: Float,
     candles: List<Candle>,
     chartWidth: Float,
@@ -1520,7 +1735,6 @@ private fun findNearestCandleIndex(
 ): Int {
     val candleMetrics = calculateCandleMetrics(zoomLevel)
     val totalWidthPerCandle = candleMetrics.width + candleMetrics.spacing
-    
     // Конвертируем экранную X в виртуальную (с учётом скролла)
     val virtualX = mouseX + scrollOffset
     val index = (virtualX / totalWidthPerCandle).toInt()
@@ -1531,6 +1745,7 @@ private fun findNearestCandleIndex(
 ## 15.5. Информационная панель
 
 ```kotlin
+// features/feature-chart/src/commonMain/.../rendering/ChartCrosshairRenderer.kt
 private fun DrawScope.drawInfoPanel(
     candle: Candle,
     mousePosition: Offset,
@@ -1538,10 +1753,8 @@ private fun DrawScope.drawInfoPanel(
     textMeasurer: TextMeasurer,
     config: ChartConfig
 ) {
-    // Чёрный полупрозрачный фон
     drawRect(color = Color.Black.copy(alpha = 0.8f), topLeft = ..., size = Size(120f, 80f))
     
-    // Текст: время, Open, High, Low
     drawTextLine("Time: ${formatTime(candle.timestamp)}", ...)
     drawTextLine("O: ${candle.open}", ...)
     drawTextLine("H: ${candle.high}", ...)
@@ -1553,6 +1766,8 @@ private fun DrawScope.drawInfoPanel(
 
 # 16. Ленивая загрузка истории (Lazy Loading)
 
+Вся логика lazy loading находится в [`ChartInteraction.kt`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/ui/chart/ChartInteraction.kt) и [`ChartViewModel.kt`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/ui/ChartViewModel.kt) пакета [`ui/`](features/feature-chart/src/commonMain/kotlin/com/aandios/nous/feature/chart/ui/).
+
 ## 16.1. Проблема
 
 Биржевой график должен показывать большие объёмы данных. Загружать 100 000 свечей сразу — медленно и ресурсоёмко.
@@ -1562,6 +1777,7 @@ private fun DrawScope.drawInfoPanel(
 Когда пользователь скроллит влево (в прошлое) и доходит до пустого места слева от первой свечи, срабатывает триггер загрузки:
 
 ```kotlin
+// features/feature-chart/src/commonMain/.../ui/chart/ChartInteraction.kt
 LaunchedEffect(clampedOffset, hasMoreHistory) {
     if (hasMoreHistory && clampedOffset < 0f) {
         onNeedMoreHistory()  // ← через callback в ViewModel
@@ -1577,16 +1793,18 @@ val maxScrollLeft = 300f  // 300px пустого места слева
 
 Когда `clampedOffset < 0` (мы заскроллили левее первой свечи), график показывает пустое место. Это интуитивно понятный сигнал для подгрузки.
 
-## 16.4. Коррекция scrollOffset после загрузки
+## 16.4. Коррекция scrollOffset после prepend истории
 
-После добавления свечей в начало списка, старый scrollOffset указывает на неправильное место:
+После добавления свечей в **начало** списка, старый `scrollOffset` указывает на неправильное место. Добавляем смещение на количество новых свечей:
 
 ```kotlin
+// features/feature-chart/src/commonMain/.../ui/chart/ChartInteraction.kt
 LaunchedEffect(historyLoadCount, candles.size) {
     if (historyLoadCount > 0) {
         val oldScrollOffset = scrollOffset
         val added = historyLoadCount * totalW  // px добавленных свечей
         scrollOffset += added  // Корректируем смещение
+        scrollOffset = scrollOffset.coerceIn(-maxScrollLeft, maxScroll)  // Фиксация правого края
     }
 }
 ```
@@ -1596,14 +1814,16 @@ LaunchedEffect(historyLoadCount, candles.size) {
 ## 16.5. Guard для LaunchedEffect
 
 ```kotlin
+// Первая загрузка — показываем последние свечи
+// НЕ срабатывает при prepend исторических свечей (historyLoadCount > 0)
 LaunchedEffect(candles.firstOrNull()?.timestamp ?: 0L) {
-    if (historyLoadCount == 0) {  // ← НЕ срабатывает при prepend истории
+    if (historyLoadCount == 0) {
         scrollOffset = maxScroll
     }
 }
 ```
 
-Без этого guard'а при каждом добавлении исторических свечей скролл бы сбрасывался к последним свечам.
+Без этого guard'а при prepend исторических свечей скролл бы сбрасывался к последним свечам.
 
 ## 16.6. Полный цикл загрузки истории
 
@@ -1616,7 +1836,7 @@ LaunchedEffect(candles.firstOrNull()?.timestamp ?: 0L) {
    b. Вызывает chartRepository.loadHistoricalCandlesBefore(...)
    c. Препендирует новые свечи: historicalCandles + oldCandles
    d. Устанавливает _historyLoadCount = loadedCount
-5. Widget получает новые candles, LaunchedEffect(historyLoadCount):
+5. ChartInteraction получает новые candles, LaunchedEffect(historyLoadCount, candles.size):
    scrollOffset += loadedCount * totalW
 6. График показывает новые свечи без визуального сдвига
 ```
