@@ -7,15 +7,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import com.aandios.nous.core.ui.theme.TradingTerminalTheme
 import com.aandios.nous.feature.dom.ui.DomViewModel
-import com.aandios.nous_platform.ui.theme.TradingTerminalTheme
+import com.aandios.nous.feature.dom.ui.DomWindow
 import org.koin.compose.koinInject
 
 @Composable
 private fun DomPreview(
     domViewModel: DomViewModel
 ) {
-    DomWidget(
+    DomWindow(
         domViewModel = domViewModel,
         modifier = Modifier.width(300.dp)
     )

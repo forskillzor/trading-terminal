@@ -257,22 +257,18 @@ fun CandleStickChartInteraction(
         // Lazy loading historical candles: когда пользователь скроллит левее первой свечи
         // (clampedOffset < 0) — появляется пустое место, вызываем загрузку истории
         LaunchedEffect(clampedOffset, hasMoreHistory) {
-            println("[DEBUG-WIDGET] >>> LaunchedEffect fired: clampedOffset=$clampedOffset, hasMoreHistory=$hasMoreHistory, candles.size=${candles.size}, scrollOffset=$scrollOffset")
             if (hasMoreHistory && clampedOffset < 0f) {
-                println("[DEBUG-WIDGET] >>> TRIGGERING onNeedMoreHistory()")
                 onNeedMoreHistory()
             }
         }
 
         // Коррекция scrollOffset после загрузки исторических свечей
         LaunchedEffect(historyLoadCount, candles.size) {
-            println("[DEBUG-WIDGET] >>> LaunchedEffect(historyLoadCount=$historyLoadCount, candleCount=${candles.size})")
             if (historyLoadCount > 0) {
                 val oldScrollOffset = scrollOffset
                 val added = historyLoadCount * totalW
                 scrollOffset += added
                 scrollOffset = scrollOffset.coerceIn(-maxScrollLeft, maxScroll)
-                println("[DEBUG-WIDGET] Corrected scrollOffset: $oldScrollOffset -> $scrollOffset (added $added, totalW=$totalW, candles.size=${candles.size})")
             }
         }
 

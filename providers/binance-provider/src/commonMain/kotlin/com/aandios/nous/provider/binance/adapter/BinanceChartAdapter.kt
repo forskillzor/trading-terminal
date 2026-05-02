@@ -63,7 +63,6 @@ class BinanceChartAdapter(
         endTime: Long,
         limit: Int
     ): List<Candle> {
-        println("[DEBUG-BINANCE] getCandlesBefore(symbol=$symbol, interval=$interval, endTime=$endTime, limit=$limit)")
         val response: List<List<String>> = client.get("https://fapi.binance.com/fapi/v1/klines") {
             url {
                 parameters.append("symbol", symbol)
@@ -72,13 +71,6 @@ class BinanceChartAdapter(
                 parameters.append("limit", limit.toString())
             }
         }.body()
-
-        println("[DEBUG-BINANCE] getCandlesBefore: response size=${response.size}")
-        if (response.isNotEmpty()) {
-            val first = response.first()
-            val last = response.last()
-            println("[DEBUG-BINANCE] getCandlesBefore: first openTime=${first[0]}, last openTime=${last[0]}")
-        }
 
         return response.map { rawCandle ->
             BinanceCandle(

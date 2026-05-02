@@ -2,27 +2,19 @@ package com.aandios.nous_platform.ui.main
 
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.aandios.nous.core.ui.theme.ChartColors
-import com.aandios.nous.feature.chart.ui.ChartConfig
-import com.aandios.nous.feature.chart.ui.CandleStyle
-import com.aandios.nous.feature.chart.ui.ChartState
 import com.aandios.nous.feature.chart.ui.ChartViewModel
-import com.aandios.nous.feature.chart.ui.chart.CandleStickChart
+import com.aandios.nous.feature.chart.ui.ChartWindow
 import com.aandios.nous.feature.dom.domain.TradingSymbol
 import com.aandios.nous.feature.dom.ui.DomViewModel
+import com.aandios.nous.feature.dom.ui.DomWindow
 import com.aandios.nous.feature.trades.ui.TradesViewModel
 import com.aandios.nous.feature.trades.ui.TradesWidget
 import com.aandios.nous_platform.ui.components.*
-import com.aandios.nous_platform.ui.dom.DomWidget
-import com.aandios.nous_platform.utils.formatPrice
 
 @Composable
 fun MainScreen(
@@ -31,20 +23,8 @@ fun MainScreen(
     tradesViewModel: TradesViewModel,
     modifier: Modifier = Modifier,
 ) {
-    val chartState by chartViewModel.chartState.collectAsState()
-
     var selectedSymbol by remember { mutableStateOf("BTCUSDT") }
     var selectedTimeframe by remember { mutableStateOf("1h") }
-
-    val chartConfig = remember {
-        ChartConfig(
-            candleStyle = CandleStyle(
-                shadowColor = ChartColors.candleShadow,
-                bullishColor = ChartColors.bullish,
-                bearishColor = ChartColors.bearish
-            )
-        )
-    }
 
     LaunchedEffect(selectedSymbol, selectedTimeframe) {
         chartViewModel.loadChart(selectedSymbol, selectedTimeframe)
@@ -84,18 +64,15 @@ fun MainScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(0.dp)
             ) {
-                ChartWidget(
-                    chartState = chartState,
-                    chartConfig = chartConfig,
-                    symbol = selectedSymbol,
-                    timeframe = selectedTimeframe,
+                ChartWindow(
+                    chartViewModel = chartViewModel,
                     modifier = Modifier
                         .fillMaxHeight()
                         .weight(1f)
                 )
 
                 // DOM
-                DomWidget(
+                DomWindow(
                     domViewModel = domViewModel,
                     modifier = Modifier.width(300.dp)
                 )
@@ -155,131 +132,6 @@ private fun TimeframeSelector(
                 Text(
                     text = tf, style = MaterialTheme.typography.labelMedium
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ChartWidget(
-    chartState: ChartState,
-    chartConfig: ChartConfig,
-    symbol: String,
-    timeframe: String,
-    modifier: Modifier,
-) {
-    Box(
-        modifier = modifier, contentAlignment = Alignment.Center
-    ) {
-        when (chartState) {
-            is ChartState.Loading -> {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "Loading $symbol $timeframe...",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-
-            is ChartState.Success -> {
-                val candles = chartState.candles
-                val lastPrice = candles.lastOrNull()?.close
-
-                Column(
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = "$symbol • $timeframe",
-                                color = MaterialTheme.colorScheme.onSurface,
-                                style = MaterialTheme.typography.titleMedium
-                            )
-
-                            if (lastPrice != null) {
-                                Text(
-                                    text = formatPrice(lastPrice),
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-
-                            Text(
-                                text = "${candles.size} candles • Binance",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        }
-
-                        if (candles.size >= 2) {
-                            val lastCandle = candles.last()
-                            val prevCandle = candles[candles.size - 2]
-                            val change = ((lastCandle.close - prevCandle.close) / prevCandle.close * 100)
-                            val isBullish = change >= 0
-
-                            TerminalBadge(
-                                text = "${String.format("%.2f", lastCandle.close)} (${
-                                    String.format(
-                                        "%+.2f",
-                                        change
-                                    )
-                                }%)",
-                                isBullish = isBullish
-                            )
-                        }
-                    }
-
-                    TerminalDivider()
-
-                    CandleStickChart(
-                        candles = candles,
-                        currentPrice = lastPrice,
-                        modifier = Modifier
-                            .padding(16.dp),
-                        config = chartConfig
-                    )
-                }
-            }
-
-
-            is ChartState.Error -> {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = "⚠️", style = MaterialTheme.typography.displayMedium
-                    )
-                    Text(
-                        text = "Connection Error",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Text(
-                        text = chartState.message,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-
-                    TerminalButton(
-                        onClick = { /* retry */ }, modifier = Modifier.padding(top = 8.dp)
-                    ) {
-                        Text("Retry")
-                    }
-                }
             }
         }
     }

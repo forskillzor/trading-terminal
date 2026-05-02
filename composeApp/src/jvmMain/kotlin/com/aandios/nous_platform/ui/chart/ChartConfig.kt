@@ -3,7 +3,7 @@ package com.aandios.nous_platform.ui.chart
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.aandios.nous_platform.ui.theme.ChartColors
+import com.aandios.nous.core.ui.theme.ChartColors
 
 // Конфигурация для отрисовки свечей
 data class CandleStyle(

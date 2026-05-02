@@ -23,9 +23,25 @@ import org.koin.compose.KoinContext
 import org.koin.compose.koinInject
 import org.koin.core.context.stopKoin
 
+/**
+ * Полноценное окно DOM для использования внутри main приложения.
+ * Получает DomViewModel из Koin автоматически.
+ */
 @Composable
 fun DomWindow() {
     val domViewModel: DomViewModel = koinInject()
+    DomWindow(domViewModel = domViewModel)
+}
+
+/**
+ * DOM-панель для использования внутри MainScreen (и др. композитов).
+ * Принимает DomViewModel напрямую (чтобы не плодить лишних экземпляров при factory-scope).
+ */
+@Composable
+fun DomWindow(
+    domViewModel: DomViewModel,
+    modifier: Modifier = Modifier,
+) {
     val domOptions by domViewModel.domOptions.collectAsState()
     val orderQuantity by domViewModel.orderQuantity.collectAsState()
     val isTradingEnabled by domViewModel.isTradingEnabled.collectAsState()
@@ -69,7 +85,7 @@ fun DomWindow() {
         timestamp = System.currentTimeMillis()
     )
 
-    Column(Modifier.fillMaxSize()) {
+    Column(modifier = modifier.fillMaxSize()) {
         DomHeader(
             domOptions = domOptions,
             symbolTickSize = symbolTickSize,

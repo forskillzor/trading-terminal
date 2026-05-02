@@ -68,7 +68,6 @@ class ChartViewModel(
     }
 
     fun loadChart(ticker: String = "BTCUSDT", timeframe: String = "1h") {
-        println("[DEBUG-VM] loadChart(ticker=$ticker, timeframe=$timeframe)")
         // Reset history state when loading a new chart
         _hasMoreHistory.value = true
         _historyLoadCount.value = 0
@@ -92,7 +91,6 @@ class ChartViewModel(
                             _chartState.value = ChartState.Error(e.message ?: "Unknown error")
                         }
                         .collect { candles ->
-                            println("[DEBUG-VM] Flow emitted ${candles.size} candles, first=${candles.firstOrNull()?.timestamp}, last=${candles.lastOrNull()?.timestamp}")
                             if (candles.isNotEmpty()) {
                                 val lastPrice = candles.last().close
                                 _chartState.value = ChartState.Success(
@@ -114,27 +112,22 @@ class ChartViewModel(
     fun loadMoreHistory() {
         if (isLoadingMore || !_hasMoreHistory.value) return
         isLoadingMore = true
-        println("[DEBUG] loadMoreHistory() called — isLoadingMore=true, hasMoreHistory=${_hasMoreHistory.value}")
 
         viewModelScope.launch {
             try {
                 val state = _chartState.value
                 if (state !is ChartState.Success) {
-                    println("[DEBUG] loadMoreHistory: state is not Success, skipping (state=$state)")
                     isLoadingMore = false
                     return@launch
                 }
 
-                println("[DEBUG] loadMoreHistory: currentCandles=${state.candles.size}, oldest=${state.candles.firstOrNull()?.timestamp}")
 
                 val oldestTime = state.candles.firstOrNull()?.timestamp ?: run {
-                    println("[DEBUG] loadMoreHistory: no candles in state, skipping")
                     isLoadingMore = false
                     return@launch
                 }
 
                 val endTime = oldestTime - 1
-                println("[DEBUG] loadMoreHistory: calling repo.loadHistoricalCandlesBefore(symbol=${_currentSymbol.value}, interval=${_currentTimeframe.value}, endTime=$endTime, limit=200)")
 
                 val historicalCandles = chartRepository.loadHistoricalCandlesBefore(
                     ticker = _currentSymbol.value,
@@ -143,10 +136,7 @@ class ChartViewModel(
                     limit = 200
                 )
 
-                println("[DEBUG] loadMoreHistory: got ${historicalCandles.size} candles from API")
-
                 if (historicalCandles.isEmpty()) {
-                    println("[DEBUG] loadMoreHistory: empty response — hasMoreHistory=false")
                     _hasMoreHistory.value = false
                     isLoadingMore = false
                     return@launch
@@ -156,11 +146,9 @@ class ChartViewModel(
                 val lastPrice = newCandles.last().close
                 val loadedCount = historicalCandles.size
 
-                println("[DEBUG] loadMoreHistory: loaded $loadedCount candles, total now=${newCandles.size}, setting _historyLoadCount=$loadedCount")
 
                 // Cancel the real-time flow job so it doesn't overwrite our prepended candles
                 currentJob?.cancel()
-                println("[DEBUG] loadMoreHistory: cancelled currentJob to prevent real-time flow overwrite")
 
                 _chartState.value = ChartState.Success(
                     candles = newCandles,
@@ -168,10 +156,8 @@ class ChartViewModel(
                 )
                 _historyLoadCount.value = loadedCount
             } catch (e: Exception) {
-                println("[DEBUG] loadMoreHistory: EXCEPTION: ${e.message}")
                 e.printStackTrace()
             } finally {
-                println("[DEBUG] loadMoreHistory: finally — isLoadingMore=false")
                 isLoadingMore = false
             }
         }

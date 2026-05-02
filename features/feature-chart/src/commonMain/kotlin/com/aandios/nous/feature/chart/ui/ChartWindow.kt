@@ -20,9 +20,31 @@ import org.koin.compose.KoinContext
 import org.koin.compose.koinInject
 import org.koin.core.context.stopKoin
 
+/**
+ * Полноценное окно графика для использования внутри main приложения.
+ * Получает ChartViewModel из Koin автоматически.
+ */
 @Composable
 fun ChartWindow() {
     val chartViewModel: ChartViewModel = koinInject()
+    // Standalone окно (preview) — загружаем данные самостоятельно
+    LaunchedEffect(Unit) {
+        chartViewModel.loadChart()
+    }
+    ChartWindow(chartViewModel = chartViewModel)
+}
+
+/**
+ * Окно графика для использования внутри MainScreen (и др. композитов).
+ * Принимает ChartViewModel напрямую (чтобы не плодить лишних экземпляров при factory-scope).
+ *
+ * Загрузку графика (chartViewModel.loadChart()) ожидается, что вызывает родительский composable.
+ */
+@Composable
+fun ChartWindow(
+    chartViewModel: ChartViewModel,
+    modifier: Modifier = Modifier,
+) {
     val chartState by chartViewModel.chartState.collectAsState()
     val currentSymbol by chartViewModel.currentSymbol.collectAsState()
     val currentTimeframe by chartViewModel.currentTimeframe.collectAsState()
@@ -32,13 +54,8 @@ fun ChartWindow() {
 
     var crosshairEnabled by remember { mutableStateOf(false) }
 
-    // Загружаем данные при первом рендере
-    LaunchedEffect(Unit) {
-        chartViewModel.loadChart()
-    }
-
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
