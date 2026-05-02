@@ -48,7 +48,6 @@ class BinanceTradesAdapter(
                             try {
                                 val aggTrade = json.decodeFromString<BinanceAggTrade>(text)
                                 trySend(aggTrade.toTrade())
-                                println("send trade ${aggTrade.price}")
                             } catch (e: Exception) {
                                 println("⚠️ Trades parse error: ${e.message}")
                             }
