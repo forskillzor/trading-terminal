@@ -30,8 +30,6 @@ import com.aandios.nous.core.ui.component.TerminalDropdownWithLabel
 private val timeframes = listOf("1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w")
 
 private val toolbarBg = Color.Black.copy(alpha = 0.35f)
-private val activeTfColor = Color.White
-private val inactiveTfColor = Color.White.copy(alpha = 0.45f)
 private val accentColor = Color(0xFF5B9BD5) // мягкий голубой для активного
 
 @Composable
@@ -80,7 +78,7 @@ private fun CrosshairToggleButton(
 ) {
     Text(
         text = "\u29C9",  // ⧉ — символ перекрестия
-        color = if (enabled) accentColor else inactiveTfColor,
+        color = if (enabled) MaterialTheme.colorScheme.inverseOnSurface else MaterialTheme.colorScheme.surfaceVariant,
         fontSize = 14.sp,
         fontWeight = FontWeight.Bold,
         fontFamily = FontFamily.Monospace,
@@ -241,7 +239,7 @@ private fun TimeframeSelector(
 
             Text(
                 text = tf,
-                color = if (isActive) activeTfColor else inactiveTfColor,
+                color = if (isActive) MaterialTheme.colorScheme.inverseOnSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 11.sp,
                 fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
                 fontFamily = FontFamily.Monospace,
