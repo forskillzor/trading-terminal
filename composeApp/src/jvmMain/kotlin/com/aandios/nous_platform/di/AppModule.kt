@@ -3,135 +3,114 @@ package com.aandios.nous_platform.di
 import com.aandios.nous.api.market.NetworkManager
 import com.aandios.nous.api.market.Provider
 import com.aandios.nous.api.market.ProviderConfig
+import com.aandios.nous.api.market.adapters.BookTickerAdapter
+import com.aandios.nous.api.market.adapters.ChartAdapter
+import com.aandios.nous.api.market.adapters.DomAdapter
+import com.aandios.nous.api.market.adapters.SymbolInfoAdapter
 import com.aandios.nous.api.market.adapters.TradesAdapter
+import com.aandios.nous.core.data.repository.BookTickerRepositoryImpl
+import com.aandios.nous.core.data.repository.ChartRepositoryImpl
+import com.aandios.nous.core.data.repository.SymbolInfoRepositoryImpl
 import com.aandios.nous.core.data.repository.TradesRepositoryImpl
+import com.aandios.nous.core.di.coreModule
+import com.aandios.nous.core.domain.repository.BookTickerRepository
+import com.aandios.nous.core.domain.repository.ChartRepository
+import com.aandios.nous.core.domain.repository.DomRepository
+import com.aandios.nous.core.domain.repository.SymbolInfoRepository
 import com.aandios.nous.core.domain.repository.TradesRepository
-import com.aandios.nous.core.network.NetworkManagerImpl
+import com.aandios.nous.feature.chart.ui.ChartViewModel
+import com.aandios.nous.feature.dom.data.repository.DomRepositoryImpl
+import com.aandios.nous.feature.dom.ui.DomViewModel
 import com.aandios.nous.feature.trades.ui.TradesViewModel
 import com.aandios.nous.provider.binance.BinanceProviderFactory
-import com.aandios.nous_platform.data.api.binance.BinanceCandlesApi
-import com.aandios.nous_platform.data.api.binance.BinanceBookTickerApi
-import com.aandios.nous_platform.data.api.bybit.BybitApi
-import com.aandios.nous_platform.data.api.binance.BinanceDomApi
-import com.aandios.nous_platform.data.repository.BookTickerRepositoryImpl
-import com.aandios.nous_platform.data.repository.ChartRepositoryImpl
-import com.aandios.nous_platform.data.repository.DomRepositoryImpl
-import com.aandios.nous_platform.domain.repository.BookTickerRepository
-import com.aandios.nous_platform.domain.repository.ChartRepository
-import com.aandios.nous_platform.domain.repository.DomRepository
-import com.aandios.nous_platform.domain.usecases.GetChartByTickerUseCase
-import com.aandios.nous_platform.domain.usecases.GetChartByTickerUseCaseImpl
-import com.aandios.nous_platform.ui.chart.ChartViewModel
-import com.aandios.nous_platform.ui.dom.DomViewModel
 import com.aandios.nous_platform.ui.terminalLayout.TerminalStateViewModel
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
-import io.ktor.client.plugins.HttpTimeout
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.plugins.websocket.WebSockets
-import io.ktor.serialization.kotlinx.json.json
-import kotlinx.serialization.json.Json
 import org.koin.core.context.startKoin
 import org.koin.dsl.module
 
-// all in one, for beginning
+// Unified DI module using new feature-module classes
 val appModule = module {
 
-    // 1. HTTP clients
+    // 1. Core (NetworkManager + HttpClient)
+    includes(coreModule)
 
-    single {
-        HttpClient(CIO) {  // Явно указываем движок
-            // Таймауты для HTTP запросов
-            install(HttpTimeout) {
-                requestTimeoutMillis = 30000  // 30 секунд
-                connectTimeoutMillis = 15000  // 15 секунд
-                socketTimeoutMillis = 30000   // 30 секунд
-            }
-
-            // WebSocket плагин
-            install(WebSockets) {
-                pingIntervalMillis = 30000  // Пинг каждые 30 секунд
-                maxFrameSize = Long.MAX_VALUE
-            }
-
-            // Content negotiation
-            install(ContentNegotiation) {
-                json(Json {
-                    ignoreUnknownKeys = true
-                    isLenient = true
-                    encodeDefaults = true
-                })
-            }
-        }
+    // 2. Provider configuration and Provider instance (defined ONCE)
+    single<ProviderConfig> {
+        ProviderConfig(
+            apiKey = null,
+            secretKey = null,
+            isTestnet = false,
+            customSettings = emptyMap()
+        )
     }
 
-// 2. API clients
-    single<BinanceCandlesApi> {
-        BinanceCandlesApi(client = get())
+    single<Provider> {
+        val config = get<ProviderConfig>()
+        val networkManager = get<NetworkManager>()
+
+        BinanceProviderFactory().createProvider(
+            config = config,
+            networkManager = networkManager
+        )
     }
 
-    single<BybitApi> {
-        BybitApi(client = get())
+    // 3. Adapters from Provider
+    single<ChartAdapter> {
+        get<Provider>().chart ?: error("Chart adapter not available")
     }
 
-// 3. Repository
+    single<DomAdapter> {
+        get<Provider>().dom ?: error("DOM adapter not available")
+    }
+
+    single<BookTickerAdapter> {
+        get<Provider>().bookTicker ?: error("BookTicker adapter not available")
+    }
+
+    single<TradesAdapter> {
+        get<Provider>().trades ?: error("Trades adapter not available")
+    }
+
+    single<SymbolInfoAdapter> {
+        get<Provider>().symbolInfo ?: error("SymbolInfo adapter not available")
+    }
+
+    // 4. Repositories
     single<ChartRepository> {
-        ChartRepositoryImpl(
-            binanceCandlesApi = get(),
-            bybitApi = get()
-        )
+        ChartRepositoryImpl(chartAdapter = get())
     }
 
-    single<BinanceDomApi> {
-        BinanceDomApi(client = get())
-    }
-
-// DOM Repository
     single<DomRepository> {
-        DomRepositoryImpl(domApi = get())
-    }
-
-// DOM ViewModel
-    factory {
-        DomViewModel(
-            domRepository = get(),
-            bookTickerRepository = get(),
+        DomRepositoryImpl(
+            domAdapter = get(),
+            bookTickerAdapter = get()
         )
-    }
-
-    factory {
-        TerminalStateViewModel()
-    }
-
-// 4. Use Cases
-    single<GetChartByTickerUseCase> {
-        GetChartByTickerUseCaseImpl(
-            repository = get()
-        )
-    }
-
-// 5. ViewModels (factory - new instance for each screen)
-    factory {
-        ChartViewModel(
-            getChartUseCase = get()
-        )
-    }
-    // Trades через новую архитектуру Provider-Adapter
-    single<NetworkManager> { NetworkManagerImpl() }
-    single<ProviderConfig> { ProviderConfig(apiKey = null, secretKey = null, isTestnet = false, customSettings = emptyMap()) }
-    single<Provider> { BinanceProviderFactory().createProvider(config = get(), networkManager = get()) }
-    single<TradesAdapter> { get<Provider>().trades ?: error("Trades adapter not available") }
-    single<TradesRepository> { TradesRepositoryImpl(tradesAdapter = get()) }
-    single<BinanceBookTickerApi> {
-        BinanceBookTickerApi(client = get())
     }
 
     single<BookTickerRepository> {
-        BookTickerRepositoryImpl(bestPricesApi = get())
+        BookTickerRepositoryImpl(bookTicker = get())
     }
 
     single<TradesRepository> {
         TradesRepositoryImpl(tradesAdapter = get())
+    }
+
+    single<SymbolInfoRepository> {
+        SymbolInfoRepositoryImpl(symbolInfoAdapter = get())
+    }
+
+    // 5. ViewModels
+    factory {
+        ChartViewModel(
+            chartRepository = get(),
+            symbolInfoAdapter = get()
+        )
+    }
+
+    factory {
+        DomViewModel(
+            domRepository = get(),
+            symbolInfoRepository = get()
+        )
     }
 
     factory {
@@ -139,8 +118,11 @@ val appModule = module {
             tradesRepository = get()
         )
     }
-}
 
+    factory {
+        TerminalStateViewModel()
+    }
+}
 
 // Simple initialization
 fun initKoin() {

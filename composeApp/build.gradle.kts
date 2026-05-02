@@ -18,7 +18,7 @@ kotlin {
 
         commonMain.dependencies {
             // Modules
-            implementation(project(":features:feature-trades"))
+            implementation(project(":features:feature-chart"))
             implementation(project(":features:feature-dom"))
             implementation(project(":features:feature-trades"))
             implementation(project(":platform-core"))

@@ -10,15 +10,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.aandios.nous.core.ui.theme.ChartColors
+import com.aandios.nous.feature.chart.ui.ChartConfig
+import com.aandios.nous.feature.chart.ui.CandleStyle
+import com.aandios.nous.feature.chart.ui.ChartState
+import com.aandios.nous.feature.chart.ui.ChartViewModel
+import com.aandios.nous.feature.chart.ui.chart.CandleStickChart
+import com.aandios.nous.feature.dom.domain.TradingSymbol
+import com.aandios.nous.feature.dom.ui.DomViewModel
 import com.aandios.nous.feature.trades.ui.TradesViewModel
 import com.aandios.nous.feature.trades.ui.TradesWidget
-import com.aandios.nous_platform.ui.chart.*
 import com.aandios.nous_platform.ui.components.*
-import com.aandios.nous_platform.ui.dom.DomViewModel
 import com.aandios.nous_platform.ui.dom.DomWidget
-import com.aandios.nous_platform.ui.theme.ChartColors
-//import com.aandios.nous.feature.trades.ui.TradesViewModel
-//import com.aandios.nous.feature.trades.ui.TradesWidget
 import com.aandios.nous_platform.utils.formatPrice
 
 @Composable
@@ -29,10 +32,6 @@ fun MainScreen(
     modifier: Modifier = Modifier,
 ) {
     val chartState by chartViewModel.chartState.collectAsState()
-    val orderBook by domViewModel.orderBook.collectAsState()
-    val bestPrices by domViewModel.bestPrices.collectAsState()
-    val selectedPrice by domViewModel.selectedPrice.collectAsState()
-    val orderQuantity by domViewModel.orderQuantity.collectAsState()
 
     var selectedSymbol by remember { mutableStateOf("BTCUSDT") }
     var selectedTimeframe by remember { mutableStateOf("1h") }
@@ -49,7 +48,12 @@ fun MainScreen(
 
     LaunchedEffect(selectedSymbol, selectedTimeframe) {
         chartViewModel.loadChart(selectedSymbol, selectedTimeframe)
-        domViewModel.subscribeToOrderBook(selectedSymbol)
+        domViewModel.updateDomOptions(
+            domViewModel.domOptions.value.copy(
+                symbol = TradingSymbol.findSymbol(selectedSymbol, domViewModel.domOptions.value.provider)
+                    ?: TradingSymbol(selectedSymbol, selectedSymbol, domViewModel.domOptions.value.provider)
+            )
+        )
         tradesViewModel.subscribeToTrades(selectedSymbol)
     }
 
@@ -92,15 +96,7 @@ fun MainScreen(
 
                 // DOM
                 DomWidget(
-                    orderBook = orderBook,
-                    bestPrices = bestPrices,
-                    selectedPrice = selectedPrice,
-                    onPriceSelected = { price -> domViewModel.selectPrice(price) },
-                    orderQuantity = orderQuantity,
-                    onQuantityChanged = { quantity -> domViewModel.updateOrderQuantity(quantity) },
-                    onTradingCommand = { command -> domViewModel.executeCommand(command) },
-                    onCommandResult = domViewModel::onCommandResult,
-                    isTradingEnabled = domViewModel.isTradingEnabled.collectAsState().value,
+                    domViewModel = domViewModel,
                     modifier = Modifier.width(300.dp)
                 )
 
@@ -250,7 +246,7 @@ private fun ChartWidget(
 
                     CandleStickChart(
                         candles = candles,
-                        currentPrice = lastPrice,  // ДОБАВИЛ
+                        currentPrice = lastPrice,
                         modifier = Modifier
                             .padding(16.dp),
                         config = chartConfig
