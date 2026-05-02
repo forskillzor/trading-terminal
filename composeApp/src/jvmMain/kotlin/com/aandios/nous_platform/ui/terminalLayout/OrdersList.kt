@@ -21,7 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.aandios.nous_platform.data.api.binance.models.TradeSide
+import com.aandios.nous.api.market.model.trading.TradeSide
 import com.aandios.nous_platform.utils.formatTime
 import org.jetbrains.compose.resources.painterResource
 import nous_platform.composeapp.generated.resources.Res

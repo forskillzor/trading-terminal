@@ -10,13 +10,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.aandios.nous.feature.trades.ui.TradesViewModel
+import com.aandios.nous.feature.trades.ui.TradesWidget
 import com.aandios.nous_platform.ui.chart.*
 import com.aandios.nous_platform.ui.components.*
 import com.aandios.nous_platform.ui.dom.DomViewModel
 import com.aandios.nous_platform.ui.dom.DomWidget
 import com.aandios.nous_platform.ui.theme.ChartColors
-import com.aandios.nous_platform.ui.trades.TradesViewModel
-import com.aandios.nous_platform.ui.trades.TradesWidget
+//import com.aandios.nous.feature.trades.ui.TradesViewModel
+//import com.aandios.nous.feature.trades.ui.TradesWidget
 import com.aandios.nous_platform.utils.formatPrice
 
 @Composable

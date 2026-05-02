@@ -7,6 +7,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import com.aandios.nous.feature.trades.ui.TradesViewModel
 import com.aandios.nous_platform.di.initKoin
 import com.aandios.nous_platform.ui.main.MainScreen
 import com.aandios.nous_platform.ui.chart.ChartViewModel
@@ -14,7 +15,7 @@ import com.aandios.nous_platform.ui.dom.DomViewModel
 import com.aandios.nous_platform.ui.terminalLayout.TerminalLayout
 import com.aandios.nous_platform.ui.terminalLayout.TerminalStateViewModel
 import com.aandios.nous_platform.ui.theme.TradingTerminalTheme
-import com.aandios.nous_platform.ui.trades.TradesViewModel
+//import com.aandios.nous.feature.trades.ui.TradesViewModel
 import org.koin.compose.koinInject
 
 fun main() = application {

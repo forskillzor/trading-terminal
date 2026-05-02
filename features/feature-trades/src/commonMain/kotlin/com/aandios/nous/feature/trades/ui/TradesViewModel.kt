@@ -1,11 +1,18 @@
-package com.aandios.nous_platform.ui.trades
+package com.aandios.nous.feature.trades.ui
 
-import com.aandios.nous_platform.data.api.binance.models.Trade
-import com.aandios.nous_platform.domain.repository.TradesRepository
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.*
-import java.text.SimpleDateFormat
-import java.util.*
+import com.aandios.nous.api.market.model.trades.Trade
+import com.aandios.nous.core.domain.repository.TradesRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.launch
 
 class TradesViewModel(
     private val tradesRepository: TradesRepository
@@ -16,7 +23,7 @@ class TradesViewModel(
     private val _trades = MutableStateFlow<List<Trade>>(emptyList())
     val trades: StateFlow<List<Trade>> = _trades.asStateFlow()
 
-    private val maxTrades = 100 // Максимальное количество отображаемых сделок
+    private val maxTrades = 100
 
     fun subscribeToTrades(symbol: String) {
         subscriptionJob?.cancel()
@@ -27,7 +34,6 @@ class TradesViewModel(
                     println("Trades subscription error: ${e.message}")
                 }
                 .collect { trade ->
-                    // Добавляем новую сделку в начало списка
                     val updatedTrades = listOf(trade) + _trades.value.take(maxTrades - 1)
                     _trades.value = updatedTrades
                 }
@@ -35,9 +41,11 @@ class TradesViewModel(
     }
 
     fun formatTime(timestamp: Long): String {
-        val date = Date(timestamp)
-        val formatter = SimpleDateFormat("HH:mm:ss")
-        return formatter.format(date)
+        val seconds = timestamp / 1000
+        val hours = (seconds / 3600) % 24
+        val minutes = (seconds / 60) % 60
+        val secs = seconds % 60
+        return "${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}"
     }
 
     fun formatPrice(price: Double): String {

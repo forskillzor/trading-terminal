@@ -15,7 +15,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.aandios.nous_platform.data.api.binance.models.TradeSide
+import com.aandios.nous.api.market.model.trading.TradeSide
+//import com.aandios.nous_platform.data.api.binance.models.TradeSide
 
 // Панель портфеля с табами
 @Composable

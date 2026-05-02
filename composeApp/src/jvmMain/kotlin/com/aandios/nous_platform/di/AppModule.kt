@@ -1,24 +1,29 @@
 package com.aandios.nous_platform.di
 
+import com.aandios.nous.api.market.NetworkManager
+import com.aandios.nous.api.market.Provider
+import com.aandios.nous.api.market.ProviderConfig
+import com.aandios.nous.api.market.adapters.TradesAdapter
+import com.aandios.nous.core.data.repository.TradesRepositoryImpl
+import com.aandios.nous.core.domain.repository.TradesRepository
+import com.aandios.nous.core.network.NetworkManagerImpl
+import com.aandios.nous.feature.trades.ui.TradesViewModel
+import com.aandios.nous.provider.binance.BinanceProviderFactory
 import com.aandios.nous_platform.data.api.binance.BinanceCandlesApi
 import com.aandios.nous_platform.data.api.binance.BinanceBookTickerApi
 import com.aandios.nous_platform.data.api.bybit.BybitApi
 import com.aandios.nous_platform.data.api.binance.BinanceDomApi
-import com.aandios.nous_platform.data.api.binance.BinanceTradesApi
 import com.aandios.nous_platform.data.repository.BookTickerRepositoryImpl
 import com.aandios.nous_platform.data.repository.ChartRepositoryImpl
 import com.aandios.nous_platform.data.repository.DomRepositoryImpl
-import com.aandios.nous_platform.data.repository.TradesRepositoryImpl
 import com.aandios.nous_platform.domain.repository.BookTickerRepository
 import com.aandios.nous_platform.domain.repository.ChartRepository
 import com.aandios.nous_platform.domain.repository.DomRepository
-import com.aandios.nous_platform.domain.repository.TradesRepository
 import com.aandios.nous_platform.domain.usecases.GetChartByTickerUseCase
 import com.aandios.nous_platform.domain.usecases.GetChartByTickerUseCaseImpl
 import com.aandios.nous_platform.ui.chart.ChartViewModel
 import com.aandios.nous_platform.ui.dom.DomViewModel
 import com.aandios.nous_platform.ui.terminalLayout.TerminalStateViewModel
-import com.aandios.nous_platform.ui.trades.TradesViewModel
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
@@ -111,25 +116,28 @@ val appModule = module {
             getChartUseCase = get()
         )
     }
-    single<BinanceTradesApi> {
-        BinanceTradesApi(client = get())
-    }
-
-    single<TradesRepository> {
-        TradesRepositoryImpl(tradesApi = get())
-    }
-
-    factory {
-        TradesViewModel(
-            tradesRepository = get()
-        )
-    }
+    // Trades через новую архитектуру Provider-Adapter
+    single<NetworkManager> { NetworkManagerImpl() }
+    single<ProviderConfig> { ProviderConfig(apiKey = null, secretKey = null, isTestnet = false, customSettings = emptyMap()) }
+    single<Provider> { BinanceProviderFactory().createProvider(config = get(), networkManager = get()) }
+    single<TradesAdapter> { get<Provider>().trades ?: error("Trades adapter not available") }
+    single<TradesRepository> { TradesRepositoryImpl(tradesAdapter = get()) }
     single<BinanceBookTickerApi> {
         BinanceBookTickerApi(client = get())
     }
 
     single<BookTickerRepository> {
         BookTickerRepositoryImpl(bestPricesApi = get())
+    }
+
+    single<TradesRepository> {
+        TradesRepositoryImpl(tradesAdapter = get())
+    }
+
+    factory {
+        TradesViewModel(
+            tradesRepository = get()
+        )
     }
 }
 

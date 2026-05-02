@@ -17,6 +17,14 @@ kotlin {
         }
 
         commonMain.dependencies {
+            // Modules
+            implementation(project(":features:feature-trades"))
+            implementation(project(":features:feature-dom"))
+            implementation(project(":features:feature-trades"))
+            implementation(project(":platform-core"))
+            implementation(project(":public-api:api-market"))
+            implementation(project(":providers:binance-provider"))
+
             // Koin
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
