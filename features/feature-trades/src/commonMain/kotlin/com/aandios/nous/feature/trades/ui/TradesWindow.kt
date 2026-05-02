@@ -22,7 +22,6 @@ import org.koin.core.context.stopKoin
 @Composable
 fun TradesWindow() {
     val viewModel: TradesViewModel = koinInject()
-    val trades by viewModel.trades.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.subscribeToTrades("BTCUSDT")

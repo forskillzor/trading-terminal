@@ -14,28 +14,41 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
+sealed class TradesState {
+    data object Loading : TradesState()
+    data class Connected(val trades: List<Trade>) : TradesState()
+    data class Error(val message: String) : TradesState()
+}
+
 class TradesViewModel(
     private val tradesRepository: TradesRepository
 ) {
     private val viewModelScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var subscriptionJob: Job? = null
 
-    private val _trades = MutableStateFlow<List<Trade>>(emptyList())
-    val trades: StateFlow<List<Trade>> = _trades.asStateFlow()
+    private val _state = MutableStateFlow<TradesState>(TradesState.Loading)
+    val state: StateFlow<TradesState> = _state.asStateFlow()
 
     private val maxTrades = 100
 
+    private var currentSymbol: String = ""
+
     fun subscribeToTrades(symbol: String) {
+        if (symbol == currentSymbol && _state.value is TradesState.Connected) return
+        currentSymbol = symbol
+
         subscriptionJob?.cancel()
+        _state.value = TradesState.Loading
 
         subscriptionJob = viewModelScope.launch {
             tradesRepository.getTradesStream(symbol)
                 .catch { e ->
-                    println("Trades subscription error: ${e.message}")
+                    println("❌ Trades subscription error: ${e.message}")
+                    _state.value = TradesState.Error("Ошибка: ${e.message}")
                 }
                 .collect { trade ->
-                    val updatedTrades = listOf(trade) + _trades.value.take(maxTrades - 1)
-                    _trades.value = updatedTrades
+                    val trades = listOf(trade) + (_state.value as? TradesState.Connected)?.trades.orEmpty().take(maxTrades - 1)
+                    _state.value = TradesState.Connected(trades)
                 }
         }
     }

@@ -38,7 +38,7 @@ fun TradesWidget(
     viewModel: TradesViewModel,
     modifier: Modifier = Modifier
 ) {
-    val trades by viewModel.trades.collectAsState()
+    val state by viewModel.state.collectAsState()
 
     Column(modifier = modifier.background(MaterialTheme.colorScheme.background)) {
         // Заголовки
@@ -46,25 +46,54 @@ fun TradesWidget(
 
         HorizontalDivider(thickness = 1.dp, color = Color(0xFF333333))
 
-        if (trades.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Ожидание данных...",
-                    color = Color.Gray,
-                    fontSize = 13.sp
-                )
-            }
-        } else {
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                items(trades, key = { it.id }) { trade ->
-                    TradeRow(
-                        trade = trade,
-                        viewModel = viewModel,
-                        index = trades.indexOf(trade)
+        when (val currentState = state) {
+            is TradesState.Loading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Подключение...",
+                        color = Color.Gray,
+                        fontSize = 13.sp
                     )
+                }
+            }
+            is TradesState.Error -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = currentState.message,
+                        color = Color(0xFFEF5350),
+                        fontSize = 13.sp
+                    )
+                }
+            }
+            is TradesState.Connected -> {
+                val trades = currentState.trades
+                if (trades.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Ожидание данных...",
+                            color = Color.Gray,
+                            fontSize = 13.sp
+                        )
+                    }
+                } else {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        items(trades, key = { it.id }) { trade ->
+                            TradeRow(
+                                trade = trade,
+                                viewModel = viewModel,
+                                index = trades.indexOf(trade)
+                            )
+                        }
+                    }
                 }
             }
         }
