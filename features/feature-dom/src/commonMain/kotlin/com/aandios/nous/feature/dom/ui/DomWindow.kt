@@ -43,6 +43,7 @@ fun DomWindow(
     modifier: Modifier = Modifier,
 ) {
     val domOptions by domViewModel.domOptions.collectAsState()
+    val loadedSymbols by domViewModel.loadedSymbols.collectAsState()
     val orderQuantity by domViewModel.orderQuantity.collectAsState()
     val isTradingEnabled by domViewModel.isTradingEnabled.collectAsState()
     val symbolTickSize by domViewModel.symbolTickSize.collectAsState()
@@ -89,6 +90,7 @@ fun DomWindow(
         DomHeader(
             domOptions = domOptions,
             symbolTickSize = symbolTickSize,
+            loadedSymbols = loadedSymbols,
             onDomOptionsChanged = { newOptions -> domViewModel.updateDomOptions(newOptions) }
         )
         // Контент DOM (занимает всё доступное пространство)

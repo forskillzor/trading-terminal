@@ -1,5 +1,7 @@
 package com.aandios.nous.feature.dom.domain
 
+import com.aandios.nous.api.market.model.SymbolInfo
+
 /**
  * Торговый символ (пара) для отображения в DOM.
  */
@@ -9,6 +11,23 @@ data class TradingSymbol(
     val provider: TradingProvider
 ) {
     companion object {
+
+        /**
+         * Создаёт TradingSymbol из SymbolInfo (данные symbolInfoAdapter).
+         * Форматирует displayName через baseAsset/quoteAsset, если доступны.
+         */
+        fun fromSymbolInfo(info: SymbolInfo, provider: TradingProvider): TradingSymbol {
+            val displayName = if (info.baseAsset.isNotEmpty() && info.quoteAsset.isNotEmpty()) {
+                "${info.baseAsset}/${info.quoteAsset}"
+            } else {
+                info.symbol
+            }
+            return TradingSymbol(
+                symbol = info.symbol,
+                displayName = displayName,
+                provider = provider
+            )
+        }
         /**
          * Стандартные символы для Binance Spot.
          */

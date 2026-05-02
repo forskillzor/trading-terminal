@@ -2,9 +2,12 @@ package com.aandios.nous.feature.dom.ui
 
 import androidx.compose.runtime.mutableStateMapOf
 import com.aandios.nous.api.market.commands.*
+import com.aandios.nous.api.market.model.SymbolInfo
 import com.aandios.nous.core.domain.repository.DomRepository
 import com.aandios.nous.core.domain.repository.SymbolInfoRepository
 import com.aandios.nous.feature.dom.domain.DomOptions
+import com.aandios.nous.feature.dom.domain.TradingProvider
+import com.aandios.nous.feature.dom.domain.TradingSymbol
 import com.aandios.nous.api.market.model.orderbook.DomEvent
 import com.aandios.nous.feature.dom.domain.model.OrderIntent
 import kotlinx.coroutines.*
@@ -39,6 +42,10 @@ class DomViewModel(
     private val _lastCommandResult = MutableStateFlow<CommandResult?>(null)
     val lastCommandResult: StateFlow<CommandResult?> = _lastCommandResult.asStateFlow()
 
+    // Символы, загруженные через symbolInfoRepository
+    private val _loadedSymbols = MutableStateFlow<List<TradingSymbol>>(emptyList())
+    val loadedSymbols: StateFlow<List<TradingSymbol>> = _loadedSymbols.asStateFlow()
+
     private val _symbolTickSize = MutableStateFlow<Double?>(null)
     val symbolTickSize: StateFlow<Double?> = _symbolTickSize.asStateFlow()
 
@@ -64,6 +71,9 @@ class DomViewModel(
     val incrementalBestAskQuantity: StateFlow<Double?> = _incrementalBestAskQuantity.asStateFlow()
 
     init {
+        // Загружаем список всех символов через symbolInfoRepository (как в ChartViewModel)
+        loadSymbols()
+
         // Загружаем tickSize для дефолтного символа при инициализации
         viewModelScope.launch {
             delay(500) // небольшая задержка, чтобы не блокировать старт
@@ -260,6 +270,29 @@ class DomViewModel(
             }
         }
         executeCommand(command)
+    }
+
+    /**
+     * Загружает все торговые символы через symbolInfoRepository.getAllSymbolsInfo()
+     * и маппит их в TradingSymbol. Аналог ChartViewModel.loadSymbols().
+     */
+    private fun loadSymbols() {
+        if (symbolInfoRepository == null) return
+
+        viewModelScope.launch {
+            try {
+                val allSymbols = symbolInfoRepository?.getAllSymbolsInfo() ?: emptyList()
+                val tradingSymbols = allSymbols
+                    .filter { it.status == "TRADING" }
+                    .map { TradingSymbol.fromSymbolInfo(it, _domOptions.value.provider) }
+                    .sortedBy { it.symbol }
+                if (tradingSymbols.isNotEmpty()) {
+                    _loadedSymbols.value = tradingSymbols
+                }
+            } catch (e: Exception) {
+                println("⚠️ Failed to load symbols from SymbolInfoRepository: ${e.message}")
+            }
+        }
     }
 
     private fun fetchSymbolTickSize(symbol: String) {

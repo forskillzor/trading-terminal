@@ -18,6 +18,7 @@ import com.aandios.nous.feature.dom.domain.*
 fun DomHeader(
     domOptions: DomOptions,
     onDomOptionsChanged: (DomOptions) -> Unit,
+    loadedSymbols: List<TradingSymbol> = emptyList(),
     isLive: Boolean = true,
     symbolTickSize: Double? = null,
     modifier: Modifier = Modifier
@@ -37,6 +38,7 @@ fun DomHeader(
         ExpandedDomHeader(
             domOptions = domOptions,
             onDomOptionsChanged = onDomOptionsChanged,
+            loadedSymbols = loadedSymbols,
             isLive = isLive,
             symbolTickSize = symbolTickSize,
             modifier = modifier
@@ -51,6 +53,7 @@ fun DomHeader(
 private fun ExpandedDomHeader(
     domOptions: DomOptions,
     onDomOptionsChanged: (DomOptions) -> Unit,
+    loadedSymbols: List<TradingSymbol> = emptyList(),
     isLive: Boolean = true,
     symbolTickSize: Double? = null,
     modifier: Modifier = Modifier
@@ -141,6 +144,7 @@ private fun ExpandedDomHeader(
                 SymbolDropdown(
                     currentSymbol = domOptions.symbol,
                     provider = domOptions.provider,
+                    availableSymbols = loadedSymbols,
                     onSymbolChanged = { newSymbol ->
                         onDomOptionsChanged(domOptions.copy(symbol = newSymbol))
                     },
