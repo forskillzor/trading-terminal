@@ -13,7 +13,7 @@ import com.aandios.nous.feature.dom.domain.TradingSymbol
 import com.aandios.nous.feature.dom.ui.DomViewModel
 import com.aandios.nous.feature.dom.ui.DomWindow
 import com.aandios.nous.feature.trades.ui.TradesViewModel
-import com.aandios.nous.feature.trades.ui.TradesWidget
+import com.aandios.nous.feature.trades.ui.TradesWindow
 import com.aandios.nous_platform.ui.components.*
 
 @Composable
@@ -78,8 +78,8 @@ fun MainScreen(
                 )
 
                 // Trades
-                TradesWidget(
-                    viewModel = tradesViewModel,
+                TradesWindow(
+                    tradesViewModel = tradesViewModel,
                     modifier = Modifier
                         .width(250.dp)
                 )

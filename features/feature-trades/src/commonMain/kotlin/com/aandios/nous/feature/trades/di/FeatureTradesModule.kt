@@ -3,9 +3,12 @@ package com.aandios.nous.feature.trades.di
 import com.aandios.nous.api.market.NetworkManager
 import com.aandios.nous.api.market.Provider
 import com.aandios.nous.api.market.ProviderConfig
+import com.aandios.nous.api.market.adapters.SymbolInfoAdapter
 import com.aandios.nous.api.market.adapters.TradesAdapter
+import com.aandios.nous.core.data.repository.SymbolInfoRepositoryImpl
 import com.aandios.nous.core.data.repository.TradesRepositoryImpl
 import com.aandios.nous.core.di.coreModule
+import com.aandios.nous.core.domain.repository.SymbolInfoRepository
 import com.aandios.nous.core.domain.repository.TradesRepository
 import com.aandios.nous.feature.trades.ui.TradesViewModel
 import com.aandios.nous.provider.binance.BinanceProviderFactory
@@ -49,18 +52,29 @@ val featureTradesModule = module {
         )
     }
 
-    // 3. Адаптер Trades из провайдера
+    // 3. Адаптеры из провайдера
     single<TradesAdapter> {
         get<Provider>().trades ?: error("Trades adapter not available")
     }
 
-    // 4. Репозиторий Trades (используем готовый из platform-core)
+    single<SymbolInfoAdapter> {
+        get<Provider>().symbolInfo ?: error("SymbolInfo adapter not available")
+    }
+
+    // 4. Репозитории
     single<TradesRepository> {
         TradesRepositoryImpl(tradesAdapter = get())
     }
 
+    single<SymbolInfoRepository> {
+        SymbolInfoRepositoryImpl(symbolInfoAdapter = get())
+    }
+
     // 5. ViewModel
     factory {
-        TradesViewModel(tradesRepository = get())
+        TradesViewModel(
+            tradesRepository = get(),
+            symbolInfoRepository = get()
+        )
     }
 }

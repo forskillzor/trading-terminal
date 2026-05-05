@@ -1,19 +1,12 @@
 package com.aandios.nous.feature.trades.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -25,27 +18,47 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.aandios.nous.api.market.model.SymbolInfo
 import com.aandios.nous.api.market.model.trades.Trade
+import com.aandios.nous.feature.trades.ui.header.SizeFilterDropdown
+import com.aandios.nous.feature.trades.ui.header.TradesSymbolDropdown
 
-private val BuyColor = Color(0xFF26A69A)      // зелёный — покупка
-private val SellColor = Color(0xFFEF5350)     // красный — продажа
-private val HeaderBg = Color(0xFF1E1E1E)
-private val RowBgEven = Color(0xFF1A1A1A)
-private val RowBgOdd = Color(0xFF141414)
-
+/**
+ * Панель для отображения потока сделок (Trades).
+ * Использует MaterialTheme цвета (как feature-dom) + кастомный header с dropdowns.
+ */
 @Composable
 fun TradesWidget(
     viewModel: TradesViewModel,
-    modifier: Modifier = Modifier
+    currentSymbol: String,
+    onSymbolChanged: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val state by viewModel.state.collectAsState()
+    val loadedSymbols by viewModel.loadedSymbols.collectAsState()
+    val currentSymbolInfo by viewModel.currentSymbolInfo.collectAsState()
+    val selectedSizeFilter by viewModel.selectedSizeFilter.collectAsState()
 
     Column(modifier = modifier.background(MaterialTheme.colorScheme.background)) {
-        // Заголовки
-        HeaderRow()
+        // Header bar с dropdowns (как в feature-dom)
+        TradesHeaderBar(
+            currentSymbol = currentSymbol,
+            availableSymbols = loadedSymbols,
+            currentSymbolInfo = currentSymbolInfo,
+            selectedSizeFilter = selectedSizeFilter,
+            onSymbolChanged = onSymbolChanged,
+            onSizeFilterChanged = { viewModel.updateSizeFilter(it) },
+        )
 
-        HorizontalDivider(thickness = 1.dp, color = Color(0xFF333333))
+        // Заголовки колонок
+        ColumnHeaderRow()
 
+        HorizontalDivider(
+            thickness = 1.dp,
+            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+        )
+
+        // Контент
         when (val currentState = state) {
             is TradesState.Loading -> {
                 Box(
@@ -54,7 +67,7 @@ fun TradesWidget(
                 ) {
                     Text(
                         text = "Подключение...",
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 13.sp
                     )
                 }
@@ -66,31 +79,33 @@ fun TradesWidget(
                 ) {
                     Text(
                         text = currentState.message,
-                        color = Color(0xFFEF5350),
+                        color = MaterialTheme.colorScheme.error,
                         fontSize = 13.sp
                     )
                 }
             }
             is TradesState.Connected -> {
-                val trades = currentState.trades
-                if (trades.isEmpty()) {
+                val allTrades = currentState.trades
+                val filteredTrades = viewModel.getFilteredTrades(allTrades)
+
+                if (filteredTrades.isEmpty()) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Ожидание данных...",
-                            color = Color.Gray,
+                            text = if (selectedSizeFilter != SizeFilter.All) "Нет сделок > фильтра" else "Ожидание данных...",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 13.sp
                         )
                     }
                 } else {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(trades, key = { it.id }) { trade ->
+                        items(filteredTrades, key = { it.id }) { trade ->
                             TradeRow(
                                 trade = trade,
                                 viewModel = viewModel,
-                                index = trades.indexOf(trade)
+                                index = filteredTrades.indexOf(trade)
                             )
                         }
                     }
@@ -100,24 +115,80 @@ fun TradesWidget(
     }
 }
 
+/**
+ * Верхняя панель с symbol dropdown и size filter dropdown (как в DomHeader).
+ */
 @Composable
-private fun HeaderRow() {
+private fun TradesHeaderBar(
+    currentSymbol: String,
+    availableSymbols: List<SymbolInfo>,
+    currentSymbolInfo: SymbolInfo?,
+    selectedSizeFilter: SizeFilter,
+    onSymbolChanged: (String) -> Unit,
+    onSizeFilterChanged: (SizeFilter) -> Unit,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        tonalElevation = 1.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Symbol dropdown
+            TradesSymbolDropdown(
+                currentSymbol = currentSymbol,
+                availableSymbols = availableSymbols,
+                onSymbolChanged = onSymbolChanged,
+                modifier = Modifier.weight(1.4f)
+            )
+
+            // Size filter dropdown
+            SizeFilterDropdown(
+                currentFilter = selectedSizeFilter,
+                minQty = currentSymbolInfo?.minQty,
+                onFilterChanged = onSizeFilterChanged,
+                modifier = Modifier.weight(1f)
+            )
+
+            // Live индикатор
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .background(
+                        color = Color.Green,
+                        shape = MaterialTheme.shapes.small
+                    )
+            )
+        }
+    }
+}
+
+/**
+ * Строка заголовков колонок: Время / Цена / Кол-во.
+ */
+@Composable
+private fun ColumnHeaderRow() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(HeaderBg)
-            .padding(horizontal = 8.dp, vertical = 6.dp)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .padding(horizontal = 8.dp, vertical = 5.dp)
     ) {
         Text(
             text = "Время",
-            color = Color.Gray,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.weight(1.2f)
         )
         Text(
             text = "Цена",
-            color = Color.Gray,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
             textAlign = TextAlign.End,
@@ -125,7 +196,7 @@ private fun HeaderRow() {
         )
         Text(
             text = "Кол-во",
-            color = Color.Gray,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
             textAlign = TextAlign.End,
@@ -134,26 +205,32 @@ private fun HeaderRow() {
     }
 }
 
+/**
+ * Строка одной сделки.
+ * Цвета: buy = MaterialTheme.colorScheme.primary, sell = MaterialTheme.colorScheme.secondary.
+ */
 @Composable
 private fun TradeRow(
     trade: Trade,
     viewModel: TradesViewModel,
     index: Int
 ) {
-    val bgColor = if (index % 2 == 0) RowBgEven else RowBgOdd
-    val priceColor = if (trade.isBuyerMaker) SellColor else BuyColor
+    val bgColor = if (index % 2 == 0) Color.Transparent
+    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
+    val priceColor = if (trade.isBuyerMaker) MaterialTheme.colorScheme.secondary  // продажа (красный)
+    else MaterialTheme.colorScheme.primary  // покупка (зелёный)
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(bgColor)
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .padding(horizontal = 8.dp, vertical = 0.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Время
         Text(
             text = viewModel.formatTime(trade.timestamp),
-            color = Color(0xFFB0B0B0),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 11.sp,
             modifier = Modifier.weight(1.2f)
         )
@@ -171,7 +248,7 @@ private fun TradeRow(
         // Количество
         Text(
             text = viewModel.formatQuantity(trade.quantity),
-            color = Color(0xFFB0B0B0),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 11.sp,
             textAlign = TextAlign.End,
             modifier = Modifier.weight(0.8f)

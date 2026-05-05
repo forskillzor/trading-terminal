@@ -41,7 +41,7 @@ kotlin {
         }
 
         jvmMain.dependencies {
-            // JVM-specific dependencies
+            implementation(compose.desktop.currentOs)
         }
     }
 }

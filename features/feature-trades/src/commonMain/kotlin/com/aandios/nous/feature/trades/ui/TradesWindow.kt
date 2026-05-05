@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
@@ -19,21 +21,40 @@ import org.koin.compose.KoinContext
 import org.koin.compose.koinInject
 import org.koin.core.context.stopKoin
 
+/**
+ * Trades-панель для использования в preview (или изолированного теста).
+ * Инжектит TradesViewModel через Koin и делегирует полной сигнатуре.
+ */
 @Composable
 fun TradesWindow() {
-    val viewModel: TradesViewModel = koinInject()
+    val tradesViewModel: TradesViewModel = koinInject()
+    TradesWindow(tradesViewModel = tradesViewModel)
+}
 
-    LaunchedEffect(Unit) {
-        viewModel.subscribeToTrades("BTCUSDT")
+/**
+ * Trades-панель для использования внутри MainScreen (и др. композитов).
+ * Принимает TradesViewModel напрямую (чтобы не плодить лишних экземпляров при factory-scope).
+ */
+@Composable
+fun TradesWindow(
+    tradesViewModel: TradesViewModel,
+    modifier: Modifier = Modifier,
+) {
+    var currentSymbol by remember { mutableStateOf("BTCUSDT") }
+
+    LaunchedEffect(currentSymbol) {
+        tradesViewModel.subscribeToTrades(currentSymbol)
     }
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
         TradesWidget(
-            viewModel = viewModel,
+            viewModel = tradesViewModel,
+            currentSymbol = currentSymbol,
+            onSymbolChanged = { currentSymbol = it },
             modifier = Modifier.fillMaxSize()
         )
     }
