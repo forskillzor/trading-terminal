@@ -40,8 +40,12 @@ kotlin {
             api(libs.koin.core)
         }
 
+        jvmMain {
+            resources.srcDir("src/jvmMain/resources")
+        }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
+            implementation(compose.components.uiToolingPreview)
         }
     }
 }

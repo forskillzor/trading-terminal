@@ -19,6 +19,7 @@ kotlin {
 
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
+            implementation(compose.components.uiToolingPreview)
             implementation(libs.kotlinx.coroutines.swing)
         }
 
