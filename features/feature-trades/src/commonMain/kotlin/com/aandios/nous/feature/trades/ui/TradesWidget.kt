@@ -6,7 +6,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -18,10 +17,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.aandios.nous.api.market.model.SymbolInfo
 import com.aandios.nous.api.market.model.trades.Trade
-import com.aandios.nous.feature.trades.ui.header.SizeFilterDropdown
-import com.aandios.nous.feature.trades.ui.header.TradesSymbolDropdown
+import com.aandios.nous.feature.trades.ui.header.TradesHeaderBar
 
 /**
  * Панель для отображения потока сделок (Trades).
@@ -100,70 +97,19 @@ fun TradesWidget(
                         )
                     }
                 } else {
+                    val maxQuantity = filteredTrades.maxOfOrNull { it.quantity } ?: 1.0
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
                         items(filteredTrades, key = { it.id }) { trade ->
                             TradeRow(
                                 trade = trade,
                                 viewModel = viewModel,
+                                maxQuantity = maxQuantity,
                                 index = filteredTrades.indexOf(trade)
                             )
                         }
                     }
                 }
             }
-        }
-    }
-}
-
-/**
- * Верхняя панель с symbol dropdown и size filter dropdown (как в DomHeader).
- */
-@Composable
-private fun TradesHeaderBar(
-    currentSymbol: String,
-    availableSymbols: List<SymbolInfo>,
-    currentSymbolInfo: SymbolInfo?,
-    selectedSizeFilter: SizeFilter,
-    onSymbolChanged: (String) -> Unit,
-    onSizeFilterChanged: (SizeFilter) -> Unit,
-) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        tonalElevation = 1.dp,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Symbol dropdown
-            TradesSymbolDropdown(
-                currentSymbol = currentSymbol,
-                availableSymbols = availableSymbols,
-                onSymbolChanged = onSymbolChanged,
-                modifier = Modifier.weight(1.4f)
-            )
-
-            // Size filter dropdown
-            SizeFilterDropdown(
-                currentFilter = selectedSizeFilter,
-                minQty = currentSymbolInfo?.minQty,
-                onFilterChanged = onSizeFilterChanged,
-                modifier = Modifier.weight(1f)
-            )
-
-            // Live индикатор
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .background(
-                        color = Color.Green,
-                        shape = MaterialTheme.shapes.small
-                    )
-            )
         }
     }
 }
@@ -184,7 +130,7 @@ private fun ColumnHeaderRow() {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
-            modifier = Modifier.weight(1.2f)
+            modifier = Modifier.weight(1f)
         )
         Text(
             text = "Цена",
@@ -200,7 +146,7 @@ private fun ColumnHeaderRow() {
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
             textAlign = TextAlign.End,
-            modifier = Modifier.weight(0.8f)
+            modifier = Modifier.weight(1.4f)
         )
     }
 }
@@ -213,6 +159,7 @@ private fun ColumnHeaderRow() {
 private fun TradeRow(
     trade: Trade,
     viewModel: TradesViewModel,
+    maxQuantity: Double,
     index: Int
 ) {
     val bgColor = if (index % 2 == 0) Color.Transparent
@@ -232,7 +179,7 @@ private fun TradeRow(
             text = viewModel.formatTime(trade.timestamp),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 11.sp,
-            modifier = Modifier.weight(1.2f)
+            modifier = Modifier.weight(1f)
         )
 
         // Цена
@@ -245,13 +192,29 @@ private fun TradeRow(
             modifier = Modifier.weight(1f)
         )
 
-        // Количество
-        Text(
-            text = viewModel.formatQuantity(trade.quantity),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = 11.sp,
-            textAlign = TextAlign.End,
-            modifier = Modifier.weight(0.8f)
-        )
+        // Количество с горизонтальной гистограммой объема
+        Box(
+            modifier = Modifier
+                .weight(1.4f)
+                .height(20.dp)
+        ) {
+            // Горизонтальный bar объема (пропорционально maxQuantity)
+            val volumeWidth = (trade.quantity / maxQuantity).coerceIn(0.0, 1.0)
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(volumeWidth.toFloat())
+                    .align(Alignment.CenterEnd)
+                    .background(priceColor.copy(alpha = 0.25f))
+            )
+            // Текст количества поверх бара
+            Text(
+                text = viewModel.formatQuantity(trade.quantity),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 11.sp,
+                textAlign = TextAlign.End,
+                modifier = Modifier.align(Alignment.CenterEnd)
+            )
+        }
     }
 }
