@@ -5,6 +5,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.aandios.nous.core.ui.theme.ChartColors
 
+enum class ChartMode {
+    CANDLESTICK,
+    FOOTPRINT
+}
+
 // Конфигурация для отрисовки свечей
 data class CandleStyle(
     val bullishColor: Color = ChartColors.bullish,
@@ -16,6 +21,14 @@ data class CandleStyle(
     val showWicks: Boolean = true
 )
 
+// Конфигурация для footprint-чарта
+data class FootprintConfig(
+    val bidColor: Color = ChartColors.volumeBullish,
+    val askColor: Color = ChartColors.volumeBearish,
+    val showNumbers: Boolean = false,
+    val maxLevelsPerCandle: Int = 50
+)
+
 // Конфигурация для графика
 data class ChartConfig(
     val backgroundColor: Color = ChartColors.chartBackground,
@@ -25,7 +38,8 @@ data class ChartConfig(
     val showVolume: Boolean = true,
     val showPriceScale: Boolean = true,
     val priceScaleWidth: Dp = 60.dp,
-    val candleStyle: CandleStyle = CandleStyle()
+    val candleStyle: CandleStyle = CandleStyle(),
+    val footprintConfig: FootprintConfig = FootprintConfig()
 )
 
 // Дефолтные настройки

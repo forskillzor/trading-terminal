@@ -41,6 +41,9 @@ fun ChartToolbar(
     onTimeframeChange: (String) -> Unit,
     crosshairEnabled: Boolean = false,
     onCrosshairToggle: () -> Unit = {},
+    chartMode: ChartMode = ChartMode.CANDLESTICK,
+    onChartModeToggle: () -> Unit = {},
+    symbolsWithFootprint: Set<String> = emptySet(),
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -53,9 +56,17 @@ fun ChartToolbar(
             currentSymbol = currentSymbol,
             availableSymbols = availableSymbols,
             onSymbolChange = onSymbolChange,
+            symbolsWithFootprint = symbolsWithFootprint,
         )
 
         Spacer(Modifier.width(12.dp))
+
+        ChartModeToggleButton(
+            mode = chartMode,
+            onToggle = onChartModeToggle,
+        )
+
+        Spacer(Modifier.width(8.dp))
 
         CrosshairToggleButton(
             enabled = crosshairEnabled,
@@ -69,6 +80,34 @@ fun ChartToolbar(
             onTimeframeChange = onTimeframeChange,
         )
     }
+}
+
+@Composable
+private fun ChartModeToggleButton(
+    mode: ChartMode,
+    onToggle: () -> Unit,
+) {
+    val label = when (mode) {
+        ChartMode.CANDLESTICK -> "C"
+        ChartMode.FOOTPRINT -> "FP"
+    }
+    val activeColor = accentColor
+
+    Text(
+        text = label,
+        color = if (mode == ChartMode.FOOTPRINT) activeColor else MaterialTheme.colorScheme.surfaceVariant,
+        fontSize = 12.sp,
+        fontWeight = FontWeight.Bold,
+        fontFamily = FontFamily.Monospace,
+        modifier = Modifier
+            .clickable { onToggle() }
+            .background(
+                if (mode == ChartMode.FOOTPRINT) accentColor.copy(alpha = 0.25f)
+                else Color.Transparent,
+                RoundedCornerShape(3.dp),
+            )
+            .padding(horizontal = 6.dp, vertical = 3.dp),
+    )
 }
 
 @Composable
@@ -98,6 +137,7 @@ private fun SymbolSelector(
     currentSymbol: String,
     availableSymbols: List<String>,
     onSymbolChange: (String) -> Unit,
+    symbolsWithFootprint: Set<String> = emptySet(),
 ) {
     var expanded by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
@@ -194,13 +234,25 @@ private fun SymbolSelector(
                 filteredSymbols.forEach { symbol ->
                     DropdownMenuItem(
                         text = {
-                            Text(
-                                text = symbol,
-                                color = if (symbol == currentSymbol)
-                                    accentColor else Color.White.copy(alpha = 0.85f),
-                                fontSize = 12.sp,
-                                fontFamily = FontFamily.Monospace,
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = symbol,
+                                    color = if (symbol == currentSymbol)
+                                        accentColor else Color.White.copy(alpha = 0.85f),
+                                    fontSize = 12.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                )
+                                if (symbol in symbolsWithFootprint) {
+                                    Spacer(Modifier.width(6.dp))
+                                    Text(
+                                        text = "md",
+                                        color = accentColor.copy(alpha = 0.7f),
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = FontFamily.Monospace,
+                                    )
+                                }
+                            }
                         },
                         onClick = {
                             onSymbolChange(symbol)

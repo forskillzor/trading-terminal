@@ -1,0 +1,43 @@
+package com.aandios.nous.feature.chart.footprint
+
+import com.aandios.nous.api.market.model.FootprintCandle
+import io.ktor.client.*
+import io.ktor.client.call.*
+import io.ktor.client.request.*
+
+class FootprintApiClient(
+    private val httpClient: HttpClient,
+    private val baseUrl: String = "http://localhost:8085"
+) {
+    suspend fun getFootprint(
+        exchange: String = "Binance",
+        symbol: String,
+        timeframe: String,
+        from: Long? = null,
+        to: Long? = null,
+        limit: Int = 500
+    ): List<FootprintCandle> {
+        return httpClient.get("$baseUrl/api/footprint") {
+            parameter("exchange", exchange)
+            parameter("symbol", symbol)
+            parameter("timeframe", timeframe)
+            from?.let { parameter("from", it) }
+            to?.let { parameter("to", it) }
+            parameter("limit", limit)
+        }.body()
+    }
+
+    suspend fun getInstruments(exchange: String = "Binance"): List<InstrumentSummary> {
+        return httpClient.get("$baseUrl/api/instruments") {
+            parameter("exchange", exchange)
+        }.body()
+    }
+}
+
+@kotlinx.serialization.Serializable
+data class InstrumentSummary(
+    val symbol: String,
+    val start: Long,
+    val end: Long,
+    val candles: Long
+)

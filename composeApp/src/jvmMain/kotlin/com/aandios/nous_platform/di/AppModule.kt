@@ -18,6 +18,7 @@ import com.aandios.nous.core.domain.repository.ChartRepository
 import com.aandios.nous.core.domain.repository.DomRepository
 import com.aandios.nous.core.domain.repository.SymbolInfoRepository
 import com.aandios.nous.core.domain.repository.TradesRepository
+import com.aandios.nous.feature.chart.footprint.FootprintApiClient
 import com.aandios.nous.feature.chart.ui.ChartViewModel
 import com.aandios.nous.feature.dom.data.repository.DomRepositoryImpl
 import com.aandios.nous.feature.dom.ui.DomViewModel
@@ -98,11 +99,17 @@ val appModule = module {
         SymbolInfoRepositoryImpl(symbolInfoAdapter = get())
     }
 
+    // 4.5 Footprint API client (market-data-server)
+    single<FootprintApiClient> {
+        FootprintApiClient(httpClient = get<NetworkManager>().httpClient)
+    }
+
     // 5. ViewModels
     factory {
         ChartViewModel(
             chartRepository = get(),
-            symbolInfoAdapter = get()
+            symbolInfoAdapter = get(),
+            footprintApiClient = get(),
         )
     }
 

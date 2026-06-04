@@ -1,6 +1,7 @@
 package com.aandios.nous.feature.chart.utils
 
 import com.aandios.nous.api.market.model.Candle
+import com.aandios.nous.api.market.model.FootprintCandle
 import com.aandios.nous.feature.chart.model.CandleMetrics
 import com.aandios.nous.feature.chart.model.PriceRange
 
@@ -37,6 +38,32 @@ fun calculatePriceRangeWithCurrentPrice(
     val priceRange = maxPrice - minPrice
 
     // Добавляем 5% padding сверху и снизу
+    val padding = priceRange * 0.05f
+    val visibleMax = maxPrice + padding
+    val visibleMin = minPrice - padding
+    val visibleRange = visibleMax - visibleMin
+
+    return PriceRange(
+        max = maxPrice,
+        min = minPrice,
+        visibleMax = visibleMax,
+        visibleMin = visibleMin,
+        range = visibleRange
+    )
+}
+
+/**
+ * Вычисляет PriceRange по списку FootprintCandle свечей.
+ * Добавляет 5% padding сверху и снизу.
+ */
+fun calculatePriceRangeWithFootprint(candles: List<FootprintCandle>): PriceRange {
+    if (candles.isEmpty()) return PriceRange(0f, 0f, 0f, 0f, 0f)
+
+    val allPrices = candles.flatMap { c -> c.levels.map { it.priceFloat } }
+    val maxPrice = allPrices.maxOrNull() ?: 0f
+    val minPrice = allPrices.minOrNull() ?: 0f
+    val priceRange = maxPrice - minPrice
+
     val padding = priceRange * 0.05f
     val visibleMax = maxPrice + padding
     val visibleMin = minPrice - padding

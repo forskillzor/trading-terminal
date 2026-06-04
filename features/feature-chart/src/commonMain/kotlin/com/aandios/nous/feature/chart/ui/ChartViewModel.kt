@@ -2,7 +2,9 @@ package com.aandios.nous.feature.chart.ui
 
 import com.aandios.nous.api.market.adapters.SymbolInfoAdapter
 import com.aandios.nous.api.market.model.Candle
+import com.aandios.nous.api.market.model.FootprintCandle
 import com.aandios.nous.core.domain.repository.ChartRepository
+import com.aandios.nous.feature.chart.footprint.FootprintApiClient
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,6 +15,7 @@ import kotlin.coroutines.cancellation.CancellationException
 class ChartViewModel(
     private val chartRepository: ChartRepository,
     private val symbolInfoAdapter: SymbolInfoAdapter,
+    private val footprintApiClient: FootprintApiClient? = null,
 ) {
     private val viewModelScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var currentJob: Job? = null
@@ -36,8 +39,24 @@ class ChartViewModel(
     private val _hasMoreHistory = MutableStateFlow(true)
     val hasMoreHistory: StateFlow<Boolean> = _hasMoreHistory.asStateFlow()
 
+    private val _footprintCandles = MutableStateFlow<List<FootprintCandle>>(emptyList())
+    val footprintCandles: StateFlow<List<FootprintCandle>> = _footprintCandles.asStateFlow()
+
+    private val _footprintLoading = MutableStateFlow(false)
+    val footprintLoading: StateFlow<Boolean> = _footprintLoading.asStateFlow()
+
+    private val _footprintError = MutableStateFlow<String?>(null)
+    val footprintError: StateFlow<String?> = _footprintError.asStateFlow()
+
+    private val _chartMode = MutableStateFlow(ChartMode.CANDLESTICK)
+    val chartMode: StateFlow<ChartMode> = _chartMode.asStateFlow()
+
+    private val _symbolsWithFootprint = MutableStateFlow<Set<String>>(emptySet())
+    val symbolsWithFootprint: StateFlow<Set<String>> = _symbolsWithFootprint.asStateFlow()
+
     init {
         loadSymbols()
+        loadFootprintSymbols()
     }
 
     private fun loadSymbols() {
@@ -67,8 +86,59 @@ class ChartViewModel(
         loadChart(ticker = _currentSymbol.value, timeframe = timeframe)
     }
 
+    fun toggleChartMode() {
+        val newMode = when (_chartMode.value) {
+            ChartMode.CANDLESTICK -> ChartMode.FOOTPRINT
+            ChartMode.FOOTPRINT -> ChartMode.CANDLESTICK
+        }
+        _chartMode.value = newMode
+        if (newMode == ChartMode.FOOTPRINT) {
+            loadFootprintData()
+        }
+    }
+
+    private fun loadFootprintSymbols() {
+        if (footprintApiClient == null) return
+        viewModelScope.launch {
+            try {
+                val instruments = footprintApiClient.getInstruments()
+                _symbolsWithFootprint.value = instruments.map { it.symbol }.toSet()
+            } catch (e: Exception) {
+                println("Failed to load footprint symbols: ${e.message}")
+            }
+        }
+    }
+
+    fun loadFootprintData() {
+        if (footprintApiClient == null) {
+            _footprintError.value = "Footprint API client not available"
+            return
+        }
+        viewModelScope.launch {
+            _footprintLoading.value = true
+            _footprintError.value = null
+            try {
+                val data = footprintApiClient.getFootprint(
+                    symbol = _currentSymbol.value,
+                    timeframe = _currentTimeframe.value,
+                    limit = 500
+                )
+                _footprintCandles.value = data
+                if (data.isEmpty()) {
+                    _footprintError.value = "No footprint data in DB"
+                }
+            } catch (e: Exception) {
+                val msg = "Footprint load failed: ${e.message}"
+                println(msg)
+                e.printStackTrace()
+                _footprintError.value = msg
+            } finally {
+                _footprintLoading.value = false
+            }
+        }
+    }
+
     fun loadChart(ticker: String = "BTCUSDT", timeframe: String = "1h") {
-        // Reset history state when loading a new chart
         _hasMoreHistory.value = true
         _historyLoadCount.value = 0
         isLoadingMore = false
@@ -105,6 +175,11 @@ class ChartViewModel(
                     println("Job error: ${e.message}")
                     _chartState.value = ChartState.Error(e.message ?: "Unknown error")
                 }
+            }
+
+            // Auto-load footprint if in footprint mode
+            if (_chartMode.value == ChartMode.FOOTPRINT) {
+                loadFootprintData()
             }
         }
     }
@@ -147,7 +222,6 @@ class ChartViewModel(
                 val loadedCount = historicalCandles.size
 
 
-                // Cancel the real-time flow job so it doesn't overwrite our prepended candles
                 currentJob?.cancel()
 
                 _chartState.value = ChartState.Success(

@@ -15,6 +15,7 @@ import androidx.compose.ui.window.rememberWindowState
 import com.aandios.nous.core.ui.theme.TradingTerminalTheme
 import com.aandios.nous.feature.chart.di.initKoinForPreview
 import com.aandios.nous.feature.chart.ui.chart.CandleStickChart
+import com.aandios.nous.feature.chart.ui.chart.FootprintChart
 import org.koin.compose.KoinContext
 import org.koin.compose.koinInject
 import org.koin.core.context.stopKoin
@@ -26,7 +27,6 @@ import org.koin.core.context.stopKoin
 @Composable
 fun ChartWindow() {
     val chartViewModel: ChartViewModel = koinInject()
-    // Standalone окно (preview) — загружаем данные самостоятельно
     LaunchedEffect(Unit) {
         chartViewModel.loadChart()
     }
@@ -50,6 +50,11 @@ fun ChartWindow(
     val symbols by chartViewModel.symbols.collectAsState()
     val historyLoadCount by chartViewModel.historyLoadCount.collectAsState()
     val hasMoreHistory by chartViewModel.hasMoreHistory.collectAsState()
+    val footprintCandles by chartViewModel.footprintCandles.collectAsState()
+    val footprintLoading by chartViewModel.footprintLoading.collectAsState()
+    val footprintError by chartViewModel.footprintError.collectAsState()
+    val chartMode by chartViewModel.chartMode.collectAsState()
+    val symbolsWithFootprint by chartViewModel.symbolsWithFootprint.collectAsState()
 
     var crosshairEnabled by remember { mutableStateOf(false) }
 
@@ -93,19 +98,59 @@ fun ChartWindow(
             }
             is ChartState.Success -> {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    // Chart (full size)
-                    CandleStickChart(
-                        candles = state.candles,
-                        currentPrice = state.currentPrice,
-                        crosshairEnabled = crosshairEnabled,
-                        onCrosshairEnabledChange = { crosshairEnabled = it },
-                        onNeedMoreHistory = { chartViewModel.loadMoreHistory() },
-                        historyLoadCount = historyLoadCount,
-                        hasMoreHistory = hasMoreHistory,
-                        modifier = Modifier.fillMaxSize()
-                    )
+                    when (chartMode) {
+                        ChartMode.CANDLESTICK -> {
+                            CandleStickChart(
+                                candles = state.candles,
+                                currentPrice = state.currentPrice,
+                                crosshairEnabled = crosshairEnabled,
+                                onCrosshairEnabledChange = { crosshairEnabled = it },
+                                onNeedMoreHistory = { chartViewModel.loadMoreHistory() },
+                                historyLoadCount = historyLoadCount,
+                                hasMoreHistory = hasMoreHistory,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                        ChartMode.FOOTPRINT -> {
+                            if (footprintLoading) {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "Loading footprint data...",
+                                        color = MaterialTheme.colorScheme.onBackground,
+                                        fontSize = 14.sp
+                                    )
+                                }
+                            } else if (footprintError != null) {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text(
+                                            text = "Footprint data error",
+                                            color = MaterialTheme.colorScheme.error,
+                                            fontSize = 14.sp
+                                        )
+                                        Text(
+                                            text = footprintError!!,
+                                            color = MaterialTheme.colorScheme.onBackground,
+                                            fontSize = 11.sp,
+                                            modifier = Modifier.padding(top = 8.dp)
+                                        )
+                                    }
+                                }
+                            } else {
+                                FootprintChart(
+                                    candles = footprintCandles,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                        }
+                    }
 
-                    // Toolbar overlay (top-left corner)
                     ChartToolbar(
                         currentSymbol = currentSymbol,
                         currentTimeframe = currentTimeframe,
@@ -114,6 +159,9 @@ fun ChartWindow(
                         onTimeframeChange = { chartViewModel.selectTimeframe(it) },
                         crosshairEnabled = crosshairEnabled,
                         onCrosshairToggle = { crosshairEnabled = !crosshairEnabled },
+                        chartMode = chartMode,
+                        onChartModeToggle = { chartViewModel.toggleChartMode() },
+                        symbolsWithFootprint = symbolsWithFootprint,
                         modifier = Modifier
                             .align(Alignment.TopStart)
                             .padding(8.dp)

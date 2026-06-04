@@ -8,6 +8,7 @@ import com.aandios.nous.api.market.adapters.SymbolInfoAdapter
 import com.aandios.nous.core.data.repository.ChartRepositoryImpl
 import com.aandios.nous.core.di.coreModule
 import com.aandios.nous.core.domain.repository.ChartRepository
+import com.aandios.nous.feature.chart.footprint.FootprintApiClient
 import com.aandios.nous.feature.chart.ui.ChartViewModel
 import com.aandios.nous.provider.binance.BinanceProviderFactory
 import org.koin.core.context.startKoin
@@ -68,11 +69,17 @@ val featureChartModule = module {
         get<Provider>().symbolInfo ?: error("SymbolInfo adapter not available")
     }
 
-    // 6. ViewModel
+    // 6. Footprint API client (подключается к market-data-server)
+    single<FootprintApiClient> {
+        FootprintApiClient(httpClient = get<NetworkManager>().httpClient)
+    }
+
+    // 7. ViewModel
     factory {
         ChartViewModel(
             chartRepository = get(),
             symbolInfoAdapter = get(),
+            footprintApiClient = get(),
         )
     }
 }
