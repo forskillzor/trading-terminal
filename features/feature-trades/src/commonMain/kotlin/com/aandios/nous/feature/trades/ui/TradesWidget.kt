@@ -4,12 +4,18 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -19,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aandios.nous.api.market.model.trades.Trade
 import com.aandios.nous.feature.trades.ui.header.TradesHeaderBar
+import kotlinx.coroutines.delay
 
 /**
  * Панель для отображения потока сделок (Trades).
@@ -35,6 +42,20 @@ fun TradesWidget(
     val loadedSymbols by viewModel.loadedSymbols.collectAsState()
     val currentSymbolInfo by viewModel.currentSymbolInfo.collectAsState()
     val selectedSizeFilter by viewModel.selectedSizeFilter.collectAsState()
+
+    val lazyListState = rememberLazyListState()
+    var autoScrollEnabled by remember { mutableStateOf(true) }
+
+    // Отслеживаем прокрутку пользователем: если он уходит от начала, отключаем автоскролл
+    LaunchedEffect(lazyListState) {
+        snapshotFlow { lazyListState.firstVisibleItemIndex }
+            .collect { index ->
+                if (index > 0) autoScrollEnabled = false
+            }
+    }
+
+    // Автоскролл к самой новой сделке (первый элемент списка) с дебаунсом 5с
+    // (логика находится внутри блока Connected, где filteredTrades доступен)
 
     Column(modifier = modifier.background(MaterialTheme.colorScheme.background)) {
         // Header bar с dropdowns (как в feature-dom)
@@ -98,7 +119,21 @@ fun TradesWidget(
                     }
                 } else {
                     val maxQuantity = filteredTrades.maxOfOrNull { it.quantity } ?: 1.0
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+
+                    // Автоскролл к самой новой сделке с дебаунсом 5с
+                    LaunchedEffect(filteredTrades.size) {
+                        if (autoScrollEnabled && filteredTrades.isNotEmpty()) {
+                            delay(5000)
+                            if (autoScrollEnabled) {
+                                lazyListState.animateScrollToItem(0)
+                            }
+                        }
+                    }
+
+                    LazyColumn(
+                        state = lazyListState,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
                         items(filteredTrades, key = { it.id }) { trade ->
                             TradeRow(
                                 trade = trade,
