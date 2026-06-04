@@ -3,6 +3,7 @@ package com.aandios.nous.feature.chart.ui.chart
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,6 +13,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -21,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aandios.nous.api.market.model.FootprintCandle
 import com.aandios.nous.feature.chart.model.ChartLayout
+import com.aandios.nous.feature.chart.model.PriceRange
 import com.aandios.nous.feature.chart.rendering.drawFootprintChart
 import com.aandios.nous.feature.chart.rendering.drawPriceScale
 import com.aandios.nous.feature.chart.ui.ChartConfig
@@ -28,6 +35,7 @@ import com.aandios.nous.feature.chart.ui.DefaultChartConfig
 import com.aandios.nous.feature.chart.utils.calculateCandleMetrics
 import com.aandios.nous.feature.chart.utils.calculatePriceRangeWithFootprint
 import kotlin.math.max
+import kotlin.math.min
 
 @Composable
 fun FootprintChart(
@@ -50,9 +58,16 @@ fun FootprintChart(
 
     var scrollOffset by remember { mutableFloatStateOf(0f) }
     var zoomLevel by remember { mutableFloatStateOf(1f) }
+    var verticalScroll by remember { mutableFloatStateOf(0f) }
     var chartWidthPx by remember { mutableFloatStateOf(0f) }
+    var chartHeightPx by remember { mutableFloatStateOf(0f) }
     var maxScroll by remember { mutableFloatStateOf(0f) }
+    var isCtrlPressed by remember { mutableStateOf(false) }
+    var isAltPressed by remember { mutableStateOf(false) }
     val maxScrollLeft = 300f
+    val maxZoom = 10f
+    val minZoom = 0.15f
+    val zoomStep = 1.25f
 
     val textMeasurer = rememberTextMeasurer()
 
@@ -63,12 +78,39 @@ fun FootprintChart(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
             ) { }
-            .pointerInput(Unit) {
+            .onKeyEvent { event ->
+                when {
+                    event.key == Key.CtrlLeft || event.key == Key.CtrlRight -> {
+                        isCtrlPressed = event.type == KeyEventType.KeyDown
+                        true
+                    }
+                    event.key == Key.AltLeft || event.key == Key.AltRight -> {
+                        isAltPressed = event.type == KeyEventType.KeyDown
+                        true
+                    }
+                    else -> false
+                }
+            }
+            .pointerInput(isAltPressed) {
                 detectDragGestures(
-                    onDrag = { change, _ ->
-                        scrollOffset = (scrollOffset - change.position.x + change.previousPosition.x)
-                            .coerceIn(-maxScrollLeft, maxScroll)
+                    onDrag = { change, dragAmount ->
+                        if (isAltPressed) {
+                            verticalScroll = (verticalScroll + dragAmount.y)
+                                .coerceIn(-chartHeightPx * 2, chartHeightPx * 2)
+                        } else {
+                            scrollOffset = (scrollOffset - change.position.x + change.previousPosition.x)
+                                .coerceIn(-maxScrollLeft, maxScroll)
+                        }
                     },
+                )
+            }
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onDoubleTap = {
+                        zoomLevel = 1f
+                        scrollOffset = maxScroll
+                        verticalScroll = 0f
+                    }
                 )
             }
             .pointerInput(Unit) {
@@ -78,12 +120,20 @@ fun FootprintChart(
                         val change = event.changes.firstOrNull() ?: continue
                         val sd = change.scrollDelta
                         if (event.type == PointerEventType.Scroll && sd != Offset.Zero) {
-                            val factor = if (sd.y < 0) 1.15f else 1f / 1.15f
+                            val factor = if (sd.y < 0) zoomStep else 1f / zoomStep
                             val oldZoom = zoomLevel
-                            val newZoom = (oldZoom * factor).coerceIn(0.25f, 4.0f)
+                            val newZoom = (oldZoom * factor).coerceIn(minZoom, maxZoom)
                             val actualFactor = newZoom / oldZoom
-                            val rightEdge = scrollOffset + chartWidthPx
-                            val newScrollOffset = rightEdge * actualFactor - chartWidthPx
+
+                            val newScrollOffset = if (isCtrlPressed) {
+                                val mouseX = change.position.x
+                                val virtualPos = mouseX + scrollOffset
+                                virtualPos * actualFactor - mouseX
+                            } else {
+                                val rightEdge = scrollOffset + chartWidthPx
+                                rightEdge * actualFactor - chartWidthPx
+                            }
+
                             zoomLevel = newZoom
                             scrollOffset = newScrollOffset
                             change.consume()
@@ -142,6 +192,7 @@ fun FootprintChart(
         }
 
         chartWidthPx = layout.chartMainArea.width
+        chartHeightPx = layout.chartMainArea.height
         val candleMetrics = remember(zoomLevel) {
             calculateCandleMetrics(zoomLevel)
         }
@@ -159,8 +210,19 @@ fun FootprintChart(
         val visibleCandles = remember(startIdx, endIdx) {
             candles.subList(startIdx, endIdx.coerceAtMost(candles.size))
         }
-        val priceRange = remember(visibleCandles) {
+        val basePriceRange = remember(visibleCandles) {
             calculatePriceRangeWithFootprint(visibleCandles)
+        }
+        val shiftedPriceRange = remember(basePriceRange, verticalScroll, chartHeightPx) {
+            val shiftRatio = verticalScroll / chartHeightPx.coerceAtLeast(1f)
+            val shift = basePriceRange.range * shiftRatio
+            PriceRange(
+                max = basePriceRange.max + shift,
+                min = basePriceRange.min + shift,
+                visibleMax = basePriceRange.visibleMax + shift,
+                visibleMin = basePriceRange.visibleMin + shift,
+                range = basePriceRange.range
+            )
         }
 
         Canvas(
@@ -170,7 +232,7 @@ fun FootprintChart(
         ) {
             drawFootprintChart(
                 candles = candles,
-                priceRange = priceRange,
+                priceRange = shiftedPriceRange,
                 config = config,
                 chartArea = layout.chartArea,
                 textMeasurer = textMeasurer,
@@ -182,7 +244,7 @@ fun FootprintChart(
 
             if (showPriceScale) {
                 drawPriceScale(
-                    priceRange = priceRange,
+                    priceRange = shiftedPriceRange,
                     config = config,
                     priceScaleArea = layout.priceScaleArea,
                     currentPrice = null,
