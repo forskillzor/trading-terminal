@@ -88,7 +88,7 @@ fun DrawScope.drawFootprintCandle(
     if (candle.levels.isEmpty()) return
 
     val halfWidth = metrics.width / 2
-    val maxBarWidth = halfWidth * 0.85f
+    val maxBarWidth = halfWidth
     val minAlpha = 0.12f
 
     for (level in candle.levels) {
