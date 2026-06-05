@@ -126,14 +126,18 @@ fun ChartWindow(
                                     }
                                 }
                             } else {
-                                // Build Candle list from footprint for interaction
+                                // Merge completed + live, deduplicate by startTime
                                 val allFp = remember(footprintCandles, liveFootprintCandle) {
                                     val list = footprintCandles.toMutableList()
-                                    liveFootprintCandle?.let { list.add(it) }
-                                    list
+                                    liveFootprintCandle?.let { live ->
+                                        if (list.none { it.startTime == live.startTime }) {
+                                            list.add(live)
+                                        }
+                                    }
+                                    list.sortedBy { it.startTime }
                                 }
                                 val fpToCandle = remember(allFp) {
-                                    allFp.map { Candle(it.open, it.high, it.close, it.low, it.startTime, it.maxVolume) }
+                                    allFp.distinctBy { it.startTime }.map { Candle(it.open, it.high, it.close, it.low, it.startTime, it.maxVolume) }
                                 }
                                 CandleStickChart(
                                     candles = fpToCandle,

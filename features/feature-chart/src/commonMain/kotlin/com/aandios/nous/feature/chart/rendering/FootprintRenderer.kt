@@ -3,6 +3,7 @@ package com.aandios.nous.feature.chart.rendering
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.AnnotatedString
@@ -12,6 +13,7 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.sp
 import com.aandios.nous.api.market.model.FootprintCandle
+import com.aandios.nous.core.ui.theme.ChartColors
 import com.aandios.nous.feature.chart.model.CandleMetrics
 import com.aandios.nous.feature.chart.model.ChartLayout
 import com.aandios.nous.feature.chart.model.PriceRange
@@ -40,18 +42,31 @@ fun DrawScope.drawFootprintChart(
         drawGrid(config, chartArea.width, chartArea.height)
 
         val candleMetrics = calculateCandleMetrics(zoomLevel)
-        val totalW = candleMetrics.width + candleMetrics.spacing
+        val fpWidth = candleMetrics.width
+        val fpSpacing = candleMetrics.spacing
+        val totalW = fpWidth + fpSpacing
+
+        // Viewport max volume for gradient normalization
+        var viewportMaxVol = 0f
+        for (i in visibleStartIndex until visibleEndIndex) {
+            if (i in candles.indices) {
+                val v = candles[i].maxVolume
+                if (v > viewportMaxVol) viewportMaxVol = v
+            }
+        }
+        if (viewportMaxVol <= 0f) viewportMaxVol = 1f
 
         for (i in visibleStartIndex until visibleEndIndex) {
             if (i in candles.indices) {
-                val x = i * totalW - scrollOffset + candleMetrics.width / 2
+                val x = i * totalW - scrollOffset + fpWidth / 2
                 drawFootprintCandle(
                     candle = candles[i],
                     centerX = x,
                     priceRange = priceRange,
-                    metrics = candleMetrics,
+                    metrics = CandleMetrics(fpWidth * 2f, fpSpacing), // 2x wider
                     config = config,
-                    chartHeight = chartArea.height
+                    chartHeight = chartArea.height,
+                    viewportMaxVol = viewportMaxVol
                 )
             }
         }
@@ -64,14 +79,14 @@ fun DrawScope.drawFootprintCandle(
     priceRange: PriceRange,
     metrics: CandleMetrics,
     config: ChartConfig,
-    chartHeight: Float
+    chartHeight: Float,
+    viewportMaxVol: Float = 1f
 ) {
     if (candle.levels.isEmpty()) return
 
-    val fpConfig = config.footprintConfig
-    val maxVol = candle.maxVolume.coerceAtLeast(0.00001f)
     val halfWidth = metrics.width / 2
     val maxBarWidth = halfWidth * 0.85f
+    val minAlpha = 0.12f
 
     for (level in candle.levels) {
         val priceY = priceToY(level.priceFloat, priceRange, chartHeight)
@@ -86,19 +101,21 @@ fun DrawScope.drawFootprintCandle(
         val levelHeight = abs(nextPriceY - priceY).coerceAtLeast(1f)
         val topY = minOf(priceY, nextPriceY)
 
-        val bidWidth = (level.bidVolumeFloat / maxVol * maxBarWidth).coerceAtLeast(if (level.bidVolumeFloat > 0f) 1f else 0f)
-        val askWidth = (level.askVolumeFloat / maxVol * maxBarWidth).coerceAtLeast(if (level.askVolumeFloat > 0f) 1f else 0f)
+        val bidWidth = (level.bidVolumeFloat / viewportMaxVol * maxBarWidth).coerceAtLeast(if (level.bidVolumeFloat > 0f) 1f else 0f)
+        val askWidth = (level.askVolumeFloat / viewportMaxVol * maxBarWidth).coerceAtLeast(if (level.askVolumeFloat > 0f) 1f else 0f)
 
         if (askWidth > 0f) {
+            val alpha = (minAlpha + (1f - minAlpha) * (level.askVolumeFloat / viewportMaxVol)).coerceIn(minAlpha, 1f)
             drawRect(
-                color = fpConfig.askColor,
+                color = ChartColors.bearish.copy(alpha = alpha),
                 topLeft = Offset(centerX - halfWidth + (maxBarWidth - askWidth), topY),
                 size = Size(askWidth, levelHeight)
             )
         }
         if (bidWidth > 0f) {
+            val alpha = (minAlpha + (1f - minAlpha) * (level.bidVolumeFloat / viewportMaxVol)).coerceIn(minAlpha, 1f)
             drawRect(
-                color = fpConfig.bidColor,
+                color = ChartColors.bullish.copy(alpha = alpha),
                 topLeft = Offset(centerX + halfWidth - maxBarWidth, topY),
                 size = Size(bidWidth, levelHeight)
             )
