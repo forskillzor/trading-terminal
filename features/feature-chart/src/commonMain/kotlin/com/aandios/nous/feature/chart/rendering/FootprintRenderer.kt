@@ -5,6 +5,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextMeasurer
@@ -19,10 +20,12 @@ import com.aandios.nous.feature.chart.model.ChartLayout
 import com.aandios.nous.feature.chart.model.PriceRange
 import com.aandios.nous.feature.chart.ui.ChartConfig
 import com.aandios.nous.feature.chart.utils.calculateCandleMetrics
+import com.aandios.nous.feature.chart.utils.priceFromY
 import com.aandios.nous.feature.chart.utils.priceToY
 import com.aandios.nous.feature.chart.utils.formatTime
 import kotlin.math.abs
 import kotlin.math.max
+import kotlin.math.min
 
 fun DrawScope.drawFootprintChart(
     candles: List<FootprintCandle>,
@@ -181,12 +184,9 @@ fun DrawScope.drawCrosshairForFootprint(
 
     val crosshairColor = config.gridColor.copy(alpha = 0.8f)
 
-    // Vertical line
     drawLine(color = crosshairColor, start = Offset(candleX, 0f), end = Offset(candleX, chartLayout.chartMainArea.height), strokeWidth = 1f)
-    // Horizontal line
     drawLine(color = crosshairColor, start = Offset(0f, mousePosition.y), end = Offset(chartLayout.chartMainArea.width, mousePosition.y), strokeWidth = 1f)
 
-    // Info panel
     val info = buildString {
         appendLine("O: ${candle.open}")
         appendLine("H: ${candle.high}")
@@ -203,3 +203,79 @@ fun DrawScope.drawCrosshairForFootprint(
     drawText(layoutResult, topLeft = Offset(panelX, panelY))
 }
 
+/**
+ * Ctrl+hover popup: rectangle with compact bid/ask volume table for the candle under cursor.
+ * When Ctrl pressed and mouse over footprint candle — shows price levels table.
+ */
+fun DrawScope.drawFootprintPopup(
+    mousePosition: Offset,
+    candles: List<FootprintCandle>,
+    priceRange: PriceRange,
+    config: ChartConfig,
+    chartLayout: ChartLayout,
+    textMeasurer: TextMeasurer,
+    scrollOffset: Float = 0f,
+    zoomLevel: Float = 1f,
+) {
+    val candleMetrics = calculateCandleMetrics(zoomLevel)
+    val totalW = candleMetrics.width + candleMetrics.spacing
+    val virtualX = mousePosition.x - chartLayout.chartMainArea.left + scrollOffset
+    val candleIndex = (virtualX / totalW).toInt().coerceIn(0, candles.size - 1)
+    val candle = candles.getOrNull(candleIndex) ?: return
+    if (candle.levels.isEmpty()) return
+
+    // Find price level nearest to mouse Y
+    val mousePrice = priceFromY(mousePosition.y - chartLayout.chartMainArea.top, priceRange, chartLayout.chartMainArea.height)
+    var centerIdx = candle.levels.indexOfFirst { it.priceFloat >= mousePrice }
+    if (centerIdx < 0) centerIdx = candle.levels.size / 2
+
+    val visibleLevels = 11 // show ~11 levels around cursor
+    val halfVisible = visibleLevels / 2
+    val startIdx = (centerIdx - halfVisible).coerceAtLeast(0)
+    val endIdx = (centerIdx + halfVisible).coerceAtMost(candle.levels.size)
+    val viewLevels = candle.levels.subList(startIdx, endIdx)
+
+    val title = "   Price        Bid    Ask"
+    val titleStyle = TextStyle(color = Color(0xFF5B9BD5), fontSize = 8.sp, fontFamily = FontFamily.Monospace)
+    val titleLayout = textMeasurer.measure(AnnotatedString(title), titleStyle)
+
+    val lines = viewLevels.map { level ->
+        val priceStr = level.priceFloat.toLong().toString().padStart(8)
+        val bidStr = level.bidVolumeFloat.toLong().toString().padStart(7)
+        val askStr = level.askVolumeFloat.toLong().toString().padStart(7)
+        "  $priceStr  $bidStr  $askStr"
+    }
+
+    val rowStyle = TextStyle(color = config.axisTextColor, fontSize = 8.sp, fontFamily = FontFamily.Monospace)
+    val rowLayouts = lines.map { textMeasurer.measure(AnnotatedString(it), rowStyle) }
+    val maxRowW = rowLayouts.maxOfOrNull { it.size.width } ?: titleLayout.size.width
+
+    val panelW = maxRowW + 10f
+    val panelH = titleLayout.size.height + rowLayouts.sumOf { it.size.height } + 8f
+    val gapBetweenRows = 1.5f
+
+    // Position: right of candle if space, else left
+    val candleX = candleIndex * totalW - scrollOffset + candleMetrics.width / 2
+    val panelX = if (candleX + panelW + 20f > chartLayout.chartMainArea.width) maxOf(candleX - panelW - 10f, 0f) else candleX + 10f
+    val panelY = maxOf(mousePosition.y - chartLayout.chartMainArea.top - panelH / 2, 0f)
+
+    // Background
+    drawRect(color = config.backgroundColor.copy(alpha = 0.92f), topLeft = Offset(panelX, panelY), size = Size(panelW, panelH))
+    drawRect(color = Color(0xFF5B9BD5).copy(alpha = 0.3f), topLeft = Offset(panelX, panelY), size = Size(panelW, panelH), style = androidx.compose.ui.graphics.drawscope.Stroke(1f))
+
+    // Title
+    drawText(titleLayout, topLeft = Offset(panelX + 4f, panelY + 3f))
+
+    // Rows with bid/ask coloring
+    var yOff = panelY + titleLayout.size.height + 4f
+    viewLevels.forEachIndexed { i, level ->
+        val row = rowLayouts[i]
+        // Highlight current level
+        val isCurrent = (startIdx + i == centerIdx)
+        if (isCurrent) {
+            drawRect(color = Color.White.copy(alpha = 0.08f), topLeft = Offset(panelX + 2f, yOff - 1f), size = Size(panelW - 4f, row.size.height + 2f))
+        }
+        drawText(row, topLeft = Offset(panelX + 4f, yOff))
+        yOff += row.size.height + gapBetweenRows
+    }
+}

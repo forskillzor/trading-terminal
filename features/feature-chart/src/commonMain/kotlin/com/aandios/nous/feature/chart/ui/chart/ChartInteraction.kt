@@ -38,6 +38,7 @@ import com.aandios.nous.feature.chart.model.PriceRange
 import com.aandios.nous.feature.chart.rendering.drawChart
 import com.aandios.nous.feature.chart.rendering.drawCrosshair
 import com.aandios.nous.feature.chart.rendering.drawFootprintChart
+import com.aandios.nous.feature.chart.rendering.drawFootprintPopup
 import com.aandios.nous.feature.chart.rendering.drawPriceScale
 import com.aandios.nous.feature.chart.rendering.drawTimeScale
 import com.aandios.nous.feature.chart.ui.ChartConfig
@@ -74,13 +75,15 @@ fun CandleStickChartInteraction(
     var isCrosshairVisible by remember { mutableStateOf(false) }
     var scrollOffset by remember { mutableFloatStateOf(0f) }
     var zoomLevel by remember { mutableFloatStateOf(1f) }
-    // Ширина области графика в пикселях — обновляется внутри BoxWithConstraints, нужна для зума
     var chartWidthPx by remember { mutableFloatStateOf(0f) }
-    // Максимальный скролл (полная ширина свечей минус ширина области графика) — ограничивает скролл справа
     var maxScroll by remember { mutableFloatStateOf(0f) }
     var isCtrlPressed by remember { mutableStateOf(false) }
-    // Максимальное пустое место слева (в пикселях) — триггер для загрузки истории
+    // Ctrl+hover popup position for footprint
+    var footprintHoverPos by remember { mutableStateOf<Offset?>(null) }
     val maxScrollLeft = 300f
+    val maxZoom = if (footprintCandles != null) 30f else 4f
+    val minZoom = 0.15f
+    val zoomStep = 1.25f
 
     // TextMeasurer для измерения текста
     val textMeasurer = rememberTextMeasurer()
@@ -138,9 +141,9 @@ fun CandleStickChartInteraction(
                         val change = event.changes.firstOrNull() ?: continue
                         val sd = change.scrollDelta
                         if (event.type == PointerEventType.Scroll && sd != Offset.Zero) {
-                            val factor = if (sd.y < 0) 1.15f else 1f / 1.15f
+                            val factor = if (sd.y < 0) zoomStep else 1f / zoomStep
                             val oldZoom = zoomLevel
-                            val newZoom = (oldZoom * factor).coerceIn(0.25f, 4.0f)
+                            val newZoom = (oldZoom * factor).coerceIn(minZoom, maxZoom)
                             val actualFactor = newZoom / oldZoom
 
                             val mouseX = change.position.x
@@ -160,6 +163,21 @@ fun CandleStickChartInteraction(
                             change.consume()
                         }
                     }
+                }
+            }
+            // Track mouse position for footprint popup (Ctrl+hover)
+            .pointerInput(isCtrlPressed, footprintCandles) {
+                if (footprintCandles != null && isCtrlPressed) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull() ?: continue
+                            footprintHoverPos = change.position
+                            change.consume()
+                        }
+                    }
+                } else {
+                    footprintHoverPos = null
                 }
             }
     ) {
@@ -332,6 +350,19 @@ fun CandleStickChartInteraction(
                     start = Offset(layout.chartArea.right + layout.chartPadding, 0f),
                     end = Offset(layout.chartArea.right + layout.chartPadding, layout.canvasHeight),
                     strokeWidth = 1f
+                )
+            }
+            // Ctrl+hover popup for footprint
+            if (footprintCandles != null && isCtrlPressed && !crosshairEnabled && footprintHoverPos != null) {
+                drawFootprintPopup(
+                    mousePosition = footprintHoverPos!!,
+                    candles = footprintCandles,
+                    priceRange = priceRange,
+                    config = config,
+                    chartLayout = layout,
+                    textMeasurer = textMeasurer,
+                    scrollOffset = clampedOffset,
+                    zoomLevel = zoomLevel,
                 )
             }
             // Рисуем перекрестие если crosshair включен и есть позиция курсора
