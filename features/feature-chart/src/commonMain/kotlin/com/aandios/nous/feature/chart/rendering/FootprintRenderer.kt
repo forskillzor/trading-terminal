@@ -238,7 +238,7 @@ fun DrawScope.drawFootprintPopup(
     val halfVisible = visibleLevels / 2
     val startIdx = (centerIdx - halfVisible).coerceAtLeast(0)
     val endIdx = (centerIdx + halfVisible).coerceAtMost(candle.levels.size)
-    val viewLevels = candle.levels.subList(startIdx, endIdx)
+    val viewLevels = candle.levels.subList(startIdx, endIdx).reversed()
 
     val popupBg = Color(0xFF0D1117)
     val textWhite = Color(0xFFE0E0E0)
@@ -256,7 +256,7 @@ fun DrawScope.drawFootprintPopup(
     val bidX = priceX + textMeasurer.measure(AnnotatedString("  64321.12 "), TextStyle(fontSize = 10.sp, fontFamily = FontFamily.Monospace)).size.width + 4f
     val askX = bidX + textMeasurer.measure(AnnotatedString(" 12345 "), TextStyle(fontSize = 10.sp, fontFamily = FontFamily.Monospace)).size.width + 4f
 
-    val panelW = textMeasurer.measure(AnnotatedString("  64321.12   12345   12345  "), TextStyle(fontSize = 10.sp, fontFamily = FontFamily.Monospace)).size.width + 12f
+    val panelW = textMeasurer.measure(AnnotatedString("  64321.12   12345   12345"), TextStyle(fontSize = 10.sp, fontFamily = FontFamily.Monospace)).size.width + 50f
     val gapBetweenRows = 2f
     val rowH = 14f
     val panelH = titleLayout.size.height + viewLevels.size * rowH + (viewLevels.size - 1) * gapBetweenRows + 10f
@@ -284,7 +284,8 @@ fun DrawScope.drawFootprintPopup(
     // Rows
     var yOff = panelY + titleLayout.size.height + 5f
     viewLevels.forEachIndexed { i, level ->
-        val isCurrent = (startIdx + i == centerIdx)
+        val originalIdx = viewLevels.size - 1 - i + startIdx  // map back to original index
+        val isCurrent = (originalIdx == centerIdx)
         val absX = panelX + priceX
 
         if (isCurrent) {
