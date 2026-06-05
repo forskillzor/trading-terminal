@@ -12,6 +12,8 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.aandios.nous.api.market.model.Symbol
+import com.aandios.nous.core.ui.component.SymbolSearchDropdown
 import com.aandios.nous.feature.dom.domain.*
 
 @Composable
@@ -132,15 +134,6 @@ private fun ExpandedDomHeader(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Symbol dropdown с label
-                /**
-                 * todo это надо заменить полем ввода со списком всех инструментов по совпадению ввода
-                 * или если ничего не введено, то список по популярности
-                 * переключение режимов весь рынок например perp futures
-                 * на favorite с возможностью добавлять в избранное
-                 * пока без реализации сохранения favorite на диске, только в памяти
-                 **/
-
-
                 SymbolDropdown(
                     currentSymbol = domOptions.symbol,
                     provider = domOptions.provider,
