@@ -51,6 +51,8 @@ fun ChartWindow(
     val historyLoadCount by chartViewModel.historyLoadCount.collectAsState()
     val hasMoreHistory by chartViewModel.hasMoreHistory.collectAsState()
     val footprintCandles by chartViewModel.footprintCandles.collectAsState()
+    val liveFootprintCandle by chartViewModel.liveFootprintCandle.collectAsState()
+    val footprintCurrentPrice by chartViewModel.footprintCurrentPrice.collectAsState()
     val footprintLoading by chartViewModel.footprintLoading.collectAsState()
     val footprintError by chartViewModel.footprintError.collectAsState()
     val chartMode by chartViewModel.chartMode.collectAsState()
@@ -144,8 +146,12 @@ fun ChartWindow(
                                 }
                             } else {
                                 FootprintChart(
-                                    candles = footprintCandles,
-                                    modifier = Modifier.fillMaxSize()
+                                    completedCandles = footprintCandles,
+                                    liveCandle = liveFootprintCandle,
+                                    currentPrice = footprintCurrentPrice,
+                                    modifier = Modifier.fillMaxSize(),
+                                    crosshairEnabled = crosshairEnabled,
+                                    onCrosshairEnabledChange = { crosshairEnabled = it },
                                 )
                             }
                         }

@@ -33,3 +33,66 @@ data class FootprintCandle(
     val close: Float get() = levels.lastOrNull()?.priceFloat ?: 0f
     val maxVolume: Float get() = levels.maxOfOrNull { maxOf(it.bidVolumeFloat, it.askVolumeFloat) } ?: 0f
 }
+
+/**
+ * Live-accumulated footprint candle for the current minute.
+ * Not serializable — built in memory from real-time trades.
+ */
+class MutableFootprintCandle(
+    val exchange: String = "Binance",
+    val symbol: String = "",
+    val timeframe: String = "1m",
+    val startTime: Long = 0L,
+    val endTime: Long = 0L
+) {
+    private val levelMap = linkedMapOf<Float, MutableLevel>()
+
+    data class MutableLevel(
+        var bidVolume: Float = 0f,
+        var askVolume: Float = 0f,
+        var bidCount: Int = 0,
+        var askCount: Int = 0
+    )
+
+    fun addTrade(price: Float, quantity: Float, isBuy: Boolean) {
+        val level = levelMap.getOrPut(price) { MutableLevel() }
+        if (isBuy) {
+            level.bidVolume += quantity
+            level.bidCount++
+        } else {
+            level.askVolume += quantity
+            level.askCount++
+        }
+    }
+
+    fun toFootprintCandle(totalTicks: Long = 0L): FootprintCandle {
+        val sortedLevels = levelMap.toSortedMap()
+        if (sortedLevels.isEmpty()) return FootprintCandle(
+            exchange = exchange, symbol = symbol, timeframe = timeframe,
+            startTime = startTime, endTime = endTime, totalTicks = totalTicks,
+            levels = emptyList()
+        )
+        val levels = sortedLevels.map { (price, ml) ->
+            FootprintLevel(
+                price = price.toString(),
+                bidVolume = ml.bidVolume.toString(),
+                askVolume = ml.askVolume.toString(),
+                bidCount = ml.bidCount,
+                askCount = ml.askCount
+            )
+        }
+        val minP = sortedLevels.firstKey().toString()
+        val maxP = sortedLevels.lastKey().toString()
+        return FootprintCandle(
+            exchange = exchange, symbol = symbol, timeframe = timeframe,
+            startTime = startTime, endTime = endTime,
+            totalTicks = totalTicks,
+            minPrice = minP, maxPrice = maxP,
+            levels = levels
+        )
+    }
+
+    fun getCurrentPrice(): Float? = levelMap.keys.maxOrNull()
+    fun getMinPrice(): Float? = levelMap.keys.minOrNull()
+    fun getMaxPrice(): Float? = levelMap.keys.maxOrNull()
+}

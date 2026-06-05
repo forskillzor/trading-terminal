@@ -2,6 +2,8 @@ package com.aandios.nous.feature.chart.ui.chart
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -28,34 +30,43 @@ import androidx.compose.ui.unit.sp
 import com.aandios.nous.api.market.model.FootprintCandle
 import com.aandios.nous.feature.chart.model.ChartLayout
 import com.aandios.nous.feature.chart.model.PriceRange
+import com.aandios.nous.feature.chart.rendering.drawCrosshairForFootprint
 import com.aandios.nous.feature.chart.rendering.drawFootprintChart
 import com.aandios.nous.feature.chart.rendering.drawPriceScale
+import com.aandios.nous.feature.chart.rendering.drawTimeScaleForFootprint
+import com.aandios.nous.feature.chart.rendering.drawCurrentPriceLine
 import com.aandios.nous.feature.chart.ui.ChartConfig
 import com.aandios.nous.feature.chart.ui.DefaultChartConfig
 import com.aandios.nous.feature.chart.utils.calculateCandleMetrics
 import com.aandios.nous.feature.chart.utils.calculatePriceRangeWithFootprint
+import com.aandios.nous.feature.chart.utils.priceToY
 import kotlin.math.max
-import kotlin.math.min
 
 @Composable
 fun FootprintChart(
-    candles: List<FootprintCandle>,
+    completedCandles: List<FootprintCandle>,
+    liveCandle: FootprintCandle? = null,
+    currentPrice: Float? = null,
     modifier: Modifier = Modifier,
     config: ChartConfig = DefaultChartConfig,
     showPriceScale: Boolean = true,
     priceScaleWidth: Dp = 60.dp,
+    crosshairEnabled: Boolean = false,
+    onCrosshairEnabledChange: (Boolean) -> Unit = {},
 ) {
-    if (candles.isEmpty()) {
+    val allCandles = remember(completedCandles, liveCandle) {
+        if (liveCandle != null) completedCandles + liveCandle else completedCandles
+    }
+
+    if (allCandles.isEmpty()) {
         BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-            Text(
-                text = "No footprint data available.",
-                color = androidx.compose.ui.graphics.Color.Gray,
-                fontSize = 12.sp
-            )
+            Text(text = "No footprint data available.", color = androidx.compose.ui.graphics.Color.Gray, fontSize = 12.sp)
         }
         return
     }
 
+    var mousePosition by remember { mutableStateOf<Offset?>(null) }
+    var isCrosshairVisible by remember { mutableStateOf(false) }
     var scrollOffset by remember { mutableFloatStateOf(0f) }
     var zoomLevel by remember { mutableFloatStateOf(1f) }
     var verticalScroll by remember { mutableFloatStateOf(0f) }
@@ -74,44 +85,41 @@ fun FootprintChart(
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null
-            ) { }
+            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { }
             .onKeyEvent { event ->
                 when {
-                    event.key == Key.CtrlLeft || event.key == Key.CtrlRight -> {
-                        isCtrlPressed = event.type == KeyEventType.KeyDown
-                        true
-                    }
-                    event.key == Key.AltLeft || event.key == Key.AltRight -> {
-                        isAltPressed = event.type == KeyEventType.KeyDown
-                        true
-                    }
+                    event.key == Key.CtrlLeft || event.key == Key.CtrlRight -> { isCtrlPressed = event.type == KeyEventType.KeyDown; true }
+                    event.key == Key.AltLeft || event.key == Key.AltRight -> { isAltPressed = event.type == KeyEventType.KeyDown; true }
                     else -> false
                 }
             }
             .pointerInput(isAltPressed) {
-                detectDragGestures(
-                    onDrag = { change, dragAmount ->
-                        if (isAltPressed) {
-                            verticalScroll = (verticalScroll + dragAmount.y)
-                                .coerceIn(-chartHeightPx * 2, chartHeightPx * 2)
-                        } else {
-                            scrollOffset = (scrollOffset - change.position.x + change.previousPosition.x)
-                                .coerceIn(-maxScrollLeft, maxScroll)
-                        }
-                    },
-                )
+                detectDragGestures(onDrag = { change, dragAmount ->
+                    if (isAltPressed) {
+                        verticalScroll = (verticalScroll + dragAmount.y).coerceIn(-chartHeightPx * 2, chartHeightPx * 2)
+                    } else if (!crosshairEnabled) {
+                        scrollOffset = (scrollOffset - change.position.x + change.previousPosition.x).coerceIn(-maxScrollLeft, maxScroll)
+                    }
+                })
+            }
+            .pointerInput(crosshairEnabled) {
+                if (crosshairEnabled) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        isCrosshairVisible = true; mousePosition = down.position
+                        do {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull() ?: break
+                            if (change.pressed) { isCrosshairVisible = true; mousePosition = change.position; change.consume() }
+                            else { change.consume(); break }
+                        } while (true)
+                    }
+                }
             }
             .pointerInput(Unit) {
-                detectTapGestures(
-                    onDoubleTap = {
-                        zoomLevel = 1f
-                        scrollOffset = maxScroll
-                        verticalScroll = 0f
-                    }
-                )
+                detectTapGestures(onDoubleTap = {
+                    zoomLevel = 1f; scrollOffset = maxScroll; verticalScroll = 0f
+                })
             }
             .pointerInput(Unit) {
                 awaitPointerEventScope {
@@ -124,7 +132,6 @@ fun FootprintChart(
                             val oldZoom = zoomLevel
                             val newZoom = (oldZoom * factor).coerceIn(minZoom, maxZoom)
                             val actualFactor = newZoom / oldZoom
-
                             val newScrollOffset = if (isCtrlPressed) {
                                 val mouseX = change.position.x
                                 val virtualPos = mouseX + scrollOffset
@@ -133,128 +140,78 @@ fun FootprintChart(
                                 val rightEdge = scrollOffset + chartWidthPx
                                 rightEdge * actualFactor - chartWidthPx
                             }
-
-                            zoomLevel = newZoom
-                            scrollOffset = newScrollOffset
+                            zoomLevel = newZoom; scrollOffset = newScrollOffset
                             change.consume()
                         }
                     }
                 }
             }
     ) {
-        val canvasWidth = maxWidth
-        val canvasHeight = maxHeight
+        val canvasWidth = maxWidth; val canvasHeight = maxHeight
         val density = LocalDensity.current
 
         val layout = remember(priceScaleWidth, canvasWidth, canvasHeight) {
-            val widthPx = with(density) { canvasWidth.toPx() }
-            val heightPx = with(density) { canvasHeight.toPx() }
-            val chartPadding = 8f
-            val timeScaleHeight = (heightPx * 0.04f).coerceAtLeast(20f).coerceAtMost(40f)
-            val priceScaleWidthPx = with(density) { priceScaleWidth.toPx() }
-
-            val priceScaleArea = Rect(
-                left = widthPx - priceScaleWidthPx,
-                top = 0f,
-                right = widthPx,
-                bottom = heightPx
-            )
-            val timeScaleArea = Rect(
-                left = 0f,
-                top = heightPx - timeScaleHeight,
-                right = widthPx - priceScaleWidthPx - chartPadding,
-                bottom = heightPx
-            )
-            val chartMainArea = Rect(
-                left = 0f,
-                top = 0f,
-                right = widthPx - priceScaleWidthPx - chartPadding,
-                bottom = heightPx - timeScaleHeight
-            )
-            val chartArea = Rect(
-                left = 0f,
-                top = 0f,
-                right = widthPx - priceScaleWidthPx - chartPadding,
-                bottom = heightPx
-            )
-
-            ChartLayout(
-                canvasWidth = widthPx,
-                canvasHeight = heightPx,
-                priceScaleWidth = priceScaleWidthPx,
-                chartArea = chartArea,
-                priceScaleArea = priceScaleArea,
-                chartPadding = chartPadding,
-                timeScaleHeight = timeScaleHeight,
-                chartMainArea = chartMainArea,
-                timeScaleArea = timeScaleArea
-            )
+            val wp = with(density) { canvasWidth.toPx() }; val hp = with(density) { canvasHeight.toPx() }
+            val cp = 8f; val tsh = (hp * 0.04f).coerceAtLeast(20f).coerceAtMost(40f)
+            val psw = with(density) { priceScaleWidth.toPx() }
+            val chartMainArea = Rect(0f, 0f, wp - psw - cp, hp - tsh)
+            val chartArea = Rect(0f, 0f, wp - psw - cp, hp)
+            val priceScaleArea = Rect(wp - psw, 0f, wp, hp)
+            val timeScaleArea = Rect(0f, hp - tsh, wp - psw - cp, hp)
+            ChartLayout(wp, hp, psw, chartArea, priceScaleArea, cp, tsh, chartMainArea, timeScaleArea)
         }
 
-        chartWidthPx = layout.chartMainArea.width
-        chartHeightPx = layout.chartMainArea.height
-        val candleMetrics = remember(zoomLevel) {
-            calculateCandleMetrics(zoomLevel)
-        }
+        chartWidthPx = layout.chartMainArea.width; chartHeightPx = layout.chartMainArea.height
+        val candleMetrics = remember(zoomLevel) { calculateCandleMetrics(zoomLevel) }
         val totalW = candleMetrics.width + candleMetrics.spacing
-        maxScroll = max(0f, candles.size * totalW - chartWidthPx)
+        maxScroll = max(0f, allCandles.size * totalW - chartWidthPx)
 
-        LaunchedEffect(candles.firstOrNull()?.startTime ?: 0L) {
-            scrollOffset = maxScroll
-        }
+        LaunchedEffect(allCandles.firstOrNull()?.startTime ?: 0L) { scrollOffset = maxScroll }
 
         val clampedOffset = scrollOffset.coerceIn(-maxScrollLeft, maxScroll)
-        val startIdx = (clampedOffset / totalW).toInt().coerceIn(0, max(0, candles.size - 1))
-        val endIdx = ((clampedOffset + chartWidthPx) / totalW + 1).toInt().coerceIn(startIdx + 1, candles.size)
+        val startIdx = (clampedOffset / totalW).toInt().coerceIn(0, max(0, allCandles.size - 1))
+        val endIdx = ((clampedOffset + chartWidthPx) / totalW + 1).toInt().coerceIn(startIdx + 1, allCandles.size)
 
         val visibleCandles = remember(startIdx, endIdx) {
-            candles.subList(startIdx, endIdx.coerceAtMost(candles.size))
+            allCandles.subList(startIdx, endIdx.coerceAtMost(allCandles.size))
         }
-        val basePriceRange = remember(visibleCandles) {
-            calculatePriceRangeWithFootprint(visibleCandles)
-        }
+        val basePriceRange = remember(visibleCandles) { calculatePriceRangeWithFootprint(visibleCandles) }
         val shiftedPriceRange = remember(basePriceRange, verticalScroll, chartHeightPx) {
-            val shiftRatio = verticalScroll / chartHeightPx.coerceAtLeast(1f)
-            val shift = basePriceRange.range * shiftRatio
-            PriceRange(
-                max = basePriceRange.max + shift,
-                min = basePriceRange.min + shift,
-                visibleMax = basePriceRange.visibleMax + shift,
-                visibleMin = basePriceRange.visibleMin + shift,
-                range = basePriceRange.range
-            )
+            val ratio = verticalScroll / chartHeightPx.coerceAtLeast(1f)
+            val shift = basePriceRange.range * ratio
+            PriceRange(basePriceRange.max + shift, basePriceRange.min + shift, basePriceRange.visibleMax + shift, basePriceRange.visibleMin + shift, basePriceRange.range)
         }
 
         Canvas(
-            modifier = Modifier
-                .fillMaxSize()
-                .clipToBounds()
+            modifier = Modifier.fillMaxSize().clipToBounds()
         ) {
             drawFootprintChart(
-                candles = candles,
-                priceRange = shiftedPriceRange,
-                config = config,
-                chartArea = layout.chartArea,
-                textMeasurer = textMeasurer,
-                scrollOffset = clampedOffset,
-                zoomLevel = zoomLevel,
-                visibleStartIndex = startIdx,
-                visibleEndIndex = endIdx,
+                candles = allCandles, priceRange = shiftedPriceRange, config = config,
+                chartArea = layout.chartArea, textMeasurer = textMeasurer,
+                scrollOffset = clampedOffset, zoomLevel = zoomLevel,
+                visibleStartIndex = startIdx, visibleEndIndex = endIdx,
             )
 
+            // Current price line (reused from CandleRenderer)
+            if (currentPrice != null) {
+                drawCurrentPriceLine(currentPrice, shiftedPriceRange, config, layout.chartMainArea.height, layout.chartMainArea.width)
+            }
+
+            // Price scale
             if (showPriceScale) {
-                drawPriceScale(
-                    priceRange = shiftedPriceRange,
-                    config = config,
-                    priceScaleArea = layout.priceScaleArea,
-                    currentPrice = null,
-                    textMeasurer = textMeasurer
-                )
-                drawLine(
-                    color = config.gridColor.copy(alpha = 0.5f),
-                    start = Offset(layout.chartArea.right + layout.chartPadding, 0f),
-                    end = Offset(layout.chartArea.right + layout.chartPadding, layout.canvasHeight),
-                    strokeWidth = 1f
+                drawPriceScale(shiftedPriceRange, config, layout.priceScaleArea, currentPrice, textMeasurer)
+                drawLine(config.gridColor.copy(alpha = 0.5f), Offset(layout.chartArea.right + layout.chartPadding, 0f), Offset(layout.chartArea.right + layout.chartPadding, layout.canvasHeight), 1f)
+            }
+
+            // Time scale
+            drawTimeScaleForFootprint(allCandles, config, layout.timeScaleArea, textMeasurer, clampedOffset, zoomLevel)
+
+            // Crosshair (reused from candlestick)
+            if (crosshairEnabled && isCrosshairVisible && mousePosition != null) {
+                drawCrosshairForFootprint(
+                    mousePosition = mousePosition!!, candles = allCandles, priceRange = shiftedPriceRange,
+                    config = config, chartLayout = layout, textMeasurer = textMeasurer,
+                    scrollOffset = clampedOffset, zoomLevel = zoomLevel,
                 )
             }
         }

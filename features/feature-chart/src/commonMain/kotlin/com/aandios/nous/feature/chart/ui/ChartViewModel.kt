@@ -1,24 +1,25 @@
 package com.aandios.nous.feature.chart.ui
 
 import com.aandios.nous.api.market.adapters.SymbolInfoAdapter
+import com.aandios.nous.api.market.adapters.TradesAdapter
 import com.aandios.nous.api.market.model.Candle
 import com.aandios.nous.api.market.model.FootprintCandle
+import com.aandios.nous.api.market.model.MutableFootprintCandle
 import com.aandios.nous.core.domain.repository.ChartRepository
 import com.aandios.nous.feature.chart.footprint.FootprintApiClient
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.*
 import kotlin.coroutines.cancellation.CancellationException
 
 class ChartViewModel(
     private val chartRepository: ChartRepository,
     private val symbolInfoAdapter: SymbolInfoAdapter,
     private val footprintApiClient: FootprintApiClient? = null,
+    private val tradesAdapter: TradesAdapter? = null,
 ) {
     private val viewModelScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var currentJob: Job? = null
+    private var footprintJob: Job? = null
     private var isLoadingMore = false
 
     private val _chartState = MutableStateFlow<ChartState>(ChartState.Loading)
@@ -39,20 +40,23 @@ class ChartViewModel(
     private val _hasMoreHistory = MutableStateFlow(true)
     val hasMoreHistory: StateFlow<Boolean> = _hasMoreHistory.asStateFlow()
 
-    private val _footprintCandles = MutableStateFlow<List<FootprintCandle>>(emptyList())
-    val footprintCandles: StateFlow<List<FootprintCandle>> = _footprintCandles.asStateFlow()
-
+    // Footprint state
+    private val _completedFootprintCandles = MutableStateFlow<List<FootprintCandle>>(emptyList())
+    private val _liveFootprintCandle = MutableStateFlow<FootprintCandle?>(null)
+    private val _footprintCurrentPrice = MutableStateFlow<Float?>(null)
     private val _footprintLoading = MutableStateFlow(false)
-    val footprintLoading: StateFlow<Boolean> = _footprintLoading.asStateFlow()
-
     private val _footprintError = MutableStateFlow<String?>(null)
-    val footprintError: StateFlow<String?> = _footprintError.asStateFlow()
-
     private val _chartMode = MutableStateFlow(ChartMode.CANDLESTICK)
-    val chartMode: StateFlow<ChartMode> = _chartMode.asStateFlow()
-
     private val _symbolsWithFootprint = MutableStateFlow<Set<String>>(emptySet())
-    val symbolsWithFootprint: StateFlow<Set<String>> = _symbolsWithFootprint.asStateFlow()
+
+    // For UI observation
+    val footprintCandles: StateFlow<List<FootprintCandle>> = _completedFootprintCandles
+    val liveFootprintCandle: StateFlow<FootprintCandle?> = _liveFootprintCandle
+    val footprintCurrentPrice: StateFlow<Float?> = _footprintCurrentPrice
+    val footprintLoading: StateFlow<Boolean> = _footprintLoading
+    val footprintError: StateFlow<String?> = _footprintError
+    val chartMode: StateFlow<ChartMode> = _chartMode
+    val symbolsWithFootprint: StateFlow<Set<String>> = _symbolsWithFootprint
 
     init {
         loadSymbols()
@@ -93,7 +97,9 @@ class ChartViewModel(
         }
         _chartMode.value = newMode
         if (newMode == ChartMode.FOOTPRINT) {
-            loadFootprintData()
+            startLiveFootprint()
+        } else {
+            stopLiveFootprint()
         }
     }
 
@@ -109,31 +115,155 @@ class ChartViewModel(
         }
     }
 
-    fun loadFootprintData() {
-        if (footprintApiClient == null) {
-            _footprintError.value = "Footprint API client not available"
+    // Load historical footprint from server
+    private suspend fun fetchHistoricalFootprint(): List<FootprintCandle> {
+        if (footprintApiClient == null) return emptyList()
+        return try {
+            footprintApiClient.getFootprint(
+                symbol = _currentSymbol.value,
+                timeframe = "1m", // footprint only supports 1m live
+                limit = 500
+            )
+        } catch (e: Exception) {
+            println("Failed to fetch historical footprint: ${e.message}")
+            emptyList()
+        }
+    }
+
+    // Fetch one completed candle from server
+    private suspend fun fetchCompletedCandle(startTime: Long, endTime: Long): FootprintCandle? {
+        if (footprintApiClient == null) return null
+        return try {
+            footprintApiClient.getFootprint(
+                symbol = _currentSymbol.value,
+                timeframe = "1m",
+                from = startTime,
+                to = endTime,
+                limit = 1
+            ).firstOrNull()
+        } catch (e: Exception) { null }
+    }
+
+    fun startLiveFootprint() {
+        if (tradesAdapter == null) {
+            _footprintError.value = "Trades adapter not available for live footprint"
+            loadFootprintData()
             return
         }
+
+        footprintJob?.cancel()
+        _footprintLoading.value = true
+        _footprintError.value = null
+        _completedFootprintCandles.value = emptyList()
+        _liveFootprintCandle.value = null
+
+        footprintJob = viewModelScope.launch {
+            try {
+                // 1. Load history from server
+                val history = fetchHistoricalFootprint()
+                _completedFootprintCandles.value = history
+                _footprintLoading.value = false
+
+                // 2. Start live accumulation
+                val liveCandle = MutableFootprintCandle(
+                    symbol = _currentSymbol.value,
+                    startTime = 0L, // will be set on first trade
+                    endTime = 0L
+                )
+                var lastCandleStart = 0L
+                var tickCount = 0L
+
+                tradesAdapter.subscribeToTrades(_currentSymbol.value).collect { trade ->
+                    val candleStart = trade.timestamp / 60_000 * 60_000
+
+                    // Minute boundary: finish current candle, fetch from server
+                    if (lastCandleStart > 0L && candleStart != lastCandleStart) {
+                        val completed = liveCandle.toFootprintCandle(tickCount)
+                        _completedFootprintCandles.value = _completedFootprintCandles.value + completed
+
+                        // Fetch authoritative version from server
+                        val serverCandle = fetchCompletedCandle(lastCandleStart, candleStart)
+                        if (serverCandle != null && serverCandle.levels.isNotEmpty()) {
+                            val updated = _completedFootprintCandles.value.toMutableList()
+                            updated[updated.lastIndex] = serverCandle
+                            _completedFootprintCandles.value = updated
+                            // Schedule another fetch after a few seconds (in case server data came late)
+                            launch {
+                                delay(3000)
+                                val checkAgain = fetchCompletedCandle(lastCandleStart, candleStart)
+                                if (checkAgain != null && checkAgain.levels.isNotEmpty() && checkAgain.totalTicks > (serverCandle.totalTicks)) {
+                                    val list = _completedFootprintCandles.value.toMutableList()
+                                    list[list.lastIndex] = checkAgain
+                                    _completedFootprintCandles.value = list
+                                }
+                            }
+                        }
+
+                        // Start new candle
+                        liveCandle.addTrade(trade.price.toFloat(), trade.quantity.toFloat(), !trade.isBuyerMaker)
+                        tickCount = 1
+                    } else {
+                        liveCandle.addTrade(trade.price.toFloat(), trade.quantity.toFloat(), !trade.isBuyerMaker)
+                        tickCount++
+                    }
+
+                    lastCandleStart = candleStart
+
+                    // Update live candle state
+                    val liveSnapshot = liveCandle.toFootprintCandle(tickCount)
+                    _liveFootprintCandle.value = if (liveSnapshot.levels.isNotEmpty()) liveSnapshot else null
+                    _footprintCurrentPrice.value = liveCandle.getCurrentPrice()
+                }
+            } catch (e: CancellationException) {
+                // normal stop
+            } catch (e: Exception) {
+                println("Live footprint error: ${e.message}")
+                _footprintError.value = "Live footprint error: ${e.message}"
+                _footprintLoading.value = false
+            }
+        }
+
+        // Periodic server polling for latest completed candle
+        viewModelScope.launch {
+            while (isActive) {
+                delay(60_000) // every minute
+                if (_chartMode.value != ChartMode.FOOTPRINT) break
+                val now = System.currentTimeMillis()
+                val completedStart = (now / 60_000 * 60_000) - 60_000
+                val completedEnd = completedStart + 60_000
+                val serverCandle = fetchCompletedCandle(completedStart, completedEnd)
+                if (serverCandle != null && serverCandle.levels.isNotEmpty()) {
+                    val list = _completedFootprintCandles.value.toMutableList()
+                    if (list.isNotEmpty() && list.last().startTime == completedStart) {
+                        list[list.lastIndex] = serverCandle
+                    } else {
+                        list.add(serverCandle)
+                    }
+                    _completedFootprintCandles.value = list
+                }
+            }
+        }
+    }
+
+    fun stopLiveFootprint() {
+        footprintJob?.cancel()
+        footprintJob = null
+        _liveFootprintCandle.value = null
+    }
+
+    fun loadFootprintData() {
+        footprintJob?.cancel()
+        footprintJob = null
+        _liveFootprintCandle.value = null
+
         viewModelScope.launch {
             _footprintLoading.value = true
             _footprintError.value = null
-            try {
-                val data = footprintApiClient.getFootprint(
-                    symbol = _currentSymbol.value,
-                    timeframe = _currentTimeframe.value,
-                    limit = 500
-                )
-                _footprintCandles.value = data
-                if (data.isEmpty()) {
-                    _footprintError.value = "No footprint data in DB"
-                }
-            } catch (e: Exception) {
-                val msg = "Footprint load failed: ${e.message}"
-                println(msg)
-                e.printStackTrace()
-                _footprintError.value = msg
-            } finally {
-                _footprintLoading.value = false
+            val data = fetchHistoricalFootprint()
+            _completedFootprintCandles.value = data
+            _footprintLoading.value = false
+            if (data.isEmpty()) {
+                _footprintError.value = "No footprint data in DB"
             }
         }
     }
@@ -145,7 +275,6 @@ class ChartViewModel(
 
         viewModelScope.launch {
             _chartState.value = ChartState.Loading
-
             delay(100)
             currentJob?.cancel()
 
@@ -156,30 +285,22 @@ class ChartViewModel(
             currentJob = launch {
                 try {
                     chartRepository.getChart(ticker, timeframe)
-                        .catch { e ->
-                            println("ChartViewModel catch error: ${e.message}")
-                            _chartState.value = ChartState.Error(e.message ?: "Unknown error")
-                        }
+                        .catch { e -> _chartState.value = ChartState.Error(e.message ?: "Unknown error") }
                         .collect { candles ->
                             if (candles.isNotEmpty()) {
                                 val lastPrice = candles.last().close
-                                _chartState.value = ChartState.Success(
-                                    candles = candles,
-                                    currentPrice = lastPrice
-                                )
+                                _chartState.value = ChartState.Success(candles = candles, currentPrice = lastPrice)
                             }
                         }
                 } catch (e: CancellationException) {
                     println("Job cancelled: ${e.message}")
                 } catch (e: Exception) {
-                    println("Job error: ${e.message}")
                     _chartState.value = ChartState.Error(e.message ?: "Unknown error")
                 }
             }
 
-            // Auto-load footprint if in footprint mode
             if (_chartMode.value == ChartMode.FOOTPRINT) {
-                loadFootprintData()
+                startLiveFootprint()
             }
         }
     }
@@ -191,44 +312,22 @@ class ChartViewModel(
         viewModelScope.launch {
             try {
                 val state = _chartState.value
-                if (state !is ChartState.Success) {
-                    isLoadingMore = false
-                    return@launch
-                }
+                if (state !is ChartState.Success) { isLoadingMore = false; return@launch }
 
-
-                val oldestTime = state.candles.firstOrNull()?.timestamp ?: run {
-                    isLoadingMore = false
-                    return@launch
-                }
-
+                val oldestTime = state.candles.firstOrNull()?.timestamp ?: run { isLoadingMore = false; return@launch }
                 val endTime = oldestTime - 1
 
                 val historicalCandles = chartRepository.loadHistoricalCandlesBefore(
-                    ticker = _currentSymbol.value,
-                    timeframe = _currentTimeframe.value,
-                    endTime = endTime,
-                    limit = 200
+                    ticker = _currentSymbol.value, timeframe = _currentTimeframe.value, endTime = endTime, limit = 200
                 )
-
-                if (historicalCandles.isEmpty()) {
-                    _hasMoreHistory.value = false
-                    isLoadingMore = false
-                    return@launch
-                }
+                if (historicalCandles.isEmpty()) { _hasMoreHistory.value = false; isLoadingMore = false; return@launch }
 
                 val newCandles = historicalCandles + state.candles
                 val lastPrice = newCandles.last().close
-                val loadedCount = historicalCandles.size
-
 
                 currentJob?.cancel()
-
-                _chartState.value = ChartState.Success(
-                    candles = newCandles,
-                    currentPrice = lastPrice
-                )
-                _historyLoadCount.value = loadedCount
+                _chartState.value = ChartState.Success(candles = newCandles, currentPrice = lastPrice)
+                _historyLoadCount.value = historicalCandles.size
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
@@ -245,9 +344,6 @@ class ChartViewModel(
 
 sealed interface ChartState {
     object Loading : ChartState
-    data class Success(
-        val candles: List<Candle>,
-        val currentPrice: Float? = null
-    ) : ChartState
+    data class Success(val candles: List<Candle>, val currentPrice: Float? = null) : ChartState
     data class Error(val message: String) : ChartState
 }

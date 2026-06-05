@@ -110,6 +110,7 @@ val appModule = module {
             chartRepository = get(),
             symbolInfoAdapter = get(),
             footprintApiClient = get(),
+            tradesAdapter = get(),
         )
     }
 

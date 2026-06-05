@@ -7,7 +7,7 @@ import io.ktor.client.request.*
 
 class FootprintApiClient(
     private val httpClient: HttpClient,
-    private val baseUrl: String = "http://localhost:8085"
+    private val baseUrl: String = "http://95.81.99.28:8085"
 ) {
     suspend fun getFootprint(
         exchange: String = "Binance",

@@ -5,6 +5,7 @@ import com.aandios.nous.api.market.Provider
 import com.aandios.nous.api.market.ProviderConfig
 import com.aandios.nous.api.market.adapters.ChartAdapter
 import com.aandios.nous.api.market.adapters.SymbolInfoAdapter
+import com.aandios.nous.api.market.adapters.TradesAdapter
 import com.aandios.nous.core.data.repository.ChartRepositoryImpl
 import com.aandios.nous.core.di.coreModule
 import com.aandios.nous.core.domain.repository.ChartRepository
@@ -74,12 +75,18 @@ val featureChartModule = module {
         FootprintApiClient(httpClient = get<NetworkManager>().httpClient)
     }
 
+    // 6.5 Trades adapter from provider (for live footprint)
+    single<TradesAdapter> {
+        get<Provider>().trades ?: error("Trades adapter not available")
+    }
+
     // 7. ViewModel
     factory {
         ChartViewModel(
             chartRepository = get(),
             symbolInfoAdapter = get(),
             footprintApiClient = get(),
+            tradesAdapter = get(),
         )
     }
 }
