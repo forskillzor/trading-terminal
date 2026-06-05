@@ -166,7 +166,7 @@ fun FootprintChart(
         val totalW = candleMetrics.width + candleMetrics.spacing
         maxScroll = max(0f, allCandles.size * totalW - chartWidthPx)
 
-        LaunchedEffect(allCandles.firstOrNull()?.startTime ?: 0L) { scrollOffset = maxScroll }
+        LaunchedEffect(allCandles.size) { scrollOffset = maxScroll }
 
         val clampedOffset = scrollOffset.coerceIn(-maxScrollLeft, maxScroll)
         val startIdx = (clampedOffset / totalW).toInt().coerceIn(0, max(0, allCandles.size - 1))

@@ -212,7 +212,7 @@ class ChartViewModel(
                     // Update live candle state
                     val liveSnapshot = liveCandle.toFootprintCandle(tickCount)
                     _liveFootprintCandle.value = if (liveSnapshot.levels.isNotEmpty()) liveSnapshot else null
-                    _footprintCurrentPrice.value = liveCandle.getCurrentPrice()
+                    _footprintCurrentPrice.value = liveCandle.lastPrice.takeIf { it > 0f }
                 }
             } catch (e: CancellationException) {
                 // normal stop

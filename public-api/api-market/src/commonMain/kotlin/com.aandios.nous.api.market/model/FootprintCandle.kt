@@ -46,6 +46,8 @@ class MutableFootprintCandle(
     val endTime: Long = 0L
 ) {
     private val levelMap = linkedMapOf<Float, MutableLevel>()
+    var lastPrice: Float = 0f
+        private set
 
     data class MutableLevel(
         var bidVolume: Float = 0f,
@@ -55,6 +57,7 @@ class MutableFootprintCandle(
     )
 
     fun addTrade(price: Float, quantity: Float, isBuy: Boolean) {
+        lastPrice = price
         val level = levelMap.getOrPut(price) { MutableLevel() }
         if (isBuy) {
             level.bidVolume += quantity
