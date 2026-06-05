@@ -226,55 +226,77 @@ fun DrawScope.drawFootprintPopup(
 
     // Find price level nearest to mouse Y
     val mousePrice = priceFromY(mousePosition.y - chartLayout.chartMainArea.top, priceRange, chartLayout.chartMainArea.height)
-    var centerIdx = candle.levels.indexOfFirst { it.priceFloat >= mousePrice }
+    var centerIdx = -1
+    var minDist = Float.MAX_VALUE
+    candle.levels.forEachIndexed { i, level ->
+        val dist = kotlin.math.abs(level.priceFloat - mousePrice)
+        if (dist < minDist) { minDist = dist; centerIdx = i }
+    }
     if (centerIdx < 0) centerIdx = candle.levels.size / 2
 
-    val visibleLevels = 11 // show ~11 levels around cursor
+    val visibleLevels = 22
     val halfVisible = visibleLevels / 2
     val startIdx = (centerIdx - halfVisible).coerceAtLeast(0)
     val endIdx = (centerIdx + halfVisible).coerceAtMost(candle.levels.size)
     val viewLevels = candle.levels.subList(startIdx, endIdx)
 
-    val title = "   Price        Bid    Ask"
-    val titleStyle = TextStyle(color = Color(0xFF5B9BD5), fontSize = 8.sp, fontFamily = FontFamily.Monospace)
+    val maxVol = viewLevels.maxOfOrNull { maxOf(it.bidVolumeFloat, it.askVolumeFloat) } ?: 1f
+    val minAlpha = 0.15f
+
+    val title = "     Price          Bid         Ask"
+    val titleStyle = TextStyle(color = Color(0xFF5B9BD5), fontSize = 10.sp, fontFamily = FontFamily.Monospace)
     val titleLayout = textMeasurer.measure(AnnotatedString(title), titleStyle)
 
-    val lines = viewLevels.map { level ->
-        val priceStr = level.priceFloat.toLong().toString().padStart(8)
-        val bidStr = level.bidVolumeFloat.toLong().toString().padStart(7)
-        val askStr = level.askVolumeFloat.toLong().toString().padStart(7)
-        "  $priceStr  $bidStr  $askStr"
+    val rowStyle = TextStyle(color = config.axisTextColor, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+
+    fun fmtPrice(p: Float): String {
+        val s = p.toLong().toString().padStart(8)
+        val dec = ((p - p.toLong()) * 100).toInt().toString().padStart(2, '0')
+        return "$s.$dec"
     }
 
-    val rowStyle = TextStyle(color = config.axisTextColor, fontSize = 8.sp, fontFamily = FontFamily.Monospace)
-    val rowLayouts = lines.map { textMeasurer.measure(AnnotatedString(it), rowStyle) }
+    val lines = viewLevels.mapIndexed { i, level ->
+        val priceStr = fmtPrice(level.priceFloat)
+        val bidStr = level.bidVolumeFloat.toLong().toString().padStart(8)
+        val askStr = level.askVolumeFloat.toLong().toString().padStart(8)
+        val isCurrent = (startIdx + i == centerIdx)
+        Triple("  $priceStr   $bidStr  $askStr", level, isCurrent)
+    }
+
+    val rowLayouts = lines.map { textMeasurer.measure(AnnotatedString(it.first), rowStyle) }
     val maxRowW = rowLayouts.maxOfOrNull { it.size.width } ?: titleLayout.size.width
 
     val panelW = maxRowW + 10f
-    val panelH = titleLayout.size.height + rowLayouts.sumOf { it.size.height } + 8f
-    val gapBetweenRows = 1.5f
+    val gapBetweenRows = 2f
+    val rowH = (rowLayouts.firstOrNull()?.size?.height ?: 14).toFloat()
+    val panelH = titleLayout.size.height + viewLevels.size * rowH + (viewLevels.size - 1) * gapBetweenRows + 10f
 
     // Position: right of candle if space, else left
     val candleX = candleIndex * totalW - scrollOffset + candleMetrics.width / 2
-    val panelX = if (candleX + panelW + 20f > chartLayout.chartMainArea.width) maxOf(candleX - panelW - 10f, 0f) else candleX + 10f
+    val panelX = if (candleX + panelW + 20f > chartLayout.chartMainArea.width) maxOf(candleX - panelW - 10f, 2f) else candleX + 10f
     val panelY = maxOf(mousePosition.y - chartLayout.chartMainArea.top - panelH / 2, 0f)
 
     // Background
-    drawRect(color = config.backgroundColor.copy(alpha = 0.92f), topLeft = Offset(panelX, panelY), size = Size(panelW, panelH))
-    drawRect(color = Color(0xFF5B9BD5).copy(alpha = 0.3f), topLeft = Offset(panelX, panelY), size = Size(panelW, panelH), style = androidx.compose.ui.graphics.drawscope.Stroke(1f))
+    drawRect(color = config.backgroundColor.copy(alpha = 0.94f), topLeft = Offset(panelX, panelY), size = Size(panelW, panelH))
+    drawRect(color = Color(0xFF5B9BD5).copy(alpha = 0.3f), topLeft = Offset(panelX, panelY), size = Size(panelW, panelH), style = Stroke(1f))
 
     // Title
     drawText(titleLayout, topLeft = Offset(panelX + 4f, panelY + 3f))
 
-    // Rows with bid/ask coloring
-    var yOff = panelY + titleLayout.size.height + 4f
-    viewLevels.forEachIndexed { i, level ->
+    // Rows with bid/ask gradient coloring
+    var yOff = panelY + titleLayout.size.height + 5f
+    lines.forEachIndexed { i, (text, level, isCurrent) ->
         val row = rowLayouts[i]
-        // Highlight current level
-        val isCurrent = (startIdx + i == centerIdx)
         if (isCurrent) {
-            drawRect(color = Color.White.copy(alpha = 0.08f), topLeft = Offset(panelX + 2f, yOff - 1f), size = Size(panelW - 4f, row.size.height + 2f))
+            drawRect(color = Color.White.copy(alpha = 0.1f), topLeft = Offset(panelX + 2f, yOff - 1f), size = Size(panelW - 4f, row.size.height + 2f))
         }
+        // Draw bid/ask color indicators
+        val bidAlpha = (minAlpha + (1f - minAlpha) * (level.bidVolumeFloat / maxVol)).coerceIn(minAlpha, 1f)
+        val askAlpha = (minAlpha + (1f - minAlpha) * (level.askVolumeFloat / maxVol)).coerceIn(minAlpha, 1f)
+        val bidW = (level.bidVolumeFloat / maxVol * 20f).coerceAtLeast(if (level.bidVolumeFloat > 0f) 2f else 0f)
+        val askW = (level.askVolumeFloat / maxVol * 20f).coerceAtLeast(if (level.askVolumeFloat > 0f) 2f else 0f)
+        if (askW > 0f) drawRect(color = ChartColors.bearish.copy(alpha = askAlpha), topLeft = Offset(panelX + 4f, yOff + 1f), size = Size(askW, maxOf(row.size.height - 2f, 1f)))
+        if (bidW > 0f) drawRect(color = ChartColors.bullish.copy(alpha = bidAlpha), topLeft = Offset(panelX + panelW - bidW - 4f, yOff + 1f), size = Size(bidW, maxOf(row.size.height - 2f, 1f)))
         drawText(row, topLeft = Offset(panelX + 4f, yOff))
         yOff += row.size.height + gapBetweenRows
     }
