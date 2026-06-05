@@ -12,10 +12,10 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import com.aandios.nous.api.market.model.Candle
 import com.aandios.nous.core.ui.theme.TradingTerminalTheme
 import com.aandios.nous.feature.chart.di.initKoinForPreview
 import com.aandios.nous.feature.chart.ui.chart.CandleStickChart
-import com.aandios.nous.feature.chart.ui.chart.FootprintChart
 import org.koin.compose.KoinContext
 import org.koin.compose.koinInject
 import org.koin.core.context.stopKoin
@@ -114,44 +114,34 @@ fun ChartWindow(
                             )
                         }
                         ChartMode.FOOTPRINT -> {
-                            if (footprintLoading) {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "Loading footprint data...",
-                                        color = MaterialTheme.colorScheme.onBackground,
-                                        fontSize = 14.sp
-                                    )
+                            if (footprintLoading && footprintCandles.isEmpty()) {
+                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Text("Loading footprint data...", color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp)
                                 }
-                            } else if (footprintError != null) {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
+                            } else if (footprintError != null && footprintCandles.isEmpty()) {
+                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Text(
-                                            text = "Footprint data error",
-                                            color = MaterialTheme.colorScheme.error,
-                                            fontSize = 14.sp
-                                        )
-                                        Text(
-                                            text = footprintError!!,
-                                            color = MaterialTheme.colorScheme.onBackground,
-                                            fontSize = 11.sp,
-                                            modifier = Modifier.padding(top = 8.dp)
-                                        )
+                                        Text("Footprint data error", color = MaterialTheme.colorScheme.error, fontSize = 14.sp)
+                                        Text(footprintError!!, color = MaterialTheme.colorScheme.onBackground, fontSize = 11.sp, modifier = Modifier.padding(top = 8.dp))
                                     }
                                 }
                             } else {
-                                FootprintChart(
-                                    completedCandles = footprintCandles,
-                                    liveCandle = liveFootprintCandle,
-                                    currentPrice = footprintCurrentPrice,
-                                    modifier = Modifier.fillMaxSize(),
+                                // Build Candle list from footprint for interaction
+                                val allFp = remember(footprintCandles, liveFootprintCandle) {
+                                    val list = footprintCandles.toMutableList()
+                                    liveFootprintCandle?.let { list.add(it) }
+                                    list
+                                }
+                                val fpToCandle = remember(allFp) {
+                                    allFp.map { Candle(it.open, it.high, it.close, it.low, it.startTime, it.maxVolume) }
+                                }
+                                CandleStickChart(
+                                    candles = fpToCandle,
+                                    currentPrice = footprintCurrentPrice ?: fpToCandle.lastOrNull()?.close,
                                     crosshairEnabled = crosshairEnabled,
                                     onCrosshairEnabledChange = { crosshairEnabled = it },
+                                    footprintCandles = allFp,
+                                    modifier = Modifier.fillMaxSize()
                                 )
                             }
                         }

@@ -5,17 +5,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.aandios.nous.api.market.model.Candle
+import com.aandios.nous.api.market.model.FootprintCandle
 import com.aandios.nous.feature.chart.ui.ChartConfig
 import com.aandios.nous.feature.chart.ui.DefaultChartConfig
 
 /**
  * Тонкая обёртка над [CandleStickChartInteraction].
- *
- * Вся логика взаимодействия (зум, скролл, crosshair, расчёт layout, Canvas)
- * находится в [CandleStickChartInteraction] для соблюдения SRP.
- *
- * Этот композабл сохраняет публичный API, ожидаемый вызывающими клиентами
- * (ChartWindow, ViewModel и т.д.).
+ * Если передан footprintCandles — рисует footprint вместо свечей,
+ * используя ту же логику взаимодействия, кросхаир, шкалы и линию цены.
  */
 @Composable
 fun CandleStickChart(
@@ -30,6 +27,7 @@ fun CandleStickChart(
     onNeedMoreHistory: () -> Unit = {},
     historyLoadCount: Int = 0,
     hasMoreHistory: Boolean = true,
+    footprintCandles: List<FootprintCandle>? = null,
 ) {
     CandleStickChartInteraction(
         candles = candles,
@@ -43,5 +41,6 @@ fun CandleStickChart(
         onNeedMoreHistory = onNeedMoreHistory,
         historyLoadCount = historyLoadCount,
         hasMoreHistory = hasMoreHistory,
+        footprintCandles = footprintCandles,
     )
 }

@@ -31,11 +31,13 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.aandios.nous.api.market.model.Candle
+import com.aandios.nous.api.market.model.FootprintCandle
 import com.aandios.nous.feature.chart.model.CandleMetrics
 import com.aandios.nous.feature.chart.model.ChartLayout
 import com.aandios.nous.feature.chart.model.PriceRange
 import com.aandios.nous.feature.chart.rendering.drawChart
 import com.aandios.nous.feature.chart.rendering.drawCrosshair
+import com.aandios.nous.feature.chart.rendering.drawFootprintChart
 import com.aandios.nous.feature.chart.rendering.drawPriceScale
 import com.aandios.nous.feature.chart.rendering.drawTimeScale
 import com.aandios.nous.feature.chart.ui.ChartConfig
@@ -64,6 +66,7 @@ fun CandleStickChartInteraction(
     onNeedMoreHistory: () -> Unit = {},
     historyLoadCount: Int = 0,
     hasMoreHistory: Boolean = true,
+    footprintCandles: List<FootprintCandle>? = null,
 ) {
     if (candles.isEmpty()) return
 
@@ -278,19 +281,32 @@ fun CandleStickChartInteraction(
                 .fillMaxSize()
                 .clipToBounds()
         ) {
-            // Рисуем график в основной области
-            drawChart(
-                candles = candles,
-                priceRange = priceRange,
-                config = config,
-                chartArea = layout.chartArea,
-                currentPrice = currentPrice,
-                textMeasurer = textMeasurer,
-                scrollOffset = clampedOffset,
-                zoomLevel = zoomLevel,
-                visibleStartIndex = startIdx,
-                visibleEndIndex = endIdx,
-            )
+            if (footprintCandles != null) {
+                drawFootprintChart(
+                    candles = footprintCandles,
+                    priceRange = priceRange,
+                    config = config,
+                    chartArea = layout.chartArea,
+                    textMeasurer = textMeasurer,
+                    scrollOffset = clampedOffset,
+                    zoomLevel = zoomLevel,
+                    visibleStartIndex = startIdx,
+                    visibleEndIndex = endIdx,
+                )
+            } else {
+                drawChart(
+                    candles = candles,
+                    priceRange = priceRange,
+                    config = config,
+                    chartArea = layout.chartArea,
+                    currentPrice = currentPrice,
+                    textMeasurer = textMeasurer,
+                    scrollOffset = clampedOffset,
+                    zoomLevel = zoomLevel,
+                    visibleStartIndex = startIdx,
+                    visibleEndIndex = endIdx,
+                )
+            }
 
             drawTimeScale(
                 candles = candles,
