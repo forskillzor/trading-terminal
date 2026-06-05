@@ -234,9 +234,8 @@ fun CandleStickChartInteraction(
         val totalW = candleMetrics.width + candleMetrics.spacing
         maxScroll = max(0f, candles.size * totalW - chartWidthPx)
 
-        // При загрузке новых данных (смена символа/таймфрейма) показываем последние свечи
-        // НЕ срабатывает при prepend исторических свечей (historyLoadCount > 0)
-        LaunchedEffect(candles.firstOrNull()?.timestamp ?: 0L) {
+        // Автоскролл к последней свече при добавлении новых (realtime flow или footprint)
+        LaunchedEffect(candles.size) {
             if (historyLoadCount == 0) {
                 scrollOffset = maxScroll
             }

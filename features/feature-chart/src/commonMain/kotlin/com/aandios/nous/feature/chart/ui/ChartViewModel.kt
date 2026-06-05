@@ -199,7 +199,8 @@ class ChartViewModel(
                             }
                         }
 
-                        // Start new candle
+                        // Start new candle — clear old levels
+                        liveCandle.clear()
                         liveCandle.addTrade(trade.price.toFloat(), trade.quantity.toFloat(), !trade.isBuyerMaker)
                         tickCount = 1
                     } else {

@@ -68,6 +68,11 @@ class MutableFootprintCandle(
         }
     }
 
+    fun clear() {
+        levelMap.clear()
+        lastPrice = 0f
+    }
+
     fun toFootprintCandle(totalTicks: Long = 0L): FootprintCandle {
         val sortedLevels = levelMap.toSortedMap()
         if (sortedLevels.isEmpty()) return FootprintCandle(
