@@ -240,35 +240,25 @@ fun DrawScope.drawFootprintPopup(
     val endIdx = (centerIdx + halfVisible).coerceAtMost(candle.levels.size)
     val viewLevels = candle.levels.subList(startIdx, endIdx)
 
-    val maxVol = viewLevels.maxOfOrNull { maxOf(it.bidVolumeFloat, it.askVolumeFloat) } ?: 1f
-    val minAlpha = 0.15f
+    val popupBg = Color(0xFF0D1117)
+    val textWhite = Color(0xFFE0E0E0)
+    val darkGreen = Color(0xFF1B5E20)
+    val darkRed = Color(0xFF5D1A1A)
 
-    val title = "     Price          Bid         Ask"
+    val title = "     Price         Bid        Ask"
     val titleStyle = TextStyle(color = Color(0xFF5B9BD5), fontSize = 10.sp, fontFamily = FontFamily.Monospace)
     val titleLayout = textMeasurer.measure(AnnotatedString(title), titleStyle)
 
-    val rowStyle = TextStyle(color = config.axisTextColor, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+    val rowW = textMeasurer.measure(AnnotatedString("  64321.12   12345   12345"), TextStyle(fontSize = 10.sp, fontFamily = FontFamily.Monospace)).size.width
 
-    fun fmtPrice(p: Float): String {
-        val s = p.toLong().toString().padStart(8)
-        val dec = ((p - p.toLong()) * 100).toInt().toString().padStart(2, '0')
-        return "$s.$dec"
-    }
+    // Measure column positions
+    val priceX = 4f
+    val bidX = priceX + textMeasurer.measure(AnnotatedString("  64321.12 "), TextStyle(fontSize = 10.sp, fontFamily = FontFamily.Monospace)).size.width + 4f
+    val askX = bidX + textMeasurer.measure(AnnotatedString(" 12345 "), TextStyle(fontSize = 10.sp, fontFamily = FontFamily.Monospace)).size.width + 4f
 
-    val lines = viewLevels.mapIndexed { i, level ->
-        val priceStr = fmtPrice(level.priceFloat)
-        val bidStr = level.bidVolumeFloat.toLong().toString().padStart(8)
-        val askStr = level.askVolumeFloat.toLong().toString().padStart(8)
-        val isCurrent = (startIdx + i == centerIdx)
-        Triple("  $priceStr   $bidStr  $askStr", level, isCurrent)
-    }
-
-    val rowLayouts = lines.map { textMeasurer.measure(AnnotatedString(it.first), rowStyle) }
-    val maxRowW = rowLayouts.maxOfOrNull { it.size.width } ?: titleLayout.size.width
-
-    val panelW = maxRowW + 10f
+    val panelW = textMeasurer.measure(AnnotatedString("  64321.12   12345   12345  "), TextStyle(fontSize = 10.sp, fontFamily = FontFamily.Monospace)).size.width + 12f
     val gapBetweenRows = 2f
-    val rowH = (rowLayouts.firstOrNull()?.size?.height ?: 14).toFloat()
+    val rowH = 14f
     val panelH = titleLayout.size.height + viewLevels.size * rowH + (viewLevels.size - 1) * gapBetweenRows + 10f
 
     // Position: right of candle if space, else left
@@ -277,27 +267,53 @@ fun DrawScope.drawFootprintPopup(
     val panelY = maxOf(mousePosition.y - chartLayout.chartMainArea.top - panelH / 2, 0f)
 
     // Background
-    drawRect(color = config.backgroundColor.copy(alpha = 0.94f), topLeft = Offset(panelX, panelY), size = Size(panelW, panelH))
+    drawRect(color = popupBg, topLeft = Offset(panelX, panelY), size = Size(panelW, panelH))
     drawRect(color = Color(0xFF5B9BD5).copy(alpha = 0.3f), topLeft = Offset(panelX, panelY), size = Size(panelW, panelH), style = Stroke(1f))
 
     // Title
     drawText(titleLayout, topLeft = Offset(panelX + 4f, panelY + 3f))
 
-    // Rows with bid/ask gradient coloring
+    val maxVol = viewLevels.maxOfOrNull { maxOf(it.bidVolumeFloat, it.askVolumeFloat) } ?: 1f
+
+    fun fmtPrice(p: Float): String {
+        val intPart = p.toLong().toString()
+        val decPart = ((p - p.toLong()) * 100).toInt().toString().padStart(2, '0')
+        return "$intPart.$decPart"
+    }
+
+    // Rows
     var yOff = panelY + titleLayout.size.height + 5f
-    lines.forEachIndexed { i, (text, level, isCurrent) ->
-        val row = rowLayouts[i]
+    viewLevels.forEachIndexed { i, level ->
+        val isCurrent = (startIdx + i == centerIdx)
+        val absX = panelX + priceX
+
         if (isCurrent) {
-            drawRect(color = Color.White.copy(alpha = 0.1f), topLeft = Offset(panelX + 2f, yOff - 1f), size = Size(panelW - 4f, row.size.height + 2f))
+            drawRect(color = Color.White.copy(alpha = 0.06f), topLeft = Offset(panelX + 2f, yOff - 1f), size = Size(panelW - 4f, rowH + 2f))
         }
-        // Draw bid/ask color indicators
-        val bidAlpha = (minAlpha + (1f - minAlpha) * (level.bidVolumeFloat / maxVol)).coerceIn(minAlpha, 1f)
-        val askAlpha = (minAlpha + (1f - minAlpha) * (level.askVolumeFloat / maxVol)).coerceIn(minAlpha, 1f)
-        val bidW = (level.bidVolumeFloat / maxVol * 20f).coerceAtLeast(if (level.bidVolumeFloat > 0f) 2f else 0f)
-        val askW = (level.askVolumeFloat / maxVol * 20f).coerceAtLeast(if (level.askVolumeFloat > 0f) 2f else 0f)
-        if (askW > 0f) drawRect(color = ChartColors.bearish.copy(alpha = askAlpha), topLeft = Offset(panelX + 4f, yOff + 1f), size = Size(askW, maxOf(row.size.height - 2f, 1f)))
-        if (bidW > 0f) drawRect(color = ChartColors.bullish.copy(alpha = bidAlpha), topLeft = Offset(panelX + panelW - bidW - 4f, yOff + 1f), size = Size(bidW, maxOf(row.size.height - 2f, 1f)))
-        drawText(row, topLeft = Offset(panelX + 4f, yOff))
-        yOff += row.size.height + gapBetweenRows
+
+        // Price text
+        val priceText = fmtPrice(level.priceFloat)
+        val priceLayout = textMeasurer.measure(AnnotatedString(priceText), TextStyle(color = textWhite, fontSize = 10.sp, fontFamily = FontFamily.Monospace))
+        drawText(priceLayout, topLeft = Offset(panelX + priceX, yOff))
+
+        // Bid volume bar (left side of bid column) + text
+        val bidVol = level.bidVolumeFloat
+        val bidBarW = (bidVol / maxVol * 30f).coerceAtLeast(if (bidVol > 0f) 2f else 0f)
+        val bidText = level.bidVolumeFloat.toLong().toString()
+        val bidLayout = textMeasurer.measure(AnnotatedString(bidText), TextStyle(color = textWhite, fontSize = 10.sp, fontFamily = FontFamily.Monospace))
+        val bidTextX = panelX + bidX
+        if (bidBarW > 0f) drawRect(color = darkGreen, topLeft = Offset(bidTextX + bidLayout.size.width + 2f, yOff + 2f), size = Size(bidBarW, maxOf(rowH - 4f, 1f)))
+        drawText(bidLayout, topLeft = Offset(bidTextX, yOff))
+
+        // Ask volume bar + text
+        val askVol = level.askVolumeFloat
+        val askBarW = (askVol / maxVol * 30f).coerceAtLeast(if (askVol > 0f) 2f else 0f)
+        val askText = level.askVolumeFloat.toLong().toString()
+        val askLayout = textMeasurer.measure(AnnotatedString(askText), TextStyle(color = textWhite, fontSize = 10.sp, fontFamily = FontFamily.Monospace))
+        val askTextX = panelX + askX
+        if (askBarW > 0f) drawRect(color = darkRed, topLeft = Offset(askTextX + askLayout.size.width + 2f, yOff + 2f), size = Size(askBarW, maxOf(rowH - 4f, 1f)))
+        drawText(askLayout, topLeft = Offset(askTextX, yOff))
+
+        yOff += rowH + gapBetweenRows
     }
 }

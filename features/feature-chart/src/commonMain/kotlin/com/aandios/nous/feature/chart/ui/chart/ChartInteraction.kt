@@ -78,7 +78,8 @@ fun CandleStickChartInteraction(
     var chartWidthPx by remember { mutableFloatStateOf(0f) }
     var maxScroll by remember { mutableFloatStateOf(0f) }
     var isCtrlPressed by remember { mutableStateOf(false) }
-    // Ctrl+hover popup position for footprint
+    var isAltPressed by remember { mutableStateOf(false) }
+    // Alt+hover popup position for footprint
     var footprintHoverPos by remember { mutableStateOf<Offset?>(null) }
     val maxScrollLeft = 300f
     val maxZoom = if (footprintCandles != null) 30f else 4f
@@ -97,11 +98,16 @@ fun CandleStickChartInteraction(
                 indication = null
             ) { /* no-op: make composable focusable for onKeyEvent */ }
             .onKeyEvent { event ->
-                if (event.key == Key.CtrlLeft || event.key == Key.CtrlRight) {
-                    isCtrlPressed = event.type == KeyEventType.KeyDown
-                    true
-                } else {
-                    false
+                when {
+                    event.key == Key.CtrlLeft || event.key == Key.CtrlRight -> {
+                        isCtrlPressed = event.type == KeyEventType.KeyDown
+                        true
+                    }
+                    event.key == Key.AltLeft || event.key == Key.AltRight -> {
+                        isAltPressed = event.type == KeyEventType.KeyDown
+                        true
+                    }
+                    else -> false
                 }
             }
             // Обработка жестов: pan (crosshair off) или crosshair (crosshair on)
@@ -165,9 +171,9 @@ fun CandleStickChartInteraction(
                     }
                 }
             }
-            // Track mouse position for footprint popup (Ctrl+hover)
-            .pointerInput(isCtrlPressed, footprintCandles) {
-                if (footprintCandles != null && isCtrlPressed) {
+            // Track mouse position for footprint popup (Alt+hover)
+            .pointerInput(isAltPressed, footprintCandles) {
+                if (footprintCandles != null && isAltPressed) {
                     awaitPointerEventScope {
                         while (true) {
                             val event = awaitPointerEvent()
@@ -352,8 +358,8 @@ fun CandleStickChartInteraction(
                     strokeWidth = 1f
                 )
             }
-            // Ctrl+hover popup for footprint
-            if (footprintCandles != null && isCtrlPressed && !crosshairEnabled && footprintHoverPos != null) {
+            // Alt+hover popup for footprint
+            if (footprintCandles != null && isAltPressed && !crosshairEnabled && footprintHoverPos != null) {
                 drawFootprintPopup(
                     mousePosition = footprintHoverPos!!,
                     candles = footprintCandles,
