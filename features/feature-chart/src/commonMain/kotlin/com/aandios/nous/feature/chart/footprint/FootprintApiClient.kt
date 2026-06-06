@@ -16,7 +16,7 @@ class FootprintApiClient(
         timeframe: String,
         from: Long? = null,
         to: Long? = null,
-        limit: Int = 30
+        limit: Int = 20
     ): List<FootprintCandle> {
         return httpClient.get("$baseUrl/api/footprint") {
             parameter("exchange", exchange)

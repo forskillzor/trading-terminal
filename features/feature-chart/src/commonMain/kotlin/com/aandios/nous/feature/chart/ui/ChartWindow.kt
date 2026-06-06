@@ -57,6 +57,8 @@ fun ChartWindow(
     val footprintError by chartViewModel.footprintError.collectAsState()
     val chartMode by chartViewModel.chartMode.collectAsState()
     val symbolsWithFootprint by chartViewModel.symbolsWithFootprint.collectAsState()
+    val hasMoreFootprintHistory by chartViewModel.hasMoreFootprintHistory.collectAsState()
+    val footprintHistoryLoadCount by chartViewModel.footprintHistoryLoadCount.collectAsState()
 
     var crosshairEnabled by remember { mutableStateOf(false) }
 
@@ -141,6 +143,9 @@ fun ChartWindow(
                                     crosshairEnabled = crosshairEnabled,
                                     onCrosshairEnabledChange = { crosshairEnabled = it },
                                     footprintCandles = allFp,
+                                    onNeedMoreHistory = { chartViewModel.loadMoreFootprintHistory() },
+                                    historyLoadCount = footprintHistoryLoadCount,
+                                    hasMoreHistory = hasMoreFootprintHistory,
                                     modifier = Modifier.fillMaxSize()
                                 )
                             }

@@ -58,6 +58,13 @@ class ChartViewModel(
     val chartMode: StateFlow<ChartMode> = _chartMode
     val symbolsWithFootprint: StateFlow<Set<String>> = _symbolsWithFootprint
 
+    // Footprint pagination
+    private val _hasMoreFootprintHistory = MutableStateFlow(true)
+    val hasMoreFootprintHistory: StateFlow<Boolean> = _hasMoreFootprintHistory
+    private val _footprintHistoryLoadCount = MutableStateFlow(0)
+    val footprintHistoryLoadCount: StateFlow<Int> = _footprintHistoryLoadCount
+    private var isLoadingMoreFootprint = false
+
     init {
         loadSymbols()
         loadFootprintSymbols()
@@ -156,6 +163,9 @@ class ChartViewModel(
         _footprintError.value = null
         _completedFootprintCandles.value = emptyList()
         _liveFootprintCandle.value = null
+        _hasMoreFootprintHistory.value = true
+        _footprintHistoryLoadCount.value = 0
+        isLoadingMoreFootprint = false
 
         footprintJob = viewModelScope.launch {
             try {
@@ -250,6 +260,40 @@ class ChartViewModel(
         footprintJob?.cancel()
         footprintJob = null
         _liveFootprintCandle.value = null
+    }
+
+    fun loadMoreFootprintHistory() {
+        if (isLoadingMoreFootprint || !_hasMoreFootprintHistory.value) return
+        isLoadingMoreFootprint = true
+
+        viewModelScope.launch {
+            try {
+                val oldestTime = _completedFootprintCandles.value.firstOrNull()?.startTime ?: run {
+                    isLoadingMoreFootprint = false; return@launch
+                }
+
+                val historical = footprintApiClient?.getFootprint(
+                    symbol = _currentSymbol.value,
+                    timeframe = "1m",
+                    to = oldestTime - 1,
+                    limit = 20
+                ) ?: emptyList()
+
+                if (historical.isEmpty()) {
+                    _hasMoreFootprintHistory.value = false
+                    isLoadingMoreFootprint = false
+                    return@launch
+                }
+
+                val newList = historical + _completedFootprintCandles.value
+                _completedFootprintCandles.value = newList
+                _footprintHistoryLoadCount.value = historical.size
+            } catch (e: Exception) {
+                println("Failed to load more footprint history: ${e.message}")
+            } finally {
+                isLoadingMoreFootprint = false
+            }
+        }
     }
 
     fun loadFootprintData() {
