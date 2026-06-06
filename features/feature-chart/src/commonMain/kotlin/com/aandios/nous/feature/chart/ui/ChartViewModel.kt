@@ -121,8 +121,8 @@ class ChartViewModel(
         return try {
             footprintApiClient.getFootprint(
                 symbol = _currentSymbol.value,
-                timeframe = "1m", // footprint only supports 1m live
-                limit = 500
+                timeframe = "1m",
+                limit = 30
             )
         } catch (e: Exception) {
             println("Failed to fetch historical footprint: ${e.message}")

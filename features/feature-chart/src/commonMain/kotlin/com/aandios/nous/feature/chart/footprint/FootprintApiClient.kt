@@ -1,6 +1,7 @@
 package com.aandios.nous.feature.chart.footprint
 
 import com.aandios.nous.api.market.model.FootprintCandle
+import com.aandios.nous.api.market.model.FootprintLevel
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -15,7 +16,7 @@ class FootprintApiClient(
         timeframe: String,
         from: Long? = null,
         to: Long? = null,
-        limit: Int = 500
+        limit: Int = 30
     ): List<FootprintCandle> {
         return httpClient.get("$baseUrl/api/footprint") {
             parameter("exchange", exchange)
@@ -24,6 +25,21 @@ class FootprintApiClient(
             from?.let { parameter("from", it) }
             to?.let { parameter("to", it) }
             parameter("limit", limit)
+        }.body()
+    }
+
+    suspend fun getCandleLevels(
+        exchange: String = "Binance",
+        symbol: String,
+        timeframe: String,
+        startTime: Long,
+        endTime: Long
+    ): List<FootprintLevel> {
+        return httpClient.get("$baseUrl/api/footprint/$symbol/levels") {
+            parameter("exchange", exchange)
+            parameter("timeframe", timeframe)
+            parameter("startTime", startTime)
+            parameter("endTime", endTime)
         }.body()
     }
 

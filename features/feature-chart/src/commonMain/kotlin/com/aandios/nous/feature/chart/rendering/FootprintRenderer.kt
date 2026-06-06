@@ -217,6 +217,7 @@ fun DrawScope.drawFootprintPopup(
     scrollOffset: Float = 0f,
     zoomLevel: Float = 1f,
 ) {
+    val fontSize = 12.sp
     val candleMetrics = calculateCandleMetrics(zoomLevel)
     val totalW = candleMetrics.width + candleMetrics.spacing
     val virtualX = mousePosition.x - chartLayout.chartMainArea.left + scrollOffset
@@ -249,14 +250,12 @@ fun DrawScope.drawFootprintPopup(
     val titleStyle = TextStyle(color = Color(0xFF5B9BD5), fontSize = 10.sp, fontFamily = FontFamily.Monospace)
     val titleLayout = textMeasurer.measure(AnnotatedString(title), titleStyle)
 
-    val rowW = textMeasurer.measure(AnnotatedString("  64321.12   12345   12345"), TextStyle(fontSize = 10.sp, fontFamily = FontFamily.Monospace)).size.width
-
     // Measure column positions
     val priceX = 4f
-    val bidX = priceX + textMeasurer.measure(AnnotatedString("  64321.12 "), TextStyle(fontSize = 10.sp, fontFamily = FontFamily.Monospace)).size.width + 4f
-    val askX = bidX + textMeasurer.measure(AnnotatedString(" 12345 "), TextStyle(fontSize = 10.sp, fontFamily = FontFamily.Monospace)).size.width + 4f
+    val bidX = priceX + textMeasurer.measure(AnnotatedString("  64321.12 "), TextStyle(fontSize = fontSize, fontFamily = FontFamily.Monospace)).size.width + 4f
+    val askX = bidX + textMeasurer.measure(AnnotatedString(" 12345 "), TextStyle(fontSize = fontSize, fontFamily = FontFamily.Monospace)).size.width + 4f
 
-    val panelW = textMeasurer.measure(AnnotatedString("  64321.12   12345   12345"), TextStyle(fontSize = 10.sp, fontFamily = FontFamily.Monospace)).size.width + 50f
+    val panelW = textMeasurer.measure(AnnotatedString("  64321.12   12345   12345"), TextStyle(fontSize = fontSize, fontFamily = FontFamily.Monospace)).size.width + 50f
     val gapBetweenRows = 2f
     val rowH = 14f
     val panelH = titleLayout.size.height + viewLevels.size * rowH + (viewLevels.size - 1) * gapBetweenRows + 10f
@@ -294,14 +293,14 @@ fun DrawScope.drawFootprintPopup(
 
         // Price text
         val priceText = fmtPrice(level.priceFloat)
-        val priceLayout = textMeasurer.measure(AnnotatedString(priceText), TextStyle(color = textWhite, fontSize = 10.sp, fontFamily = FontFamily.Monospace))
+        val priceLayout = textMeasurer.measure(AnnotatedString(priceText), TextStyle(color = textWhite, fontSize = fontSize, fontFamily = FontFamily.Monospace))
         drawText(priceLayout, topLeft = Offset(panelX + priceX, yOff))
 
         // Bid volume bar (left side of bid column) + text
         val bidVol = level.bidVolumeFloat
         val bidBarW = (bidVol / maxVol * 30f).coerceAtLeast(if (bidVol > 0f) 2f else 0f)
         val bidText = level.bidVolumeFloat.toLong().toString()
-        val bidLayout = textMeasurer.measure(AnnotatedString(bidText), TextStyle(color = textWhite, fontSize = 10.sp, fontFamily = FontFamily.Monospace))
+        val bidLayout = textMeasurer.measure(AnnotatedString(bidText), TextStyle(color = textWhite, fontSize = fontSize, fontFamily = FontFamily.Monospace))
         val bidTextX = panelX + bidX
         if (bidBarW > 0f) drawRect(color = darkGreen, topLeft = Offset(bidTextX + bidLayout.size.width + 2f, yOff + 2f), size = Size(bidBarW, maxOf(rowH - 4f, 1f)))
         drawText(bidLayout, topLeft = Offset(bidTextX, yOff))
@@ -310,7 +309,7 @@ fun DrawScope.drawFootprintPopup(
         val askVol = level.askVolumeFloat
         val askBarW = (askVol / maxVol * 30f).coerceAtLeast(if (askVol > 0f) 2f else 0f)
         val askText = level.askVolumeFloat.toLong().toString()
-        val askLayout = textMeasurer.measure(AnnotatedString(askText), TextStyle(color = textWhite, fontSize = 10.sp, fontFamily = FontFamily.Monospace))
+        val askLayout = textMeasurer.measure(AnnotatedString(askText), TextStyle(color = textWhite, fontSize = fontSize, fontFamily = FontFamily.Monospace))
         val askTextX = panelX + askX
         if (askBarW > 0f) drawRect(color = darkRed, topLeft = Offset(askTextX + askLayout.size.width + 2f, yOff + 2f), size = Size(askBarW, maxOf(rowH - 4f, 1f)))
         drawText(askLayout, topLeft = Offset(askTextX, yOff))
