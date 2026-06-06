@@ -122,19 +122,16 @@ class ChartViewModel(
         }
     }
 
-    // Load historical footprint from server
+    // Load historical footprint from server (returns ASC order: oldest first)
     private suspend fun fetchHistoricalFootprint(): List<FootprintCandle> {
         if (footprintApiClient == null) return emptyList()
         return try {
             footprintApiClient.getFootprint(
                 symbol = _currentSymbol.value,
                 timeframe = "1m",
-                limit = 30
-            )
-        } catch (e: Exception) {
-            println("Failed to fetch historical footprint: ${e.message}")
-            emptyList()
-        }
+                limit = 20
+            ).reversed() // server returns DESC, we store ASC
+        } catch (e: Exception) { emptyList() }
     }
 
     // Fetch one completed candle from server
@@ -272,12 +269,12 @@ class ChartViewModel(
                     isLoadingMoreFootprint = false; return@launch
                 }
 
-                val historical = footprintApiClient?.getFootprint(
+                val historical = (footprintApiClient?.getFootprint(
                     symbol = _currentSymbol.value,
                     timeframe = "1m",
                     to = oldestTime - 1,
                     limit = 20
-                ) ?: emptyList()
+                ) ?: emptyList()).reversed() // server DESC → ASC
 
                 if (historical.isEmpty()) {
                     _hasMoreFootprintHistory.value = false
@@ -285,7 +282,7 @@ class ChartViewModel(
                     return@launch
                 }
 
-                val newList = historical + _completedFootprintCandles.value
+                val newList = (historical + _completedFootprintCandles.value).distinctBy { it.startTime }
                 _completedFootprintCandles.value = newList
                 _footprintHistoryLoadCount.value = historical.size
             } catch (e: Exception) {
