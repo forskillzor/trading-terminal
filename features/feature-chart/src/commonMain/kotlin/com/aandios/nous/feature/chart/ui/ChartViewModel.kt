@@ -5,7 +5,9 @@ import com.aandios.nous.api.market.adapters.TradesAdapter
 import com.aandios.nous.api.market.model.Candle
 import com.aandios.nous.api.market.model.FootprintCandle
 import com.aandios.nous.api.market.model.MutableFootprintCandle
+import com.aandios.nous.api.market.model.SymbolInfo
 import com.aandios.nous.core.domain.repository.ChartRepository
+import com.aandios.nous.core.ui.format.SymbolFormatter
 import com.aandios.nous.feature.chart.footprint.FootprintApiClient
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -33,6 +35,10 @@ class ChartViewModel(
 
     private val _symbols = MutableStateFlow<List<String>>(listOf("BTCUSDT", "ETHUSDT"))
     val symbols: StateFlow<List<String>> = _symbols.asStateFlow()
+
+    private val _symbolInfoMap = MutableStateFlow<Map<String, SymbolInfo>>(emptyMap())
+    private val _currentSymbolFormatter = MutableStateFlow(SymbolFormatter())
+    val currentSymbolFormatter: StateFlow<SymbolFormatter> = _currentSymbolFormatter.asStateFlow()
 
     private val _historyLoadCount = MutableStateFlow(0)
     val historyLoadCount: StateFlow<Int> = _historyLoadCount.asStateFlow()
@@ -74,12 +80,13 @@ class ChartViewModel(
         viewModelScope.launch {
             try {
                 val allSymbols = symbolInfoAdapter.getAllSymbolsInfo()
-                val tradingSymbols = allSymbols
-                    .filter { it.status == "TRADING" }
-                    .map { it.symbol }
-                    .sorted()
-                if (tradingSymbols.isNotEmpty()) {
-                    _symbols.value = tradingSymbols
+                val trading = allSymbols.filter { it.status == "TRADING" }
+                val map = trading.associateBy { it.symbol }
+                _symbolInfoMap.value = map
+                _symbols.value = trading.map { it.symbol }.sorted()
+                // Set formatter for current symbol
+                map[_currentSymbol.value]?.let {
+                    _currentSymbolFormatter.value = SymbolFormatter(it.tickSize, it.minQty)
                 }
             } catch (e: Exception) {
                 println("Failed to load symbols: ${e.message}")
@@ -89,6 +96,9 @@ class ChartViewModel(
 
     fun selectSymbol(symbol: String) {
         _currentSymbol.value = symbol
+        _symbolInfoMap.value[symbol]?.let {
+            _currentSymbolFormatter.value = SymbolFormatter(it.tickSize, it.minQty)
+        }
         loadChart(ticker = symbol, timeframe = _currentTimeframe.value)
     }
 

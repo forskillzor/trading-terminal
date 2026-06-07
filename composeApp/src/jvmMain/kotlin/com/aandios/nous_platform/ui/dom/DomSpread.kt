@@ -1,4 +1,5 @@
 package com.aandios.nous_platform.ui.dom
+import com.aandios.nous.core.ui.format.SymbolFormatter
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
@@ -102,22 +103,6 @@ fun DomSpread(
     }
 }
 
-private fun formatPrice(price: Double): String {
-    return when {
-        price >= 1000 -> String.format("%.2f", price)
-        price >= 100 -> String.format("%.3f", price)
-        price >= 10 -> String.format("%.4f", price)
-        price >= 1 -> String.format("%.5f", price)
-        else -> String.format("%.6f", price)
-    }
-}
+private fun formatPrice(price: Double): String = SymbolFormatter.DEFAULT.formatPrice(price)
 
-private fun formatQuantity(qty: Double): String {
-    return when {
-        qty >= 1000 -> String.format("%.2fk", qty / 1000)
-        qty >= 100 -> String.format("%.1f", qty)
-        qty >= 10 -> String.format("%.2f", qty)
-        qty >= 1 -> String.format("%.3f", qty)
-        else -> String.format("%.4f", qty)
-    }
-}
+private fun formatQuantity(qty: Double): String = SymbolFormatter.DEFAULT.formatVolume(qty)

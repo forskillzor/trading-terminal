@@ -16,6 +16,7 @@ import com.aandios.nous.feature.chart.model.ChartLayout
 import com.aandios.nous.feature.chart.model.PriceRange
 import com.aandios.nous.feature.chart.ui.ChartConfig
 import com.aandios.nous.feature.chart.utils.findNearestCandleIndex
+import com.aandios.nous.feature.chart.utils.formatPrice
 import com.aandios.nous.feature.chart.utils.formatTime
 import com.aandios.nous.feature.chart.utils.priceFromY
 
@@ -179,7 +180,7 @@ private fun DrawScope.drawInfoPanel(
 
     // Цены
     drawTextLine(
-        text = String.format("O: %.4f", candle.open),
+        text = "O: ${formatPrice(candle.open)}",
         x = adjustedLeft + 4f,
         y = adjustedTop + 30f,
         textMeasurer = textMeasurer,
@@ -187,7 +188,7 @@ private fun DrawScope.drawInfoPanel(
     )
 
     drawTextLine(
-        text = String.format("H: %.4f", candle.high),
+        text = "H: ${formatPrice(candle.high)}",
         x = adjustedLeft + 4f,
         y = adjustedTop + 45f,
         textMeasurer = textMeasurer,
@@ -195,7 +196,7 @@ private fun DrawScope.drawInfoPanel(
     )
 
     drawTextLine(
-        text = String.format("L: %.4f", candle.low),
+        text = "L: ${formatPrice(candle.low)}",
         x = adjustedLeft + 4f,
         y = adjustedTop + 60f,
         textMeasurer = textMeasurer,
@@ -213,7 +214,7 @@ private fun DrawScope.drawPriceLabelOnAxis(
     textMeasurer: TextMeasurer,
     config: ChartConfig
 ) {
-    val priceText = String.format("%.4f", price)
+    val priceText = formatPrice(price)
 
     val textStyle = TextStyle(
         color = Color.White,

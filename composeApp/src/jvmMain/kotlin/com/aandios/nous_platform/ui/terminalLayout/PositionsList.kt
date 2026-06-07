@@ -1,4 +1,5 @@
 package com.aandios.nous_platform.ui.terminalLayout
+import com.aandios.nous.core.ui.format.SymbolFormatter
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

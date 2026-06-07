@@ -1,4 +1,5 @@
 package com.aandios.nous_platform.ui.dom
+import com.aandios.nous.core.ui.format.SymbolFormatter
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -232,21 +233,6 @@ private fun NinjaTraderRow(
     }
 }
 
-private fun formatPrice(price: Double): String {
-    return when {
-        price >= 1000 -> String.format("%.2f", price)
-        price >= 100 -> String.format("%.3f", price)
-        price >= 10 -> String.format("%.4f", price)
-        price >= 1 -> String.format("%.5f", price)
-        else -> String.format("%.6f", price)
-    }
-}
+private fun formatPrice(price: Double): String = SymbolFormatter.DEFAULT.formatPrice(price)
 
-private fun formatVolume(volume: Double): String {
-    return when {
-        volume >= 1000 -> String.format("%.1fk", volume / 1000)
-        volume >= 100 -> String.format("%.0f", volume)
-        volume >= 10 -> String.format("%.1f", volume)
-        else -> String.format("%.2f", volume)
-    }
-}
+private fun formatVolume(volume: Double): String = SymbolFormatter.DEFAULT.formatVolume(volume)

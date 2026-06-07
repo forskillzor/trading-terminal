@@ -1,5 +1,6 @@
 package com.aandios.nous.feature.dom.ui.content
 
+import com.aandios.nous.core.ui.format.SymbolFormatter
 import com.aandios.nous.feature.dom.domain.model.AggregationLevel
 
 import androidx.compose.foundation.background
@@ -175,21 +176,8 @@ fun DomSection(
     }
 }
 
-fun formatPrice(price: Double): String {
-    return when {
-        price >= 1000 -> String.format("%.2f", price)
-        price >= 100 -> String.format("%.3f", price)
-        price >= 10 -> String.format("%.4f", price)
-        price >= 1 -> String.format("%.5f", price)
-        else -> String.format("%.6f", price)
-    }
-}
+private val symFmt = SymbolFormatter.DEFAULT
 
-fun formatVolume(volume: Double): String {
-    return when {
-        volume >= 1000 -> String.format("%.1fk", volume / 1000)
-        volume >= 100 -> String.format("%.0f", volume)
-        volume >= 10 -> String.format("%.1f", volume)
-        else -> String.format("%.2f", volume)
-    }
-}
+fun formatPrice(price: Double): String = symFmt.formatPrice(price)
+
+fun formatVolume(volume: Double): String = symFmt.formatVolume(volume)

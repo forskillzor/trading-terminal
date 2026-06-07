@@ -163,22 +163,16 @@ class TradesViewModel(
         return "${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}"
     }
 
-    fun formatPrice(price: Double): String {
-        return when {
-            price >= 1000 -> String.format("%.2f", price)
-            price >= 100 -> String.format("%.3f", price)
-            price >= 10 -> String.format("%.4f", price)
-            price >= 1 -> String.format("%.5f", price)
-            else -> String.format("%.6f", price)
-        }
-    }
+    fun formatPrice(price: Double): String = fmt.formatPrice(price)
 
-    fun formatQuantity(quantity: Double): String {
-        return String.format("%.3f", quantity)
-    }
+    fun formatQuantity(quantity: Double): String = fmt.formatVolume(quantity)
 
     fun clear() {
         viewModelScope.coroutineContext.cancelChildren()
         viewModelScope.cancel()
+    }
+
+    companion object {
+        private val fmt = com.aandios.nous.core.ui.format.SymbolFormatter.DEFAULT
     }
 }

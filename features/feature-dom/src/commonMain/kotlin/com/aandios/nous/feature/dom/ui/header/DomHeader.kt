@@ -12,8 +12,6 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.aandios.nous.api.market.model.Symbol
-import com.aandios.nous.core.ui.component.SymbolSearchDropdown
 import com.aandios.nous.feature.dom.domain.*
 
 @Composable

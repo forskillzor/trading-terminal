@@ -1,20 +1,54 @@
 package com.aandios.nous.feature.dom.domain
 
 import com.aandios.nous.api.market.model.SymbolInfo
+import kotlin.math.abs
+import kotlin.math.log10
 
 /**
- * Торговый символ (пара) для отображения в DOM.
+ * Торговый символ (пара) для отображения.
+ * Содержит SymbolInfo с tickSize/minQty для форматирования цен и объёмов.
  */
 data class TradingSymbol(
     val symbol: String,
     val displayName: String,
-    val provider: TradingProvider
+    val provider: TradingProvider,
+    val symbolInfo: SymbolInfo? = null
 ) {
+    /** Форматирует цену с учётом tickSize инструмента */
+    fun formatPrice(price: Double): String {
+        val tickSize = symbolInfo?.tickSize ?: 0.01
+        val decimals = if (tickSize <= 0.0) 2 else maxOf(0, -log10(tickSize).toInt())
+        val d = when {
+            price >= 10_000 -> maxOf(decimals - 1, 0)
+            price >= 1 -> decimals
+            else -> decimals + 1
+        }
+        return String.format("%.${d}f", price)
+    }
+
+    fun formatPrice(price: Float): String = formatPrice(price.toDouble())
+
+    /** Форматирует объём с суффиксами K/M */
+    fun formatVolume(volume: Double): String {
+        val minQty = symbolInfo?.minQty ?: 0.001
+        val decimals = if (minQty <= 0.0) 3 else maxOf(0, -log10(minQty).toInt())
+        val v = abs(volume)
+        return when {
+            v >= 1_000_000 -> String.format("%.${maxOf(1, decimals - 2)}fM", volume / 1_000_000)
+            v >= 1_000 -> String.format("%.${maxOf(1, decimals - 1)}fK", volume / 1_000)
+            v >= 100 -> String.format("%.0f", volume)
+            v >= 10 -> String.format("%.1f", volume)
+            v >= 1 -> String.format("%.${decimals.coerceAtMost(2)}f", volume)
+            else -> String.format("%.${decimals}f", volume)
+        }
+    }
+
+    fun formatVolume(volume: Float): String = formatVolume(volume.toDouble())
+
     companion object {
 
         /**
          * Создаёт TradingSymbol из SymbolInfo (данные symbolInfoAdapter).
-         * Форматирует displayName через baseAsset/quoteAsset, если доступны.
          */
         fun fromSymbolInfo(info: SymbolInfo, provider: TradingProvider): TradingSymbol {
             val displayName = if (info.baseAsset.isNotEmpty() && info.quoteAsset.isNotEmpty()) {
@@ -25,7 +59,8 @@ data class TradingSymbol(
             return TradingSymbol(
                 symbol = info.symbol,
                 displayName = displayName,
-                provider = provider
+                provider = provider,
+                symbolInfo = info
             )
         }
         /**

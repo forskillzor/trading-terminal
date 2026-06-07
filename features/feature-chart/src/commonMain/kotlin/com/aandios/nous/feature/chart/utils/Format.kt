@@ -1,16 +1,11 @@
 package com.aandios.nous.feature.chart.utils
 
+import com.aandios.nous.core.ui.format.SymbolFormatter
 import java.text.SimpleDateFormat
 import java.util.Date
 
-fun formatPrice(price: Float): String {
-    return when {
-        price >= 1000 -> String.format("%.1f", price)
-        price >= 100 -> String.format("%.2f", price)
-        price >= 10 -> String.format("%.3f", price)
-        price >= 1 -> String.format("%.4f", price)
-        else -> String.format("%.6f", price)
-    }
+fun formatPrice(price: Float, formatter: SymbolFormatter = SymbolFormatter.DEFAULT): String {
+    return formatter.formatPrice(price)
 }
 
 fun formatTime(timestamp: Long): String {
