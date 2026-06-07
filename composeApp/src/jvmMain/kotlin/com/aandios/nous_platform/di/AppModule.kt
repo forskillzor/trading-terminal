@@ -18,6 +18,7 @@ import com.aandios.nous.core.domain.repository.ChartRepository
 import com.aandios.nous.core.domain.repository.DomRepository
 import com.aandios.nous.core.domain.repository.SymbolInfoRepository
 import com.aandios.nous.core.domain.repository.TradesRepository
+import com.aandios.nous.core.storage.StateStore
 import com.aandios.nous_platform.storage.LocalStorage
 import com.aandios.nous.feature.chart.footprint.FootprintApiClient
 import com.aandios.nous.feature.chart.ui.ChartViewModel
@@ -107,6 +108,7 @@ val appModule = module {
 
     // 4.6 Local storage (SQLite)
     single<LocalStorage> { LocalStorage() }
+    single<StateStore> { get<LocalStorage>() }
 
     // 5. ViewModels
     factory {
