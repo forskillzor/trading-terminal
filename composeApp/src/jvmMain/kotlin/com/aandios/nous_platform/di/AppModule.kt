@@ -18,6 +18,7 @@ import com.aandios.nous.core.domain.repository.ChartRepository
 import com.aandios.nous.core.domain.repository.DomRepository
 import com.aandios.nous.core.domain.repository.SymbolInfoRepository
 import com.aandios.nous.core.domain.repository.TradesRepository
+import com.aandios.nous_platform.storage.LocalStorage
 import com.aandios.nous.feature.chart.footprint.FootprintApiClient
 import com.aandios.nous.feature.chart.ui.ChartViewModel
 import com.aandios.nous.feature.dom.data.repository.DomRepositoryImpl
@@ -103,6 +104,9 @@ val appModule = module {
     single<FootprintApiClient> {
         FootprintApiClient(httpClient = get<NetworkManager>().httpClient)
     }
+
+    // 4.6 Local storage (SQLite)
+    single<LocalStorage> { LocalStorage() }
 
     // 5. ViewModels
     factory {

@@ -43,8 +43,6 @@ data class TradingSymbol(
         }
     }
 
-    fun formatVolume(volume: Float): String = formatVolume(volume.toDouble())
-
     companion object {
 
         /**
@@ -105,6 +103,7 @@ data class TradingSymbol(
         /**
          * Получает список символов для указанного провайдера.
          */
+        // fixme remove hardcode
         fun getSymbolsForProvider(provider: TradingProvider): List<TradingSymbol> {
             return when (provider) {
                 TradingProvider.BINANCE -> BINANCE_SPOT_SYMBOLS

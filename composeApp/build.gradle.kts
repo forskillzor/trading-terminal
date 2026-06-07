@@ -63,6 +63,7 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.androidx.ui.geometry.desktop)
             implementation(libs.kotlinx.coroutines.swing)
+            implementation("org.xerial:sqlite-jdbc:3.49.1.0")
         }
 
         jvmTest.dependencies {

@@ -3,7 +3,6 @@ package com.aandios.nous.core.data.repository
 import com.aandios.nous.api.market.adapters.SymbolInfoAdapter
 import com.aandios.nous.api.market.model.SymbolInfo
 import com.aandios.nous.core.domain.repository.SymbolInfoRepository
-import kotlinx.coroutines.flow.Flow
 
 class SymbolInfoRepositoryImpl(
     private val symbolInfoAdapter: SymbolInfoAdapter

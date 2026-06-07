@@ -14,7 +14,10 @@ import com.aandios.nous.feature.dom.ui.DomViewModel
 import com.aandios.nous.feature.dom.ui.DomWindow
 import com.aandios.nous.feature.trades.ui.TradesViewModel
 import com.aandios.nous.feature.trades.ui.TradesWindow
+import com.aandios.nous_platform.storage.LocalStorage
 import com.aandios.nous_platform.ui.components.*
+import com.aandios.nous_platform.ui.settings.SettingsWindow
+import org.koin.compose.koinInject
 
 @Composable
 fun MainScreen(
@@ -25,6 +28,8 @@ fun MainScreen(
 ) {
     var selectedSymbol by remember { mutableStateOf("BTCUSDT") }
     var selectedTimeframe by remember { mutableStateOf("1h") }
+    var showSettings by remember { mutableStateOf(false) }
+    val storage: LocalStorage = koinInject()
 
     LaunchedEffect(selectedSymbol, selectedTimeframe) {
         chartViewModel.loadChart(selectedSymbol, selectedTimeframe)
@@ -56,6 +61,14 @@ fun MainScreen(
             TerminalBadge(
                 text = "BINANCE", modifier = Modifier.padding(start = 8.dp)
             )
+            Spacer(Modifier.width(4.dp))
+            TerminalButton(
+                onClick = { showSettings = true },
+                isActive = false,
+                modifier = Modifier.height(32.dp)
+            ) {
+                Text("⚙", style = MaterialTheme.typography.labelMedium)
+            }
         }
 
         TerminalCard(
@@ -88,6 +101,10 @@ fun MainScreen(
         TerminalStatusBar(
             modifier = Modifier.fillMaxWidth()
         )
+    }
+
+    if (showSettings) {
+        SettingsWindow(storage = storage, onClose = { showSettings = false })
     }
 }
 
