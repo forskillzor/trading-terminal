@@ -9,4 +9,18 @@ interface LiquidationAdapter : MarketAdapter {
      * Binance stream: {symbol}@forceOrder
      */
     fun subscribeToLiquidations(symbol: String): Flow<LiquidationOrder>
+
+    /**
+     * Fetch historical liquidation orders via REST API.
+     * @param symbol e.g. "BTCUSDT"
+     * @param startTime optional start timestamp (ms)
+     * @param endTime optional end timestamp (ms)
+     * @param limit max records (default 100, max 1000)
+     */
+    suspend fun getHistoricalLiquidations(
+        symbol: String,
+        startTime: Long? = null,
+        endTime: Long? = null,
+        limit: Int = 100
+    ): List<LiquidationOrder>
 }

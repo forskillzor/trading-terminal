@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -70,6 +71,8 @@ fun CandleStickChartInteraction(
     hasMoreHistory: Boolean = true,
     footprintCandles: List<FootprintCandle>? = null,
     liquidationOrders: List<LiquidationOrder> = emptyList(),
+    indicatorRenderers: List<DrawScope.(Rect, List<Candle>, PriceRange, Float, Float) -> Unit> = emptyList(),
+    indicatorHeightDp: Dp = 80.dp,
 ) {
     if (candles.isEmpty()) return
 
@@ -195,19 +198,20 @@ fun CandleStickChartInteraction(
 
         val density = LocalDensity.current
 
-        val layout = remember(priceScaleWidth, canvasWidth, canvasHeight) {
+        val layout = remember(priceScaleWidth, canvasWidth, canvasHeight, indicatorRenderers.size, indicatorHeightDp) {
             val widthPx = with(density) { canvasWidth.toPx() }
             val heightPx = with(density) { canvasHeight.toPx() }
             val chartPadding = 8f
 
-            // Динамическая высота шкалы времени
             val timeScaleHeight = (heightPx * 0.04f).coerceAtLeast(20f).coerceAtMost(40f)
 
             val priceScaleWidthPx = with(density) {
                 priceScaleWidth.toPx()
             }
 
-            // Область для шкалы цен
+            val indicatorH = with(density) { indicatorHeightDp.toPx() }
+            val indicatorTotalH = indicatorH * indicatorRenderers.size
+
             val priceScaleArea = Rect(
                 left = widthPx - priceScaleWidthPx,
                 top = 0f,
@@ -215,7 +219,6 @@ fun CandleStickChartInteraction(
                 bottom = heightPx
             )
 
-            // Область для шкалы времени (внизу)
             val timeScaleArea = Rect(
                 left = 0f,
                 top = heightPx - timeScaleHeight,
@@ -223,15 +226,22 @@ fun CandleStickChartInteraction(
                 bottom = heightPx
             )
 
-            // Основная область графика (без шкалы времени)
             val chartMainArea = Rect(
                 left = 0f,
                 top = 0f,
                 right = widthPx - priceScaleWidthPx - chartPadding,
-                bottom = heightPx - timeScaleHeight
+                bottom = heightPx - timeScaleHeight - indicatorTotalH
             )
 
-            // Вся область графика (включая шкалу времени)
+            val indicatorAreas = (0 until indicatorRenderers.size).map { i ->
+                Rect(
+                    left = 0f,
+                    top = chartMainArea.bottom + i * indicatorH,
+                    right = widthPx - priceScaleWidthPx - chartPadding,
+                    bottom = chartMainArea.bottom + (i + 1) * indicatorH
+                )
+            }
+
             val chartArea = Rect(
                 left = 0f,
                 top = 0f,
@@ -248,7 +258,8 @@ fun CandleStickChartInteraction(
                 chartPadding = chartPadding,
                 timeScaleHeight = timeScaleHeight,
                 chartMainArea = chartMainArea,
-                timeScaleArea = timeScaleArea
+                timeScaleArea = timeScaleArea,
+                indicatorAreas = indicatorAreas
             )
         }
 
@@ -354,6 +365,18 @@ fun CandleStickChartInteraction(
                     candles = candles,
                     timeframeMs = tfMs.coerceAtLeast(1L),
                     zoomLevel = zoomLevel
+                )
+            }
+
+            // Indicator panels (below main chart, above timescale)
+            layout.indicatorAreas.forEachIndexed { idx, area ->
+                indicatorRenderers.getOrNull(idx)?.invoke(this, area, candles, priceRange, clampedOffset, zoomLevel)
+                // Separator line below each indicator
+                drawLine(
+                    color = config.gridColor.copy(alpha = 0.3f),
+                    start = Offset(area.left, area.bottom),
+                    end = Offset(area.right, area.bottom),
+                    strokeWidth = 1f
                 )
             }
 

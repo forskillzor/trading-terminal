@@ -2,11 +2,14 @@ package com.aandios.nous.feature.chart.ui.chart
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.aandios.nous.api.market.model.Candle
 import com.aandios.nous.api.market.model.FootprintCandle
 import com.aandios.nous.api.market.model.liquidation.LiquidationOrder
+import com.aandios.nous.feature.chart.model.PriceRange
 import com.aandios.nous.feature.chart.ui.ChartConfig
 import com.aandios.nous.feature.chart.ui.DefaultChartConfig
 
@@ -30,6 +33,8 @@ fun CandleStickChart(
     hasMoreHistory: Boolean = true,
     footprintCandles: List<FootprintCandle>? = null,
     liquidationOrders: List<LiquidationOrder> = emptyList(),
+    indicatorRenderers: List<DrawScope.(Rect, List<Candle>, PriceRange, Float, Float) -> Unit> = emptyList(),
+    indicatorHeightDp: Dp = 80.dp,
 ) {
     CandleStickChartInteraction(
         candles = candles,
@@ -45,5 +50,7 @@ fun CandleStickChart(
         hasMoreHistory = hasMoreHistory,
         footprintCandles = footprintCandles,
         liquidationOrders = liquidationOrders,
+        indicatorRenderers = indicatorRenderers,
+        indicatorHeightDp = indicatorHeightDp,
     )
 }

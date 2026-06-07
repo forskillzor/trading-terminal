@@ -55,3 +55,36 @@ fun BinanceLiquidationOrderData.toLiquidationOrder(): LiquidationOrder {
         orderType = orderType
     )
 }
+
+/**
+ * REST API response for GET /fapi/v1/allForceOrders
+ * Flat structure (unlike WS which wraps in "o")
+ */
+@Serializable
+data class BinanceForceOrderResponse(
+    @SerialName("symbol") val symbol: String = "",
+    @SerialName("price") val price: String = "",
+    @SerialName("origQty") val origQty: String = "",
+    @SerialName("executedQty") val executedQty: String = "",
+    @SerialName("averagePrice") val averagePrice: String = "",
+    @SerialName("side") val side: String = "",
+    @SerialName("type") val orderType: String = "",
+    @SerialName("time") val time: Long = 0,
+    @SerialName("updateTime") val updateTime: Long = 0,
+    @SerialName("status") val status: String = ""
+)
+
+fun BinanceForceOrderResponse.toLiquidationOrder(): LiquidationOrder {
+    return LiquidationOrder(
+        symbol = symbol,
+        price = averagePrice.ifEmpty { price }.toDoubleOrNull() ?: 0.0,
+        quantity = (executedQty.ifEmpty { origQty }).toDoubleOrNull() ?: 0.0,
+        timestamp = time,
+        side = when (side.uppercase()) {
+            "BUY" -> TradeSide.BUY
+            "SELL" -> TradeSide.SELL
+            else -> TradeSide.BUY
+        },
+        orderType = orderType
+    )
+}

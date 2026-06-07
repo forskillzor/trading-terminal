@@ -27,10 +27,22 @@ class LiquidationViewModel(
             return
         }
 
-        _state.value = LiquidationState(orders = emptyList(), connected = true)
+        _state.value = LiquidationState(connected = true)
 
         subscriptionJob = scope.launch {
             try {
+                // 1. Load historical data first
+                val endTime = System.currentTimeMillis()
+                val startTime = endTime - 60 * 60 * 1000L // last hour
+                val history = liquidationAdapter.getHistoricalLiquidations(
+                    symbol = symbol,
+                    startTime = startTime,
+                    endTime = endTime,
+                    limit = 100
+                )
+                _state.value = _state.value.copy(orders = history)
+
+                // 2. Then subscribe to real-time WebSocket
                 liquidationAdapter.subscribeToLiquidations(symbol)
                     .catch { e ->
                         _state.value = _state.value.copy(connected = false, error = e.message)
@@ -38,7 +50,6 @@ class LiquidationViewModel(
                     .collect { order ->
                         val current = _state.value.orders.toMutableList()
                         current.add(order)
-                        // Keep last 1000 orders
                         if (current.size > 1000) {
                             current.removeAt(0)
                         }

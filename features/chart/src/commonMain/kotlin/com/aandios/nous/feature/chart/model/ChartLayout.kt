@@ -11,5 +11,6 @@ data class ChartLayout(
     val chartPadding: Float = 8f,
     val timeScaleHeight: Float = 20f,
     val chartMainArea: Rect,
-    val timeScaleArea: Rect
+    val timeScaleArea: Rect,
+    val indicatorAreas: List<Rect> = emptyList()
 )

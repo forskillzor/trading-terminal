@@ -7,16 +7,21 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.aandios.nous.api.market.model.Candle
+import com.aandios.nous.api.market.model.liquidation.LiquidationOrder
 import com.aandios.nous.core.ui.theme.TradingTerminalTheme
 import com.aandios.nous.feature.chart.di.initKoinForPreview
 import com.aandios.nous.feature.chart.indicator.LiquidationViewModel
+import com.aandios.nous.feature.chart.model.PriceRange
 import com.aandios.nous.feature.chart.ui.chart.CandleStickChart
+import com.aandios.nous.feature.chart.ui.chart.drawLiquidationHistogram
 import org.koin.compose.KoinContext
 import org.koin.compose.koinInject
 import org.koin.core.context.stopKoin
@@ -97,6 +102,15 @@ private fun ChartWindowContent(
         onDispose { liquidationViewModel.clear() }
     }
 
+    val liqOrders = liquidationState.orders
+    val indicatorRenderers = remember(liqOrders) {
+        listOf<DrawScope.(Rect, List<Candle>, PriceRange, Float, Float) -> Unit>(
+            { area, candles, _, scroll, zoom ->
+                drawLiquidationHistogram(area, candles, liqOrders, scroll, zoom)
+            }
+        )
+    }
+
     var crosshairEnabled by remember { mutableStateOf(false) }
 
     Box(
@@ -146,6 +160,7 @@ private fun ChartWindowContent(
                                 currentPrice = state.currentPrice,
                                 config = chartConfig,
                                 liquidationOrders = liquidationState.orders,
+                                indicatorRenderers = indicatorRenderers,
                                 crosshairEnabled = crosshairEnabled,
                                 onCrosshairEnabledChange = { crosshairEnabled = it },
                                 onNeedMoreHistory = { chartViewModel.loadMoreHistory() },
@@ -181,6 +196,7 @@ private fun ChartWindowContent(
                                     currentPrice = footprintCurrentPrice ?: fpToCandle.lastOrNull()?.close,
                                     config = chartConfig,
                                     liquidationOrders = liquidationState.orders,
+                                    indicatorRenderers = indicatorRenderers,
                                     crosshairEnabled = crosshairEnabled,
                                     onCrosshairEnabledChange = { crosshairEnabled = it },
                                     footprintCandles = allFp,

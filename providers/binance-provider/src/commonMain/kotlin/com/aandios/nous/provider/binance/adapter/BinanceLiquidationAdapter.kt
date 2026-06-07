@@ -3,10 +3,13 @@ package com.aandios.nous.provider.binance.adapter
 import com.aandios.nous.api.market.ProviderConfig
 import com.aandios.nous.api.market.adapters.LiquidationAdapter
 import com.aandios.nous.api.market.model.liquidation.LiquidationOrder
+import com.aandios.nous.provider.binance.model.BinanceForceOrderResponse
 import com.aandios.nous.provider.binance.model.BinanceLiquidationEvent
 import com.aandios.nous.provider.binance.model.toLiquidationOrder
 import io.ktor.client.*
+import io.ktor.client.call.*
 import io.ktor.client.plugins.websocket.*
+import io.ktor.client.request.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -67,5 +70,30 @@ class BinanceLiquidationAdapter(
         }
         println("💀 Liquidation WebSocket: closed $streamName")
         close()
+    }
+
+    override suspend fun getHistoricalLiquidations(
+        symbol: String,
+        startTime: Long?,
+        endTime: Long?,
+        limit: Int
+    ): List<LiquidationOrder> {
+        val endpoint = if (config.isTestnet) {
+            "https://testnet.binancefuture.com/fapi/v1/allForceOrders"
+        } else {
+            "https://fapi.binance.com/fapi/v1/allForceOrders"
+        }
+        return try {
+            val response: List<BinanceForceOrderResponse> = httpClient.get(endpoint) {
+                parameter("symbol", symbol)
+                startTime?.let { parameter("startTime", it) }
+                endTime?.let { parameter("endTime", it) }
+                parameter("limit", limit.coerceAtMost(1000))
+            }.body()
+            response.map { it.toLiquidationOrder() }.filter { it.quantity > 0.0 }
+        } catch (e: Exception) {
+            println("⚠️ Liquidation history fetch failed: ${e.message}")
+            emptyList()
+        }
     }
 }
