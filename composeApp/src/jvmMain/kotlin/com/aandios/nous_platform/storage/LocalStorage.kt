@@ -5,11 +5,9 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.sql.Connection
 import java.sql.DriverManager
+import com.aandios.nous.core.storage.StateStore
 
-/**
- * Локальное SQLite хранилище настроек и кеша.
- */
-class LocalStorage(val dbPath: String = DEFAULT_PATH) {
+class LocalStorage(val dbPath: String = DEFAULT_PATH) : StateStore {
 
     private val dbFile = File(dbPath)
     private var connection: Connection? = null
@@ -69,16 +67,36 @@ class LocalStorage(val dbPath: String = DEFAULT_PATH) {
         }
     }
 
-    // ============ Settings ============
+    // ============ State Save/Load ============
 
-    suspend fun putString(key: String, value: String) {
+    suspend fun saveChartState(symbol: String, timeframe: String, mode: String) {
+        putString("chart_symbol", symbol)
+        putString("chart_timeframe", timeframe)
+        putString("chart_mode", mode)
+    }
+
+    data class ChartState(val symbol: String, val timeframe: String, val mode: String)
+    suspend fun loadChartState(): ChartState? {
+        val sym = getString("chart_symbol") ?: return null
+        val tf = getString("chart_timeframe") ?: return null
+        val mode = getString("chart_mode") ?: return null
+        return ChartState(sym, tf, mode)
+    }
+
+    suspend fun saveDomOptions(json: String) { putString("dom_options", json) }
+    suspend fun loadDomOptions(): String? = getString("dom_options")
+
+    suspend fun saveTradesOptions(json: String) { putString("trades_options", json) }
+    suspend fun loadTradesOptions(): String? = getString("trades_options")
+
+    override suspend fun putString(key: String, value: String) {
         val conn = getConnection()
         conn.prepareStatement("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)").use {
             it.setString(1, key); it.setString(2, value); it.execute()
         }
     }
 
-    suspend fun getString(key: String): String? {
+    override suspend fun getString(key: String): String? {
         val conn = getConnection()
         return conn.prepareStatement("SELECT value FROM settings WHERE key = ?").use {
             it.setString(1, key)
@@ -210,7 +228,8 @@ class LocalStorage(val dbPath: String = DEFAULT_PATH) {
         val count: Long,
         val firstTs: Long,
         val lastTs: Long,
-        val sizeBytes: Long
+        val sizeBytes: Long,
+        val durationMs: Long = 0L
     )
 
     suspend fun getDetailedStats(): Pair<List<CacheStats>, Long> {
@@ -224,8 +243,8 @@ class LocalStorage(val dbPath: String = DEFAULT_PATH) {
                 val sym = rs.getString("symbol")
                 val tf = rs.getString("timeframe")
                 val cnt = rs.getLong("cnt")
-                val rowSize = (8 + 5 * 8 + 8).toLong() // rough row estimate
-                stats.add(CacheStats("Candles $sym $tf", sym, cnt, rs.getLong("first_ts"), rs.getLong("last_ts"), cnt * rowSize))
+                val rowSize = (8 + 5 * 8 + 8).toLong()
+                stats.add(CacheStats("Candles $sym $tf", sym, cnt, rs.getLong("first_ts"), rs.getLong("last_ts"), cnt * rowSize, rs.getLong("last_ts") - rs.getLong("first_ts")))
             }
         }
 
@@ -237,7 +256,7 @@ class LocalStorage(val dbPath: String = DEFAULT_PATH) {
                 val cnt = rs.getLong("cnt")
                 val avgLen = rs.getDouble("avg_len")
                 val size = if (cnt > 0) (cnt * avgLen).toLong() else 0L
-                stats.add(CacheStats("Footprint $sym", sym, cnt, rs.getLong("first_ts"), rs.getLong("last_ts"), size))
+                stats.add(CacheStats("Footprint $sym", sym, cnt, rs.getLong("first_ts"), rs.getLong("last_ts"), size, rs.getLong("last_ts") - rs.getLong("first_ts")))
             }
         }
 

@@ -7,6 +7,7 @@ import com.aandios.nous.api.market.model.FootprintCandle
 import com.aandios.nous.api.market.model.MutableFootprintCandle
 import com.aandios.nous.api.market.model.SymbolInfo
 import com.aandios.nous.core.domain.repository.ChartRepository
+import com.aandios.nous.core.storage.StateStore
 import com.aandios.nous.core.ui.format.SymbolFormatter
 import com.aandios.nous.feature.chart.footprint.FootprintApiClient
 import kotlinx.coroutines.*
@@ -18,6 +19,7 @@ class ChartViewModel(
     private val symbolInfoAdapter: SymbolInfoAdapter,
     private val footprintApiClient: FootprintApiClient? = null,
     private val tradesAdapter: TradesAdapter? = null,
+    private val stateStore: StateStore? = null,
 ) {
     private val viewModelScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var currentJob: Job? = null
@@ -99,11 +101,13 @@ class ChartViewModel(
         _symbolInfoMap.value[symbol]?.let {
             _currentSymbolFormatter.value = SymbolFormatter(it.tickSize, it.minQty)
         }
+        saveState()
         loadChart(ticker = symbol, timeframe = _currentTimeframe.value)
     }
 
     fun selectTimeframe(timeframe: String) {
         _currentTimeframe.value = timeframe
+        saveState()
         loadChart(ticker = _currentSymbol.value, timeframe = timeframe)
     }
 
@@ -113,10 +117,31 @@ class ChartViewModel(
             ChartMode.FOOTPRINT -> ChartMode.CANDLESTICK
         }
         _chartMode.value = newMode
+        saveState()
         if (newMode == ChartMode.FOOTPRINT) {
             startLiveFootprint()
         } else {
             stopLiveFootprint()
+        }
+    }
+
+    private fun saveState() {
+        val store = stateStore ?: return
+        viewModelScope.launch {
+            store.putString("chart_symbol", _currentSymbol.value)
+            store.putString("chart_timeframe", _currentTimeframe.value)
+            store.putString("chart_mode", _chartMode.value.name)
+        }
+    }
+
+    fun restoreState() {
+        val store = stateStore ?: return
+        viewModelScope.launch {
+            store.getString("chart_symbol")?.let { _currentSymbol.value = it }
+            store.getString("chart_timeframe")?.let { _currentTimeframe.value = it }
+            store.getString("chart_mode")?.let { mode ->
+                _chartMode.value = try { ChartMode.valueOf(mode) } catch (e: Exception) { ChartMode.CANDLESTICK }
+            }
         }
     }
 

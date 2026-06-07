@@ -93,7 +93,7 @@ private fun StorageTab(storage: LocalStorage) {
                         Text(formatBytes(stat.sizeBytes), color = Color(0xFF73D0A1), fontSize = 11.sp, fontFamily = FontFamily.Monospace)
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("${stat.count} rows · ${formatTs(stat.firstTs)} – ${formatTs(stat.lastTs)}", color = Color(0xFF888888), fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                        Text("${stat.count} rows · ${formatDuration(stat.durationMs)} · ${formatTs(stat.firstTs)} – ${formatTs(stat.lastTs)}", color = Color(0xFF888888), fontSize = 10.sp, fontFamily = FontFamily.Monospace)
                         Spacer(Modifier.weight(1f))
                         TextButton(onClick = { confirmAction = stat.key }, modifier = Modifier.height(24.dp)) {
                             Text("Clear", color = Color(0xFFF07178), fontSize = 10.sp, fontFamily = FontFamily.Monospace)
@@ -174,35 +174,45 @@ private fun StorageTab(storage: LocalStorage) {
 @Composable
 private fun SettingsTab(storage: LocalStorage) {
     val scope = rememberCoroutineScope()
-    var lastSymbol by remember { mutableStateOf("") }
-    var lastTimeframe by remember { mutableStateOf("") }
-    var lastChartMode by remember { mutableStateOf("") }
+    var chartState by remember { mutableStateOf<LocalStorage.ChartState?>(null) }
+    var domOptions by remember { mutableStateOf<String?>(null) }
+    var tradesOptions by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
-        lastSymbol = storage.getString("chart_symbol") ?: "BTCUSDT"
-        lastTimeframe = storage.getString("chart_timeframe") ?: "1h"
-        lastChartMode = storage.getString("chart_mode") ?: "CANDLESTICK"
+        chartState = storage.loadChartState()
+        domOptions = storage.loadDomOptions()
+        tradesOptions = storage.loadTradesOptions()
     }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text("Last saved settings", color = Color(0xFF5B9BD5), fontSize = 13.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-        SettingsRow("Chart symbol", lastSymbol)
-        SettingsRow("Chart timeframe", lastTimeframe)
-        SettingsRow("Chart mode", lastChartMode)
+        Text("Chart State", color = Color(0xFF5B9BD5), fontSize = 13.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+        if (chartState != null) {
+            SettingsRow("Symbol", chartState!!.symbol)
+            SettingsRow("Timeframe", chartState!!.timeframe)
+            SettingsRow("Mode", chartState!!.mode)
+        } else {
+            Text("No saved chart state", color = Color(0xFF888888), fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+        }
 
         Spacer(Modifier.height(8.dp))
+        Text("DOM Options", color = Color(0xFF5B9BD5), fontSize = 13.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+        Text(domOptions ?: "No saved DOM options", color = Color(0xFF888888), fontSize = 11.sp, fontFamily = FontFamily.Monospace, maxLines = 3)
+
+        Spacer(Modifier.height(8.dp))
+        Text("Trades Options", color = Color(0xFF5B9BD5), fontSize = 13.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+        Text(tradesOptions ?: "No saved Trades options", color = Color(0xFF888888), fontSize = 11.sp, fontFamily = FontFamily.Monospace, maxLines = 3)
+
+        Spacer(Modifier.height(12.dp))
         Button(
             onClick = {
                 scope.launch {
-                    storage.putString("chart_symbol", "BTCUSDT")
-                    storage.putString("chart_timeframe", "1h")
-                    storage.putString("chart_mode", "CANDLESTICK")
-                    lastSymbol = "BTCUSDT"; lastTimeframe = "1h"; lastChartMode = "CANDLESTICK"
+                    storage.clearSettings()
+                    chartState = null; domOptions = null; tradesOptions = null
                 }
             },
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F).copy(alpha = 0.6f)),
             shape = RoundedCornerShape(4.dp)
-        ) { Text("Reset to defaults", color = Color.White, fontSize = 11.sp, fontFamily = FontFamily.Monospace) }
+        ) { Text("Clear Settings", color = Color.White, fontSize = 11.sp, fontFamily = FontFamily.Monospace) }
     }
 }
 
@@ -217,7 +227,15 @@ private fun SettingsRow(label: String, value: String) {
 private val dateFmt = SimpleDateFormat("MM-dd HH:mm", Locale.US)
 private fun formatTs(ts: Long): String = if (ts <= 0) "—" else dateFmt.format(Date(ts))
 
+private fun formatDuration(ms: Long): String = when {
+    ms <= 0 -> "—"
+    ms < 3_600_000 -> "${ms / 60_000}m"
+    ms < 86_400_000 -> "${ms / 3_600_000}h ${(ms % 3_600_000) / 60_000}m"
+    else -> "${ms / 86_400_000}d ${(ms % 86_400_000) / 3_600_000}h"
+}
+
 private fun formatBytes(bytes: Long): String = when {
+    bytes >= 1_000_000_000 -> "${"%.2f".format(bytes / 1_000_000_000.0)} GB"
     bytes >= 1_000_000 -> "${"%.1f".format(bytes / 1_000_000.0)} MB"
     bytes >= 1_000 -> "${"%.1f".format(bytes / 1_000.0)} KB"
     else -> "$bytes B"

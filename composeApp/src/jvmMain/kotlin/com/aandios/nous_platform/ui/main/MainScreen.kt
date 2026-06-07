@@ -31,6 +31,11 @@ fun MainScreen(
     var showSettings by remember { mutableStateOf(false) }
     val storage: LocalStorage = koinInject()
 
+    // Restore saved state on first launch
+    LaunchedEffect(Unit) {
+        chartViewModel.restoreState()
+    }
+
     LaunchedEffect(selectedSymbol, selectedTimeframe) {
         chartViewModel.loadChart(selectedSymbol, selectedTimeframe)
         domViewModel.updateDomOptions(

@@ -115,6 +115,7 @@ val appModule = module {
             symbolInfoAdapter = get(),
             footprintApiClient = get(),
             tradesAdapter = get(),
+            stateStore = get(),
         )
     }
 
