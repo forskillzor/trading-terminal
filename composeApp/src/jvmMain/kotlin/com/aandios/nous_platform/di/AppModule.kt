@@ -19,7 +19,7 @@ import com.aandios.nous.core.domain.repository.DomRepository
 import com.aandios.nous.core.domain.repository.SymbolInfoRepository
 import com.aandios.nous.core.domain.repository.TradesRepository
 import com.aandios.nous.core.storage.StateStore
-import com.aandios.nous_platform.storage.LocalStorage
+import com.aandios.nous.feature.localstorage.LocalStorage
 import com.aandios.nous.feature.chart.footprint.FootprintApiClient
 import com.aandios.nous.feature.chart.ui.ChartViewModel
 import com.aandios.nous.feature.dom.data.repository.DomRepositoryImpl

@@ -18,9 +18,11 @@ kotlin {
 
         commonMain.dependencies {
             // Modules
-            implementation(project(":features:feature-chart"))
-            implementation(project(":features:feature-dom"))
-            implementation(project(":features:feature-trades"))
+            implementation(project(":features:chart"))
+            implementation(project(":features:dom"))
+            implementation(project(":features:trades"))
+            implementation(project(":features:localstorage"))
+            implementation(project(":features:settings"))
             implementation(project(":platform-core"))
             implementation(project(":public-api:api-market"))
             implementation(project(":providers:binance-provider"))
@@ -63,7 +65,6 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.androidx.ui.geometry.desktop)
             implementation(libs.kotlinx.coroutines.swing)
-            implementation("org.xerial:sqlite-jdbc:3.49.1.0")
         }
 
         jvmTest.dependencies {

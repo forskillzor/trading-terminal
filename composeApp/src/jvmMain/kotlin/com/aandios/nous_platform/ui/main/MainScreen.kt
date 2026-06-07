@@ -14,9 +14,9 @@ import com.aandios.nous.feature.dom.ui.DomViewModel
 import com.aandios.nous.feature.dom.ui.DomWindow
 import com.aandios.nous.feature.trades.ui.TradesViewModel
 import com.aandios.nous.feature.trades.ui.TradesWindow
-import com.aandios.nous_platform.storage.LocalStorage
+import com.aandios.nous.feature.localstorage.LocalStorage
 import com.aandios.nous_platform.ui.components.*
-import com.aandios.nous_platform.ui.settings.SettingsWindow
+import com.aandios.nous.feature.settings.SettingsWindow
 import org.koin.compose.koinInject
 
 @Composable
