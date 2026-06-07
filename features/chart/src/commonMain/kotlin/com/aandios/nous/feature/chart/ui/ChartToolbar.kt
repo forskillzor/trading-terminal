@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aandios.nous.core.ui.component.SymbolSearchDropdown
+import com.aandios.nous.feature.dom.domain.model.AggregationLevel
 
 private val timeframes = listOf("1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w")
 private val toolbarBg = Color.Black.copy(alpha = 0.35f)
@@ -32,6 +33,8 @@ fun ChartToolbar(
     chartMode: ChartMode = ChartMode.CANDLESTICK,
     onChartModeToggle: () -> Unit = {},
     symbolsWithFootprint: Set<String> = emptySet(),
+    fpAggregation: AggregationLevel = AggregationLevel.BaseTick,
+    onFpAggregationChange: (AggregationLevel) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -50,6 +53,12 @@ fun ChartToolbar(
         Spacer(Modifier.width(12.dp))
 
         ChartModeToggleButton(mode = chartMode, onToggle = onChartModeToggle)
+
+        if (chartMode == ChartMode.FOOTPRINT) {
+            Spacer(Modifier.width(8.dp))
+            FpAggregationSelector(level = fpAggregation, onChange = onFpAggregationChange)
+        }
+
         Spacer(Modifier.width(8.dp))
         CrosshairToggleButton(enabled = crosshairEnabled, onToggle = onCrosshairToggle)
         Spacer(Modifier.width(8.dp))
@@ -96,6 +105,29 @@ private fun TimeframeSelector(currentTimeframe: String, onTimeframeChange: (Stri
                 ).padding(horizontal = 5.dp, vertical = 3.dp),
             )
             if (tf != timeframes.last()) Spacer(Modifier.width(2.dp))
+        }
+    }
+}
+
+@Composable
+private fun FpAggregationSelector(level: AggregationLevel, onChange: (AggregationLevel) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        AggregationLevel.all().forEach { ag ->
+            val isActive = ag == level
+            val label = when (ag) {
+                AggregationLevel.BaseTick -> "1x"
+                AggregationLevel.TenTick -> "10x"
+                AggregationLevel.HundredTick -> "100x"
+            }
+            Text(
+                text = label,
+                color = if (isActive) MaterialTheme.colorScheme.inverseOnSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 11.sp, fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal, fontFamily = FontFamily.Monospace,
+                modifier = Modifier.clickable { onChange(ag) }.background(
+                    if (isActive) accentColor.copy(alpha = 0.25f) else Color.Transparent, RoundedCornerShape(3.dp)
+                ).padding(horizontal = 5.dp, vertical = 3.dp),
+            )
+            if (ag != AggregationLevel.all().last()) Spacer(Modifier.width(2.dp))
         }
     }
 }

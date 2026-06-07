@@ -59,6 +59,15 @@ fun ChartWindow(
     val symbolsWithFootprint by chartViewModel.symbolsWithFootprint.collectAsState()
     val hasMoreFootprintHistory by chartViewModel.hasMoreFootprintHistory.collectAsState()
     val footprintHistoryLoadCount by chartViewModel.footprintHistoryLoadCount.collectAsState()
+    val fpAggregation by chartViewModel.fpAggregation.collectAsState()
+    val formatter by chartViewModel.currentSymbolFormatter.collectAsState()
+
+    val chartConfig = remember(fpAggregation, formatter) {
+        DefaultChartConfig.copy(footprintConfig = DefaultChartConfig.footprintConfig.copy(
+            aggregationLevel = fpAggregation,
+            tickSize = formatter.tickSize
+        ))
+    }
 
     var crosshairEnabled by remember { mutableStateOf(false) }
 
@@ -107,6 +116,7 @@ fun ChartWindow(
                             CandleStickChart(
                                 candles = state.candles,
                                 currentPrice = state.currentPrice,
+                                config = chartConfig,
                                 crosshairEnabled = crosshairEnabled,
                                 onCrosshairEnabledChange = { crosshairEnabled = it },
                                 onNeedMoreHistory = { chartViewModel.loadMoreHistory() },
@@ -140,6 +150,7 @@ fun ChartWindow(
                                 CandleStickChart(
                                     candles = fpToCandle,
                                     currentPrice = footprintCurrentPrice ?: fpToCandle.lastOrNull()?.close,
+                                    config = chartConfig,
                                     crosshairEnabled = crosshairEnabled,
                                     onCrosshairEnabledChange = { crosshairEnabled = it },
                                     footprintCandles = allFp,
@@ -163,6 +174,8 @@ fun ChartWindow(
                         chartMode = chartMode,
                         onChartModeToggle = { chartViewModel.toggleChartMode() },
                         symbolsWithFootprint = symbolsWithFootprint,
+                        fpAggregation = fpAggregation,
+                        onFpAggregationChange = { chartViewModel.setFpAggregation(it) },
                         modifier = Modifier
                             .align(Alignment.TopStart)
                             .padding(8.dp)

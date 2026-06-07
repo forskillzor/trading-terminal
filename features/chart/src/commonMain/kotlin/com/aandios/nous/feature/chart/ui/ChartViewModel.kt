@@ -10,6 +10,7 @@ import com.aandios.nous.core.domain.repository.ChartRepository
 import com.aandios.nous.core.storage.StateStore
 import com.aandios.nous.core.ui.format.SymbolFormatter
 import com.aandios.nous.feature.chart.footprint.FootprintApiClient
+import com.aandios.nous.feature.dom.domain.model.AggregationLevel
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlin.coroutines.cancellation.CancellationException
@@ -57,6 +58,8 @@ class ChartViewModel(
     private val _chartMode = MutableStateFlow(ChartMode.CANDLESTICK)
     private val _symbolsWithFootprint = MutableStateFlow<Set<String>>(emptySet())
 
+    private val _fpAggregation = MutableStateFlow<AggregationLevel>(AggregationLevel.BaseTick)
+
     // For UI observation
     val footprintCandles: StateFlow<List<FootprintCandle>> = _completedFootprintCandles
     val liveFootprintCandle: StateFlow<FootprintCandle?> = _liveFootprintCandle
@@ -65,6 +68,7 @@ class ChartViewModel(
     val footprintError: StateFlow<String?> = _footprintError
     val chartMode: StateFlow<ChartMode> = _chartMode
     val symbolsWithFootprint: StateFlow<Set<String>> = _symbolsWithFootprint
+    val fpAggregation: StateFlow<AggregationLevel> = _fpAggregation
 
     // Footprint pagination
     private val _hasMoreFootprintHistory = MutableStateFlow(true)
@@ -125,12 +129,22 @@ class ChartViewModel(
         }
     }
 
+    fun setFpAggregation(level: AggregationLevel) {
+        _fpAggregation.value = level
+        saveState()
+    }
+
     private fun saveState() {
         val store = stateStore ?: return
         viewModelScope.launch {
             store.putString("chart_symbol", _currentSymbol.value)
             store.putString("chart_timeframe", _currentTimeframe.value)
             store.putString("chart_mode", _chartMode.value.name)
+            store.putString("fp_aggregation", when (_fpAggregation.value) {
+                AggregationLevel.BaseTick -> "BaseTick"
+                AggregationLevel.TenTick -> "TenTick"
+                AggregationLevel.HundredTick -> "HundredTick"
+            })
         }
     }
 
@@ -141,6 +155,9 @@ class ChartViewModel(
             store.getString("chart_timeframe")?.let { _currentTimeframe.value = it }
             store.getString("chart_mode")?.let { mode ->
                 _chartMode.value = try { ChartMode.valueOf(mode) } catch (e: Exception) { ChartMode.CANDLESTICK }
+            }
+            store.getString("fp_aggregation")?.let { agg ->
+                _fpAggregation.value = try { AggregationLevel.fromString(agg) } catch (e: Exception) { AggregationLevel.BaseTick }
             }
         }
     }

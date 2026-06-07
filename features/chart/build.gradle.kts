@@ -9,6 +9,7 @@ kotlin {
             implementation(project(":platform-core"))
             implementation(project(":public-api:api-market"))
             implementation(project(":providers:binance-provider"))
+            implementation(project(":features:dom"))
 
             implementation(libs.koin.core)
             implementation(libs.koin.compose)

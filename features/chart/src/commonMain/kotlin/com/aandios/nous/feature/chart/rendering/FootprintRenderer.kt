@@ -14,6 +14,7 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.sp
 import com.aandios.nous.api.market.model.FootprintCandle
+import com.aandios.nous.api.market.model.FootprintLevel
 import com.aandios.nous.core.ui.theme.ChartColors
 import com.aandios.nous.core.ui.format.SymbolFormatter
 import com.aandios.nous.feature.chart.model.CandleMetrics
@@ -24,6 +25,7 @@ import com.aandios.nous.feature.chart.utils.calculateCandleMetrics
 import com.aandios.nous.feature.chart.utils.priceFromY
 import com.aandios.nous.feature.chart.utils.priceToY
 import com.aandios.nous.feature.chart.utils.formatTime
+import com.aandios.nous.feature.dom.domain.model.AggregationLevel
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -70,7 +72,8 @@ fun DrawScope.drawFootprintChart(
                     metrics = CandleMetrics(fpWidth * 2f, fpSpacing), // 2x wider
                     config = config,
                     chartHeight = chartArea.height,
-                    viewportMaxVol = viewportMaxVol
+                    viewportMaxVol = viewportMaxVol,
+                    tickSize = config.footprintConfig.tickSize
                 )
             }
         }
@@ -84,21 +87,28 @@ fun DrawScope.drawFootprintCandle(
     metrics: CandleMetrics,
     config: ChartConfig,
     chartHeight: Float,
-    viewportMaxVol: Float = 1f
+    viewportMaxVol: Float = 1f,
+    tickSize: Double = 0.01
 ) {
-    if (candle.levels.isEmpty()) return
+    val levels = if (config.footprintConfig.aggregationLevel != AggregationLevel.BaseTick && tickSize > 0.0) {
+        aggregateLevels(candle.levels, config.footprintConfig.aggregationLevel, tickSize)
+    } else {
+        candle.levels
+    }
+    if (levels.isEmpty()) return
 
     val halfWidth = metrics.width / 2
     val maxBarWidth = halfWidth
     val minAlpha = 0.12f
 
-    for (level in candle.levels) {
+    for (i in levels.indices) {
+        val level = levels[i]
         val priceY = priceToY(level.priceFloat, priceRange, chartHeight)
-        val nextPrice = if (candle.levels.indexOf(level) < candle.levels.size - 1) {
-            candle.levels[candle.levels.indexOf(level) + 1].priceFloat
+        val nextPrice = if (i < levels.size - 1) {
+            levels[i + 1].priceFloat
         } else {
-            level.priceFloat - (candle.levels.getOrNull(candle.levels.size - 2)?.priceFloat?.let {
-                candle.levels.last().priceFloat - it
+            level.priceFloat - (levels.getOrNull(levels.size - 2)?.priceFloat?.let {
+                levels.last().priceFloat - it
             } ?: 1f)
         }
         val nextPriceY = priceToY(nextPrice, priceRange, chartHeight)
@@ -226,21 +236,28 @@ fun DrawScope.drawFootprintPopup(
     val candle = candles.getOrNull(candleIndex) ?: return
     if (candle.levels.isEmpty()) return
 
+    val levels = if (config.footprintConfig.aggregationLevel != AggregationLevel.BaseTick && config.footprintConfig.tickSize > 0.0) {
+        aggregateLevels(candle.levels, config.footprintConfig.aggregationLevel, config.footprintConfig.tickSize)
+    } else {
+        candle.levels
+    }
+    if (levels.isEmpty()) return
+
     // Find price level nearest to mouse Y
     val mousePrice = priceFromY(mousePosition.y - chartLayout.chartMainArea.top, priceRange, chartLayout.chartMainArea.height)
     var centerIdx = -1
     var minDist = Float.MAX_VALUE
-    candle.levels.forEachIndexed { i, level ->
+    levels.forEachIndexed { i, level ->
         val dist = kotlin.math.abs(level.priceFloat - mousePrice)
         if (dist < minDist) { minDist = dist; centerIdx = i }
     }
-    if (centerIdx < 0) centerIdx = candle.levels.size / 2
+    if (centerIdx < 0) centerIdx = levels.size / 2
 
     val visibleLevels = 22
     val halfVisible = visibleLevels / 2
     val startIdx = (centerIdx - halfVisible).coerceAtLeast(0)
-    val endIdx = (centerIdx + halfVisible).coerceAtMost(candle.levels.size)
-    val viewLevels = candle.levels.subList(startIdx, endIdx).reversed()
+    val endIdx = (centerIdx + halfVisible).coerceAtMost(levels.size)
+    val viewLevels = levels.subList(startIdx, endIdx).reversed()
 
     val popupBg = Color(0xFF0D1117)
     val textWhite = Color(0xFFE0E0E0)
@@ -311,5 +328,31 @@ fun DrawScope.drawFootprintPopup(
         drawText(bidLayout, topLeft = Offset(bidTextX, yOff))
 
         yOff += rowH + gapBetweenRows
+    }
+}
+
+fun aggregateLevels(levels: List<FootprintLevel>, aggLevel: AggregationLevel, tickSize: Double): List<FootprintLevel> {
+    if (levels.isEmpty() || tickSize <= 0.0 || aggLevel == AggregationLevel.BaseTick) return levels
+
+    data class Accumulator(var bidVol: Float = 0f, var askVol: Float = 0f, var bidCnt: Int = 0, var askCnt: Int = 0)
+
+    val grouped = linkedMapOf<String, Accumulator>()
+    for (level in levels) {
+        val key = aggLevel.aggregationKey(level.price, tickSize)
+        val acc = grouped.getOrPut(key) { Accumulator() }
+        acc.bidVol += level.bidVolumeFloat
+        acc.askVol += level.askVolumeFloat
+        acc.bidCnt += level.bidCount
+        acc.askCnt += level.askCount
+    }
+
+    return grouped.map { (price, acc) ->
+        FootprintLevel(
+            price = price,
+            bidVolume = acc.bidVol.toString(),
+            askVolume = acc.askVol.toString(),
+            bidCount = acc.bidCnt,
+            askCount = acc.askCnt
+        )
     }
 }

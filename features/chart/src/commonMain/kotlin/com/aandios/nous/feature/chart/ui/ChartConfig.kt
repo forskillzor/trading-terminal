@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.aandios.nous.core.ui.theme.ChartColors
+import com.aandios.nous.feature.dom.domain.model.AggregationLevel
 
 enum class ChartMode {
     CANDLESTICK,
@@ -26,7 +27,9 @@ data class FootprintConfig(
     val bidColor: Color = ChartColors.volumeBullish,
     val askColor: Color = ChartColors.volumeBearish,
     val showNumbers: Boolean = false,
-    val maxLevelsPerCandle: Int = 50
+    val maxLevelsPerCandle: Int = 50,
+    val aggregationLevel: AggregationLevel = AggregationLevel.BaseTick,
+    val tickSize: Double = 0.01
 )
 
 // Конфигурация для графика
