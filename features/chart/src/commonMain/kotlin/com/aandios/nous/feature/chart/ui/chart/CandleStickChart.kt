@@ -6,6 +6,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.aandios.nous.api.market.model.Candle
 import com.aandios.nous.api.market.model.FootprintCandle
+import com.aandios.nous.api.market.model.liquidation.LiquidationOrder
 import com.aandios.nous.feature.chart.ui.ChartConfig
 import com.aandios.nous.feature.chart.ui.DefaultChartConfig
 
@@ -28,6 +29,7 @@ fun CandleStickChart(
     historyLoadCount: Int = 0,
     hasMoreHistory: Boolean = true,
     footprintCandles: List<FootprintCandle>? = null,
+    liquidationOrders: List<LiquidationOrder> = emptyList(),
 ) {
     CandleStickChartInteraction(
         candles = candles,
@@ -42,5 +44,6 @@ fun CandleStickChart(
         historyLoadCount = historyLoadCount,
         hasMoreHistory = hasMoreHistory,
         footprintCandles = footprintCandles,
+        liquidationOrders = liquidationOrders,
     )
 }

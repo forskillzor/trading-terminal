@@ -18,6 +18,7 @@ interface Provider {
     val chart: ChartAdapter?
     val trading: TradingAdapter?
     val symbolInfo: SymbolInfoAdapter?
+    val liquidation: LiquidationAdapter?
 
     suspend fun start() {}
 

@@ -15,6 +15,7 @@ import androidx.compose.ui.window.rememberWindowState
 import com.aandios.nous.api.market.model.Candle
 import com.aandios.nous.core.ui.theme.TradingTerminalTheme
 import com.aandios.nous.feature.chart.di.initKoinForPreview
+import com.aandios.nous.feature.chart.indicator.LiquidationViewModel
 import com.aandios.nous.feature.chart.ui.chart.CandleStickChart
 import org.koin.compose.KoinContext
 import org.koin.compose.koinInject
@@ -30,7 +31,11 @@ fun ChartWindow() {
     LaunchedEffect(Unit) {
         chartViewModel.loadChart()
     }
-    ChartWindow(chartViewModel = chartViewModel)
+    val liquidationViewModel: LiquidationViewModel = koinInject()
+    ChartWindowContent(
+        chartViewModel = chartViewModel,
+        liquidationViewModel = liquidationViewModel
+    )
 }
 
 /**
@@ -43,6 +48,20 @@ fun ChartWindow() {
 fun ChartWindow(
     chartViewModel: ChartViewModel,
     modifier: Modifier = Modifier,
+) {
+    val liquidationViewModel: LiquidationViewModel = koinInject()
+    ChartWindowContent(
+        chartViewModel = chartViewModel,
+        modifier = modifier,
+        liquidationViewModel = liquidationViewModel
+    )
+}
+
+@Composable
+private fun ChartWindowContent(
+    chartViewModel: ChartViewModel,
+    modifier: Modifier = Modifier,
+    liquidationViewModel: LiquidationViewModel,
 ) {
     val chartState by chartViewModel.chartState.collectAsState()
     val currentSymbol by chartViewModel.currentSymbol.collectAsState()
@@ -67,6 +86,15 @@ fun ChartWindow(
             aggregationLevel = fpAggregation,
             tickSize = formatter.tickSize
         ))
+    }
+
+    // Liquidation state
+    val liquidationState by liquidationViewModel.state.collectAsState()
+    LaunchedEffect(currentSymbol) {
+        liquidationViewModel.subscribe(currentSymbol)
+    }
+    DisposableEffect(Unit) {
+        onDispose { liquidationViewModel.clear() }
     }
 
     var crosshairEnabled by remember { mutableStateOf(false) }
@@ -117,6 +145,7 @@ fun ChartWindow(
                                 candles = state.candles,
                                 currentPrice = state.currentPrice,
                                 config = chartConfig,
+                                liquidationOrders = liquidationState.orders,
                                 crosshairEnabled = crosshairEnabled,
                                 onCrosshairEnabledChange = { crosshairEnabled = it },
                                 onNeedMoreHistory = { chartViewModel.loadMoreHistory() },
@@ -151,6 +180,7 @@ fun ChartWindow(
                                     candles = fpToCandle,
                                     currentPrice = footprintCurrentPrice ?: fpToCandle.lastOrNull()?.close,
                                     config = chartConfig,
+                                    liquidationOrders = liquidationState.orders,
                                     crosshairEnabled = crosshairEnabled,
                                     onCrosshairEnabledChange = { crosshairEnabled = it },
                                     footprintCandles = allFp,

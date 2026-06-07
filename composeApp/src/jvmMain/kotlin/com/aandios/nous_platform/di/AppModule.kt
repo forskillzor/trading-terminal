@@ -6,6 +6,7 @@ import com.aandios.nous.api.market.ProviderConfig
 import com.aandios.nous.api.market.adapters.BookTickerAdapter
 import com.aandios.nous.api.market.adapters.ChartAdapter
 import com.aandios.nous.api.market.adapters.DomAdapter
+import com.aandios.nous.api.market.adapters.LiquidationAdapter
 import com.aandios.nous.api.market.adapters.SymbolInfoAdapter
 import com.aandios.nous.api.market.adapters.TradesAdapter
 import com.aandios.nous.core.data.repository.BookTickerRepositoryImpl
@@ -21,6 +22,7 @@ import com.aandios.nous.core.domain.repository.TradesRepository
 import com.aandios.nous.core.storage.StateStore
 import com.aandios.nous.feature.localstorage.LocalStorage
 import com.aandios.nous.feature.chart.footprint.FootprintApiClient
+import com.aandios.nous.feature.chart.indicator.LiquidationViewModel
 import com.aandios.nous.feature.chart.ui.ChartViewModel
 import com.aandios.nous.feature.dom.data.repository.DomRepositoryImpl
 import com.aandios.nous.feature.dom.ui.DomViewModel
@@ -75,6 +77,10 @@ val appModule = module {
 
     single<SymbolInfoAdapter> {
         get<Provider>().symbolInfo ?: error("SymbolInfo adapter not available")
+    }
+
+    single<LiquidationAdapter?> {
+        get<Provider>().liquidation
     }
 
     // 4. Repositories
@@ -137,7 +143,12 @@ val appModule = module {
     factory {
         TerminalStateViewModel()
     }
+
+    factory {
+        LiquidationViewModel(liquidationAdapter = get())
+    }
 }
+
 
 // Simple initialization
 fun initKoin() {

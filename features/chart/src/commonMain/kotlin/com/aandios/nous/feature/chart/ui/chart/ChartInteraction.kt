@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.aandios.nous.api.market.model.Candle
 import com.aandios.nous.api.market.model.FootprintCandle
+import com.aandios.nous.api.market.model.liquidation.LiquidationOrder
 import com.aandios.nous.feature.chart.model.CandleMetrics
 import com.aandios.nous.feature.chart.model.ChartLayout
 import com.aandios.nous.feature.chart.model.PriceRange
@@ -68,6 +69,7 @@ fun CandleStickChartInteraction(
     historyLoadCount: Int = 0,
     hasMoreHistory: Boolean = true,
     footprintCandles: List<FootprintCandle>? = null,
+    liquidationOrders: List<LiquidationOrder> = emptyList(),
 ) {
     if (candles.isEmpty()) return
 
@@ -339,6 +341,21 @@ fun CandleStickChartInteraction(
                 scrollOffset = clampedOffset,
                 zoomLevel = zoomLevel,
             )
+
+            // Liquidation markers overlay
+            if (liquidationOrders.isNotEmpty()) {
+                val tfMs = if (candles.size >= 2) candles[1].timestamp - candles[0].timestamp else 3_600_000L
+                drawLiquidationMarkers(
+                    orders = liquidationOrders,
+                    priceRange = priceRange,
+                    chartWidth = layout.chartMainArea.width,
+                    chartHeight = layout.chartMainArea.height,
+                    scrollOffset = clampedOffset,
+                    candles = candles,
+                    timeframeMs = tfMs.coerceAtLeast(1L),
+                    zoomLevel = zoomLevel
+                )
+            }
 
             // Рисуем шкалу цен
             if (showPriceScale) {

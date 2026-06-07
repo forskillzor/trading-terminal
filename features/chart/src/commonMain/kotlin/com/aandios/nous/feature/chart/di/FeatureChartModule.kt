@@ -4,12 +4,14 @@ import com.aandios.nous.api.market.NetworkManager
 import com.aandios.nous.api.market.Provider
 import com.aandios.nous.api.market.ProviderConfig
 import com.aandios.nous.api.market.adapters.ChartAdapter
+import com.aandios.nous.api.market.adapters.LiquidationAdapter
 import com.aandios.nous.api.market.adapters.SymbolInfoAdapter
 import com.aandios.nous.api.market.adapters.TradesAdapter
 import com.aandios.nous.core.data.repository.ChartRepositoryImpl
 import com.aandios.nous.core.di.coreModule
 import com.aandios.nous.core.domain.repository.ChartRepository
 import com.aandios.nous.feature.chart.footprint.FootprintApiClient
+import com.aandios.nous.feature.chart.indicator.LiquidationViewModel
 import com.aandios.nous.feature.chart.ui.ChartViewModel
 import com.aandios.nous.provider.binance.BinanceProviderFactory
 import org.koin.core.context.startKoin
@@ -80,6 +82,11 @@ val featureChartModule = module {
         get<Provider>().trades ?: error("Trades adapter not available")
     }
 
+    // 6.6 Liquidation adapter from provider
+    single<LiquidationAdapter?> {
+        get<Provider>().liquidation
+    }
+
     // 7. ViewModel
     factory {
         ChartViewModel(
@@ -88,5 +95,10 @@ val featureChartModule = module {
             footprintApiClient = get(),
             tradesAdapter = get(),
         )
+    }
+
+    // 8. Indicator ViewModels
+    factory {
+        LiquidationViewModel(liquidationAdapter = get())
     }
 }
