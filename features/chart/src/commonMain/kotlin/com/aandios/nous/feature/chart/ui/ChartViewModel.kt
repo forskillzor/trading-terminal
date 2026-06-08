@@ -197,26 +197,37 @@ class ChartViewModel(
     private suspend fun fetchCompletedCandle(startTime: Long, endTime: Long): FootprintCandle? {
         if (footprintApiClient == null) return null
         val (sourceTf, aggCount) = resolveFootprintSourceTimeframe(_currentTimeframe.value)
-        val sourceStart = if (aggCount > 1) {
-            // For aggregated timeframes, need to fetch multiple source candles
-            null
-        } else {
-            startTime
-        }
-        val sourceEnd = if (aggCount > 1) null else endTime
+        val sourceMs = when (sourceTf) { "1m" -> 60_000L; "15m" -> 900_000L; else -> 60_000L }
+
+        // Always request the source candles covering the display-tf window:
+        // For 1m → 1 source candle; for 5m → 5 source 1m candles; for 1h → 4 source 15m candles
+        val from = startTime - sourceMs * (aggCount - 1)
+        val to = endTime
+        val limit = aggCount + 2 // margin for alignment
+
         return try {
             val raw = footprintApiClient.getFootprint(
                 symbol = _currentSymbol.value,
                 timeframe = sourceTf,
-                from = sourceStart,
-                to = sourceEnd,
-                limit = if (aggCount > 1) aggCount else 1
+                from = from,
+                to = to,
+                limit = limit
             ).reversed()
-            if (aggCount > 1 && raw.size >= aggCount) {
-                aggregateFootprintCandles(raw, aggCount).firstOrNull()
-            } else {
-                raw.firstOrNull()
+
+            if (raw.isEmpty()) return null
+
+            // For display 1m (aggCount=1): just return the single source candle
+            if (aggCount == 1) return raw.firstOrNull { it.startTime == startTime || it.endTime == startTime + sourceMs }
+
+            // For aggregated timeframes: find the chunk that covers the exact display window
+            for (i in 0..raw.size - aggCount) {
+                val chunk = raw.subList(i, i + aggCount)
+                val chunkStart = chunk.firstOrNull()?.startTime ?: continue
+                if (chunkStart == startTime || chunkStart == from) {
+                    return aggregateFootprintCandles(chunk, aggCount).firstOrNull()
+                }
             }
+            null
         } catch (e: Exception) { null }
     }
 
@@ -272,8 +283,9 @@ class ChartViewModel(
                             val completed = liveCandle.toFootprintCandle(tickCount)
                             _completedFootprintCandles.value = _completedFootprintCandles.value + completed
 
-                            // For 1m: fetch authoritative version from server
-                            if (sourceTf == "1m") {
+                            // For 1m display: fetch authoritative version from server
+                            // For 5m: local trade accumulation is authoritative (no server override)
+                            if (aggCount == 1) {
                                 val serverCandle = fetchCompletedCandle(lastCandleStart, candleStart)
                                 if (serverCandle != null && serverCandle.levels.isNotEmpty()) {
                                     val updated = _completedFootprintCandles.value.toMutableList()
@@ -298,36 +310,38 @@ class ChartViewModel(
                     }
                 } else {
                     // ---- Server polling (15m, 30m, 1h, 4h) ----
-                    // For 15m source: poll periodically for latest completed candle
                     while (isActive) {
-                        delay(sourceMs) // wait one source period
+                        delay(sourceMs)
                         if (_chartMode.value != ChartMode.FOOTPRINT) break
 
                         val now = System.currentTimeMillis()
-                        val completedEnd = now / sourceMs * sourceMs
-                        val completedStart = completedEnd - sourceMs * aggCount
+                        val displayEnd = now / (sourceMs * aggCount) * (sourceMs * aggCount)
+                        val displayStart = displayEnd - sourceMs * aggCount
 
-                        // Fetch source candles and aggregate
+                        // Fetch exact range of source candles covering the display window
                         if (footprintApiClient != null) {
                             val raw = footprintApiClient.getFootprint(
                                 symbol = _currentSymbol.value,
                                 timeframe = sourceTf,
-                                from = completedStart - sourceMs,
-                                to = completedEnd,
+                                from = displayStart - sourceMs, // margin
+                                to = displayEnd,
                                 limit = aggCount + 2
                             ).reversed()
-                            if (raw.isNotEmpty()) {
-                                val aggregated = if (aggCount > 1) {
-                                    aggregateFootprintCandles(raw, aggCount)
-                                } else raw
 
-                                val list = _completedFootprintCandles.value.toMutableList()
-                                for (agg in aggregated) {
-                                    val existingIdx = list.indexOfFirst { it.startTime == agg.startTime }
-                                    if (existingIdx >= 0) list[existingIdx] = agg
-                                    else list.add(agg)
+                            if (raw.isNotEmpty()) {
+                                // Find the exact chunk that aligns with the display window
+                                for (i in 0..raw.size - aggCount) {
+                                    val chunk = raw.subList(i, i + aggCount)
+                                    val chunkStart = chunk.firstOrNull()?.startTime ?: continue
+                                    if (chunkStart >= displayStart - sourceMs && chunkStart <= displayStart + sourceMs) {
+                                        val agg = aggregateFootprintCandles(chunk, aggCount).firstOrNull() ?: continue
+                                        val list = _completedFootprintCandles.value.toMutableList()
+                                        val existIdx = list.indexOfFirst { it.startTime == agg.startTime }
+                                        if (existIdx >= 0) list[existIdx] = agg else list.add(agg)
+                                        _completedFootprintCandles.value = list.sortedBy { it.startTime }
+                                        break // one display candle per poll cycle
+                                    }
                                 }
-                                _completedFootprintCandles.value = list.sortedBy { it.startTime }
                             }
                         }
                     }
@@ -341,8 +355,8 @@ class ChartViewModel(
             }
         }
 
-        // Periodic server polling for latest completed candle (1m source only)
-        if (sourceTf == "1m") {
+        // Periodic server polling for latest completed candle (1m display only, not aggregated)
+        if (sourceTf == "1m" && aggCount == 1) {
             viewModelScope.launch {
                 while (isActive) {
                     delay(60_000)
