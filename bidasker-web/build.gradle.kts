@@ -6,6 +6,7 @@ plugins {
 }
 
 kotlin {
+    @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
     wasmJs {
         browser {
             binaries.executable()
@@ -15,19 +16,16 @@ kotlin {
     sourceSets {
         val wasmJsMain by getting {
             dependencies {
-                // Core models (must be explicit since features/chart uses implementation)
                 implementation(project(":public-api:api-market"))
                 implementation(project(":platform-core"))
                 implementation(project(":features:chart"))
                 implementation(project(":features:dom"))
 
-                // Compose for Web
                 implementation(compose.runtime)
                 implementation(compose.foundation)
                 implementation(compose.material3)
                 implementation(compose.ui)
 
-                // Ktor + serialization
                 implementation(libs.ktor.client.core)
                 implementation(libs.ktor.serialization.kotlinx.json)
                 implementation(libs.kotlinx.coroutines.core)
@@ -36,8 +34,4 @@ kotlin {
             }
         }
     }
-}
-
-compose.experimental {
-    web.application {}
 }
