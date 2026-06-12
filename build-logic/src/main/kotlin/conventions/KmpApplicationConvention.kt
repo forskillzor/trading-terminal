@@ -16,9 +16,8 @@ class KmpApplicationConvention : Plugin<Project> {
 
             extensions.configure<KotlinMultiplatformExtension> {
                 jvm()
-                wasmJs {
-                    browser()
-                }
+                js(IR) { browser() }
+                wasmJs { browser() }
 
                 sourceSets {
                     val commonMain by getting

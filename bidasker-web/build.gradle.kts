@@ -6,15 +6,14 @@ plugins {
 }
 
 kotlin {
-    @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
-    wasmJs {
+    js(IR) {
         browser {
             binaries.executable()
         }
     }
 
     sourceSets {
-        val wasmJsMain by getting {
+        val commonMain by getting {
             dependencies {
                 implementation(project(":public-api:api-market"))
                 implementation(project(":platform-core"))
