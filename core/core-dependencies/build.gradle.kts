@@ -1,29 +1,31 @@
 plugins {
-    id("conventions.kmp-library")  // ✅ Этот плагин должен существовать
-    alias(libs.plugins.compose.multiplatform)  // Добавить эту строку
+    id("conventions.kmp-library")
+    alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.compose.compiler)
 }
 
-val ktorVersion = "3.4.1"
-val serializationVersion = "1.7.1"
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            // Все общие зависимости
-            api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
-            api("org.jetbrains.kotlinx:kotlinx-serialization-json:${serializationVersion}")
-            api("io.insert-koin:koin-core:3.5.6")
-            api("io.insert-koin:koin-compose:1.1.5")
-            api("io.ktor:ktor-serialization-kotlinx-json:${ktorVersion}")
-            api("io.ktor:ktor-client-core:${ktorVersion}")
-            api("io.ktor:ktor-client-cio:${ktorVersion}")
-            api("io.ktor:ktor-client-websockets:${ktorVersion}")
-            api("io.ktor:ktor-client-content-negotiation:${ktorVersion}")
+            api(libs.kotlinx.coroutines.core)
+            api(libs.kotlinx.serialization.json)
+            api(libs.kotlinx.datetime)
+            api(libs.ktor.serialization.kotlinx.json)
+            api(libs.ktor.client.core)
+            api(libs.ktor.client.websockets)
+            api(libs.ktor.client.content.negotiation)
             api(compose.runtime)
         }
 
         jvmMain.dependencies {
             api(compose.desktop.currentOs)
+            api(libs.koin.core)
+            api(libs.koin.compose)
+            api(libs.ktor.client.cio)
+        }
+
+        val wasmJsMain by getting
+        wasmJsMain.dependencies {
         }
     }
 }

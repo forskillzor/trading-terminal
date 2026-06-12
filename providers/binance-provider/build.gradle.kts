@@ -3,17 +3,15 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 
 }
-//apply(libs.plugins.kotlin.multiplatform)
-
 
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            compileOnly(project(":public-api:api-market"))
-            compileOnly(project(":core:core-dependencies"))
+            api(project(":public-api:api-market"))
+            api(project(":core:core-dependencies"))
         }
         jvmMain.dependencies {
-            // JVM-specific dependencies
+            implementation("io.ktor:ktor-client-cio:3.4.1")
         }
     }
 }

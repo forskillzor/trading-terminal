@@ -10,8 +10,6 @@ kotlin {
             implementation(project(":public-api:api-market"))
             implementation(project(":providers:binance-provider"))
 
-            implementation(libs.koin.core)
-            implementation(libs.koin.compose)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.compose.material3)
@@ -21,9 +19,11 @@ kotlin {
             implementation(compose.desktop.currentOs)
             implementation(compose.components.uiToolingPreview)
             implementation(libs.kotlinx.coroutines.swing)
+            implementation(libs.koin.core)
+            implementation(libs.koin.compose)
         }
 
-        commonTest.dependencies {
+        jvmTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
         }

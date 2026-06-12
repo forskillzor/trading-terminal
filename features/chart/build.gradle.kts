@@ -11,8 +11,6 @@ kotlin {
             implementation(project(":providers:binance-provider"))
             implementation(project(":features:dom"))
 
-            implementation(libs.koin.core)
-            implementation(libs.koin.compose)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.compose.material3)
@@ -21,9 +19,14 @@ kotlin {
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
+            implementation(libs.koin.core)
+            implementation(libs.koin.compose)
         }
 
-        commonTest.dependencies {
+        wasmJsMain.dependencies {
+        }
+
+        jvmTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.junit.jupiter)
             implementation(libs.kotlinx.coroutines.test)

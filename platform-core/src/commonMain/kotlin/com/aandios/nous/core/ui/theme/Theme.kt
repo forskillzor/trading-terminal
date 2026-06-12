@@ -10,7 +10,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.text.platform.Font
 
 // Глубокая темная цветовая схема в стиле Bloomberg/TradingView
 private val DarkTerminalColorScheme = darkColorScheme(
@@ -52,17 +51,8 @@ private val NightTerminalColorScheme = darkColorScheme(
     outline = Color(0xFF222222),
 )
 
-private val JetBrainsMono = FontFamily(
-    Font("fonts/JetBrainsMono-Regular.ttf", FontWeight.Normal),
-    Font("fonts/JetBrainsMono-Medium.ttf", FontWeight.Medium),
-)
-private val Menlo = FontFamily(
-    Font("fonts/Menlo-Regular.ttf", FontWeight.Normal),
-    Font("fonts/Menlo-Bold.ttf", FontWeight.Medium),
-)
-
 // Определяем моноширинный шрифт
-private val TerminalFontFamily = Menlo
+private val TerminalFontFamily = terminalFontFamily()
 
 // Типографика для трейдингового терминала (исправленная)
 private val TerminalTypography = Typography(

@@ -31,7 +31,7 @@ fun DrawScope.drawLiquidationMarkers(
     val minTimestamp = candles.map { it.timestamp }.minOrNull() ?: return
     val candleWidth = totalW
 
-    val currentTime = System.currentTimeMillis()
+    val currentTime = com.aandios.nous.core.currentTimeMillis()
     val maxAgeMs = 4 * 60 * 60 * 1000L
 
     for (order in orders) {

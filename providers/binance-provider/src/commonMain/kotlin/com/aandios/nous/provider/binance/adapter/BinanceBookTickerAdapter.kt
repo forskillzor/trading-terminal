@@ -2,6 +2,7 @@ package com.aandios.nous.provider.binance.adapter
 
 import com.aandios.nous.api.market.ProviderConfig
 import com.aandios.nous.api.market.adapters.BookTickerAdapter
+import com.aandios.nous.provider.binance.currentTimeMillis
 import com.aandios.nous.provider.binance.model.BinanceBookTicker
 import io.ktor.client.*
 import io.ktor.client.plugins.websocket.*
@@ -72,7 +73,7 @@ class BinanceBookTickerAdapter(
                 bestBidQty = response["bidQty"] ?: "0",
                 bestAskPrice = response["askPrice"] ?: "0",
                 bestAskQty = response["askQty"] ?: "0",
-                eventTime = response["time"]?.toLong() ?: System.currentTimeMillis(),
+                eventTime = response["time"]?.toLong() ?: currentTimeMillis(),
             ).toBookTicker()
         } catch (e: Exception) {
             println("❌ Failed to get best price via REST: ${e.message}")

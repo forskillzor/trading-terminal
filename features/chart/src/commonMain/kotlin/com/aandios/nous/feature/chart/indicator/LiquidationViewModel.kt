@@ -32,7 +32,7 @@ class LiquidationViewModel(
         subscriptionJob = scope.launch {
             try {
                 // 1. Load historical data first
-                val endTime = System.currentTimeMillis()
+                val endTime = com.aandios.nous.core.currentTimeMillis()
                 val startTime = endTime - 60 * 60 * 1000L // last hour
                 val history = liquidationAdapter.getHistoricalLiquidations(
                     symbol = symbol,

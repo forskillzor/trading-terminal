@@ -1,5 +1,6 @@
 package com.aandios.nous.provider.binance.model
 
+import com.aandios.nous.provider.binance.currentTimeMillis
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -29,7 +30,7 @@ data class OrderBook(
     val bids: List<OrderBookLevel> = emptyList(),
     val asks: List<OrderBookLevel> = emptyList(),
     val lastUpdateId: Long = 0,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = currentTimeMillis()
 )
 
 @Serializable

@@ -314,7 +314,7 @@ class ChartViewModel(
                         delay(sourceMs)
                         if (_chartMode.value != ChartMode.FOOTPRINT) break
 
-                        val now = System.currentTimeMillis()
+                        val now = com.aandios.nous.core.currentTimeMillis()
                         val displayEnd = now / (sourceMs * aggCount) * (sourceMs * aggCount)
                         val displayStart = displayEnd - sourceMs * aggCount
 
@@ -361,7 +361,7 @@ class ChartViewModel(
                 while (isActive) {
                     delay(60_000)
                     if (_chartMode.value != ChartMode.FOOTPRINT) break
-                    val now = System.currentTimeMillis()
+                    val now = com.aandios.nous.core.currentTimeMillis()
                     val completedStart = (now / 60_000 * 60_000) - 60_000
                     val completedEnd = completedStart + 60_000
                     val serverCandle = fetchCompletedCandle(completedStart, completedEnd)

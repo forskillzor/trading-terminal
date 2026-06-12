@@ -6,11 +6,11 @@ compose-compiler = "2.1.20"
 compose-hot-reload = "1.0.0"
 
 # Coroutines
-kotlinx-coroutines = "1.7.3"
+kotlinx-coroutines = "1.9.0"
 
 # Serialization & DateTime
-kotlinx-serialization = "1.6.0"
-kotlinx-datetime = "0.4.1"
+kotlinx-serialization = "1.7.3"
+kotlinx-datetime = "0.6.1"
 
 # Ktor
 ktor = "3.4.1"
@@ -26,7 +26,7 @@ androidx-lifecycle = "2.9.6"
 junit = "4.13.2"
 junit-jupiter = "5.14.0"
 mockk = "1.13.10"
-kotlinx-coroutines-test = "1.7.3"
+kotlinx-coroutines-test = "1.9.0"
 turbine = "1.1.0"
 assertk = "0.28.0"
 
@@ -60,6 +60,7 @@ kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.
 # Ktor
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
+ktor-client-js = { module = "io.ktor:ktor-client-js", version.ref = "ktor" }
 ktor-client-websockets = { module = "io.ktor:ktor-client-websockets", version.ref = "ktor" }
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }

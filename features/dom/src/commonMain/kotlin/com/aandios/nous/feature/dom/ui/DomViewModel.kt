@@ -15,14 +15,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import java.util.concurrent.Executors
 
 class DomViewModel(
     private val domRepository: DomRepository,
     private val symbolInfoRepository: SymbolInfoRepository? = null,
     private val coroutineDispatcher: CoroutineDispatcher? = null,
 ) {
-    private val dispatcher = coroutineDispatcher ?: Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+    private val dispatcher = coroutineDispatcher ?: Dispatchers.Default
     private val viewModelScope = CoroutineScope(dispatcher + SupervisorJob())
     private var subscriptionJob: Job? = null
 

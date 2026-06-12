@@ -74,7 +74,7 @@ class MutableFootprintCandle(
     }
 
     fun toFootprintCandle(totalTicks: Long = 0L): FootprintCandle {
-        val sortedLevels = levelMap.toSortedMap()
+        val sortedLevels = levelMap.entries.sortedBy { it.key }
         if (sortedLevels.isEmpty()) return FootprintCandle(
             exchange = exchange, symbol = symbol, timeframe = timeframe,
             startTime = startTime, endTime = endTime, totalTicks = totalTicks,
@@ -89,8 +89,8 @@ class MutableFootprintCandle(
                 askCount = ml.askCount
             )
         }
-        val minP = sortedLevels.firstKey().toString()
-        val maxP = sortedLevels.lastKey().toString()
+        val minP = sortedLevels.first().key.toString()
+        val maxP = sortedLevels.last().key.toString()
         return FootprintCandle(
             exchange = exchange, symbol = symbol, timeframe = timeframe,
             startTime = startTime, endTime = endTime,

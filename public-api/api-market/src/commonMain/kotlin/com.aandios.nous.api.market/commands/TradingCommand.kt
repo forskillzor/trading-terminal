@@ -2,6 +2,7 @@ package com.aandios.nous.api.market.commands
 
 import com.aandios.nous.api.market.model.orderbook.OrderSide
 import com.aandios.nous.api.market.model.orderbook.OrderType
+import kotlinx.datetime.Clock
 
 // Базовый интерфейс команды
 interface TradingCommand {
@@ -17,7 +18,7 @@ data class OrderData(
     val type: OrderType,
     val price: Double? = null,  // null для market ордеров
     val quantity: Double,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = Clock.System.now().toEpochMilliseconds()
 )
 
 // Результат выполнения

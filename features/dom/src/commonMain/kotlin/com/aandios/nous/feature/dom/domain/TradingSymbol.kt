@@ -3,6 +3,8 @@ package com.aandios.nous.feature.dom.domain
 import com.aandios.nous.api.market.model.SymbolInfo
 import kotlin.math.abs
 import kotlin.math.log10
+import kotlin.math.pow
+import kotlin.math.round
 
 /**
  * Торговый символ (пара) для отображения.
@@ -14,6 +16,16 @@ data class TradingSymbol(
     val provider: TradingProvider,
     val symbolInfo: SymbolInfo? = null
 ) {
+    private fun formatNumber(value: Double, decimals: Int): String {
+        val factor = 10.0.pow(decimals)
+        val rounded = round(value * factor) / factor
+        val parts = rounded.toString().split(".")
+        val intPart = parts[0]
+        val decPart = if (parts.size > 1) parts[1] else ""
+        val paddedDec = decPart.padEnd(decimals, '0').take(decimals)
+        return if (decimals > 0) "$intPart.$paddedDec" else intPart
+    }
+
     /** Форматирует цену с учётом tickSize инструмента */
     fun formatPrice(price: Double): String {
         val tickSize = symbolInfo?.tickSize ?: 0.01
@@ -23,7 +35,7 @@ data class TradingSymbol(
             price >= 1 -> decimals
             else -> decimals + 1
         }
-        return String.format("%.${d}f", price)
+        return formatNumber(price, d)
     }
 
     fun formatPrice(price: Float): String = formatPrice(price.toDouble())
@@ -34,12 +46,12 @@ data class TradingSymbol(
         val decimals = if (minQty <= 0.0) 3 else maxOf(0, -log10(minQty).toInt())
         val v = abs(volume)
         return when {
-            v >= 1_000_000 -> String.format("%.${maxOf(1, decimals - 2)}fM", volume / 1_000_000)
-            v >= 1_000 -> String.format("%.${maxOf(1, decimals - 1)}fK", volume / 1_000)
-            v >= 100 -> String.format("%.0f", volume)
-            v >= 10 -> String.format("%.1f", volume)
-            v >= 1 -> String.format("%.${decimals.coerceAtMost(2)}f", volume)
-            else -> String.format("%.${decimals}f", volume)
+            v >= 1_000_000 -> "${formatNumber(volume / 1_000_000, maxOf(1, decimals - 2))}M"
+            v >= 1_000 -> "${formatNumber(volume / 1_000, maxOf(1, decimals - 1))}K"
+            v >= 100 -> formatNumber(volume, 0)
+            v >= 10 -> formatNumber(volume, 1)
+            v >= 1 -> formatNumber(volume, decimals.coerceAtMost(2))
+            else -> formatNumber(volume, decimals)
         }
     }
 

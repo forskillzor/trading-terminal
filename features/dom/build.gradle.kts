@@ -6,29 +6,25 @@ plugins {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            // Зависимости уже добавлены в конвеншн-плагине,
-            // но можно добавить специфичные для feature-dom:
             implementation(project(":platform-core"))
             implementation(project(":public-api:api-market"))
             implementation(project(":providers:binance-provider"))
 
-            implementation(libs.koin.core)
-            implementation(libs.koin.compose)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.compose.material3)
         }
-        commonTest.dependencies {
-            // Kotlin Test (includes common and platform-specific implementations)
+
+        jvmMain.dependencies {
+            implementation(compose.desktop.currentOs)
+            implementation(libs.koin.core)
+            implementation(libs.koin.compose)
+        }
+
+        jvmTest.dependencies {
             implementation(libs.kotlin.test)
-            
-            // JUnit 5 for JVM
             implementation(libs.junit.jupiter)
-            
-            // Coroutines test
             implementation(libs.kotlinx.coroutines.test)
-            
-            // Ktor mock for HTTP client testing
             implementation(libs.ktor.client.mock)
         }
     }

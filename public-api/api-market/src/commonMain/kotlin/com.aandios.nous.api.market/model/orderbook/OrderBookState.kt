@@ -1,7 +1,5 @@
 package com.aandios.nous.api.market.model.orderbook
 
-import java.util.concurrent.ConcurrentHashMap
-
 /**
  * Состояние локального стакана котировок с валидацией последовательности Binance.
  *
@@ -14,8 +12,8 @@ import java.util.concurrent.ConcurrentHashMap
  * 6. Если проверка pu не пройдена — переинициализация (новый снапшот)
  */
 class OrderBookState {
-    val bids = ConcurrentHashMap<String, String>()  // цена -> объем
-    val asks = ConcurrentHashMap<String, String>()  // цена -> объем
+    val bids = concurrentMap<String, String>()  // цена -> объем
+    val asks = concurrentMap<String, String>()  // цена -> объем
     var lastUpdateId: Long = 0
         private set
 

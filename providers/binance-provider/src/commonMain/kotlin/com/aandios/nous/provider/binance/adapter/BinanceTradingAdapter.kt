@@ -6,6 +6,7 @@ import com.aandios.nous.api.market.model.Balance
 import com.aandios.nous.api.market.model.trading.OrderRequest
 import com.aandios.nous.api.market.model.trading.OrderResponse
 import com.aandios.nous.api.market.model.trading.Position
+import com.aandios.nous.provider.binance.currentTimeMillis
 import io.ktor.client.*
 
 class BinanceTradingAdapter(
@@ -17,7 +18,7 @@ class BinanceTradingAdapter(
         // Заглушка: всегда успех
         // fixme: Реальная реализация должна вызывать Binance API
         return OrderResponse(
-            orderId = "TEST-${System.currentTimeMillis()}",
+            orderId = "TEST-${currentTimeMillis()}",
             price = request.price
         )
     }

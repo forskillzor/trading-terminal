@@ -21,6 +21,9 @@ class KmpFeatureConvention : Plugin<Project> {
 
             extensions.configure<KotlinMultiplatformExtension> {
                 jvm()
+                wasmJs {
+                    browser()
+                }
 
                 sourceSets {
                     val commonMain by getting
@@ -32,6 +35,11 @@ class KmpFeatureConvention : Plugin<Project> {
                         implementation(libs.findLibrary("compose.foundation").get())
                         implementation(libs.findLibrary("compose.material3").get())
                         implementation(libs.findLibrary("compose.ui").get())
+                    }
+
+                    val wasmJsMain by getting
+                    wasmJsMain.dependencies {
+                        // WASM-specific compose dependencies will be resolved automatically
                     }
                 }
             }

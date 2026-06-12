@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aandios.nous.core.ui.component.TerminalDropdownWithLabel
 import com.aandios.nous.feature.trades.ui.SizeFilter
+import kotlin.math.round
 
 /**
  * Dropdown для фильтрации сделок по минимальному объёму.
@@ -129,10 +130,17 @@ private fun formatFilterLabel(filter: SizeFilter, minQty: Double?): String {
 }
 
 private fun formatQty(value: Double): String {
-    return when {
-        value >= 1000 -> String.format("%.1f", value)
-        value >= 1 -> String.format("%.3f", value)
-        value >= 0.001 -> String.format("%.4f", value)
-        else -> String.format("%.6f", value)
+    val decimals = when {
+        value >= 1000 -> 1
+        value >= 1 -> 3
+        value >= 0.001 -> 4
+        else -> 6
     }
+    val multiplier = listOf(1.0, 10.0, 100.0, 1000.0, 10000.0, 100000.0, 1000000.0)[decimals]
+    val rounded = round(value * multiplier) / multiplier
+    val str = rounded.toString()
+    val dot = str.indexOf('.')
+    if (dot < 0) return if (decimals > 0) "$str.${"0".repeat(decimals)}" else str
+    val dec = str.substring(dot + 1).padEnd(decimals, '0').take(decimals)
+    return str.substring(0, dot) + "." + dec
 }

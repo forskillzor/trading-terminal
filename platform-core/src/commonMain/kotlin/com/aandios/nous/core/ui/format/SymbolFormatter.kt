@@ -3,6 +3,8 @@ package com.aandios.nous.core.ui.format
 import kotlin.math.abs
 import kotlin.math.log10
 import kotlin.math.max
+import kotlin.math.pow
+import kotlin.math.round
 
 /**
  * Унифицированное форматирование цен и объёмов с учётом tickSize и minQty инструмента.
@@ -20,6 +22,16 @@ class SymbolFormatter(
     /** Количество знаков после запятой для объёмов: 0.001→3, 0.00001→5 */
     val volumeDecimals: Int = if (minQty <= 0.0) 3 else maxOf(0, max(0, -log10(minQty).toInt()))
 
+    private fun formatNumber(value: Double, decimals: Int): String {
+        val factor = 10.0.pow(decimals)
+        val rounded = kotlin.math.round(value * factor) / factor
+        val parts = rounded.toString().split(".")
+        val intPart = parts[0]
+        val decPart = if (parts.size > 1) parts[1] else ""
+        val paddedDec = decPart.padEnd(decimals, '0').take(decimals)
+        return if (decimals > 0) "$intPart.$paddedDec" else intPart
+    }
+
     fun formatPrice(price: Double): String {
         val decimals = when {
             price >= 100_000 -> maxOf(1, priceDecimals - 2)
@@ -30,8 +42,7 @@ class SymbolFormatter(
             price >= 1 -> priceDecimals + 2
             else -> priceDecimals + 3
         }
-        val fmt = "%.${decimals}f"
-        return String.format(fmt, price)
+        return formatNumber(price, decimals)
     }
 
     fun formatPrice(price: Float): String = formatPrice(price.toDouble())
@@ -39,12 +50,12 @@ class SymbolFormatter(
     fun formatVolume(volume: Double): String {
         val v = abs(volume)
         return when {
-            v >= 1_000_000 -> String.format("%.${maxOf(1, volumeDecimals - 2)}fM", volume / 1_000_000)
-            v >= 1_000 -> String.format("%.${maxOf(1, volumeDecimals - 1)}fK", volume / 1_000)
-            v >= 100 -> String.format("%.${coerceMaxDecimals(0)}f", volume)
-            v >= 10 -> String.format("%.${coerceMaxDecimals(1)}f", volume)
-            v >= 1 -> String.format("%.${coerceMaxDecimals(volumeDecimals - 1)}f", volume)
-            else -> String.format("%.${volumeDecimals}f", volume)
+            v >= 1_000_000 -> "${formatNumber(volume / 1_000_000, maxOf(1, volumeDecimals - 2))}M"
+            v >= 1_000 -> "${formatNumber(volume / 1_000, maxOf(1, volumeDecimals - 1))}K"
+            v >= 100 -> formatNumber(volume, coerceMaxDecimals(0))
+            v >= 10 -> formatNumber(volume, coerceMaxDecimals(1))
+            v >= 1 -> formatNumber(volume, coerceMaxDecimals(volumeDecimals - 1))
+            else -> formatNumber(volume, volumeDecimals)
         }
     }
 

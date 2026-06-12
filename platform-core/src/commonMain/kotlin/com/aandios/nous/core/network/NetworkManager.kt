@@ -2,7 +2,6 @@ package com.aandios.nous.core.network
 
 import com.aandios.nous.api.market.NetworkManager
 import io.ktor.client.*
-import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.websocket.*
@@ -12,7 +11,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 class NetworkManagerImpl : NetworkManager {
     override val httpClient: HttpClient by lazy {
-        HttpClient(CIO) {
+        createPlatformHttpClient {
             install(HttpTimeout) {
                 requestTimeoutMillis = 30000
                 connectTimeoutMillis = 15000
