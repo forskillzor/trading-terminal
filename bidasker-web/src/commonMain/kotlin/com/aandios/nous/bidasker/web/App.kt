@@ -12,6 +12,10 @@ import androidx.compose.ui.unit.dp
 import com.aandios.nous.api.market.model.FootprintCandle
 import com.aandios.nous.feature.chart.footprint.FootprintApiClient
 import com.aandios.nous.feature.chart.ui.chart.FootprintChart
+import com.aandios.nous.feature.chart.ui.ChartConfig
+import com.aandios.nous.feature.chart.ui.DefaultChartConfig
+import com.aandios.nous.feature.chart.ui.FootprintConfig
+import com.aandios.nous.feature.dom.domain.model.AggregationLevel
 import io.ktor.client.*
 import kotlinx.coroutines.launch
 
@@ -30,6 +34,15 @@ fun BidaskerApp(
     var availableSymbols by remember { mutableStateOf<List<String>>(emptyList()) }
 
     val apiClient = remember { FootprintApiClient(httpClient, config.baseUrl) }
+
+    val chartConfig = remember {
+        DefaultChartConfig.copy(
+            footprintConfig = FootprintConfig(
+                aggregationLevel = AggregationLevel.TenTick,
+                tickSize = 0.01
+            )
+        )
+    }
 
     fun refresh() {
         loading = true
@@ -60,7 +73,8 @@ fun BidaskerApp(
                 )
                 else -> FootprintChart(
                     completedCandles = candles,
-                    modifier = Modifier.fillMaxSize().padding(4.dp)
+                    modifier = Modifier.fillMaxSize().padding(4.dp),
+                    config = chartConfig
                 )
             }
         }

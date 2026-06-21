@@ -18,7 +18,7 @@ data class TariffConfig(
 data class TariffLimits(
     val instruments: List<String>? = null,
     val maxInstruments: Int = 1,
-    val timeframes: List<String> = listOf("5m"),
+    val timeframes: List<String> = listOf("1m"),
     val maxHistoryHours: Int = 1,
     val maxTimeframe: String = "15m",
     val aggregation: List<String> = listOf("1x")
@@ -36,8 +36,8 @@ data class BidaskerConfig(
     val baseUrl: String = "http://95.81.99.28:8085",
     val tariff: TariffConfig = TariffConfig.default(),
     val symbol: String = "BTCUSDT",
-    val timeframe: String = "5m",
-    val aggregation: String = "1x"
+    val timeframe: String = "1m",
+    val aggregation: String = "10x"
 ) {
     companion object {
         fun default() = BidaskerConfig()

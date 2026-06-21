@@ -18,10 +18,29 @@ fun main() {
         }
     }
 
+    val params = parseUrlParams()
+    val config = BidaskerConfig.default().copy(
+        symbol = params["symbol"] ?: "BTCUSDT",
+        timeframe = params["tf"] ?: "1m"
+    )
+
     CanvasBasedWindow("Bidasker Footprint") {
-        BidaskerApp(
-            httpClient = httpClient,
-            config = BidaskerConfig.default()
-        )
+        BidaskerApp(httpClient = httpClient, config = config)
     }
+}
+
+private fun parseUrlParams(): Map<String, String> {
+    val result = mutableMapOf<String, String>()
+    val search = js("window.location.search") as String
+    if (search.isNotEmpty()) {
+        val query = search.removePrefix("?")
+        for (pair in query.split("&")) {
+            val parts = pair.split("=", limit = 2)
+            if (parts.size == 2) {
+                result[js("decodeURIComponent(parts[0])") as String] =
+                    js("decodeURIComponent(parts[1])") as String
+            }
+        }
+    }
+    return result
 }
