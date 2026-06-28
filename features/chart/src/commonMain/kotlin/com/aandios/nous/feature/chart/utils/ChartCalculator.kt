@@ -64,9 +64,9 @@ fun calculatePriceRangeWithFootprint(candles: List<FootprintCandle>): PriceRange
     val minPrice = allPrices.minOrNull() ?: 0f
     val priceRange = maxPrice - minPrice
 
-    val padding = priceRange * 0.05f
+    val padding = if (priceRange <= 0f) maxPrice * 0.01f else priceRange * 0.05f
     val visibleMax = maxPrice + padding
-    val visibleMin = minPrice - padding
+    val visibleMin = (minPrice - padding).coerceAtLeast(0f)
     val visibleRange = visibleMax - visibleMin
 
     return PriceRange(
@@ -82,7 +82,10 @@ fun calculatePriceRangeWithFootprint(candles: List<FootprintCandle>): PriceRange
  * Конвертирует цену в Y координату с учётом высоты области.
  */
 fun priceToY(price: Float, priceRange: PriceRange, height: Float): Float {
-    return height - ((price - priceRange.visibleMin) / priceRange.range) * height
+    val range = if (priceRange.range <= 0f) 0.01f else priceRange.range
+    val visibleMin = priceRange.visibleMin
+    if (height <= 0f) return 0f
+    return height - ((price - visibleMin) / range) * height
 }
 
 /**
@@ -93,7 +96,9 @@ fun priceFromY(
     priceRange: PriceRange,
     chartHeight: Float
 ): Float {
-    return priceRange.visibleMax - (y / chartHeight) * priceRange.range
+    val range = if (priceRange.range <= 0f) 0.01f else priceRange.range
+    if (chartHeight <= 0f) return priceRange.visibleMax
+    return priceRange.visibleMax - (y / chartHeight) * range
 }
 
 /**

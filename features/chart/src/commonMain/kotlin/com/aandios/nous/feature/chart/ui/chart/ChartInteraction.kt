@@ -43,6 +43,9 @@ import com.aandios.nous.feature.chart.rendering.drawFootprintChart
 import com.aandios.nous.feature.chart.rendering.drawFootprintPopup
 import com.aandios.nous.feature.chart.rendering.drawPriceScale
 import com.aandios.nous.feature.chart.rendering.drawTimeScale
+import com.aandios.nous.feature.chart.tools.DrawingHistory
+import com.aandios.nous.feature.chart.tools.DrawingRenderer.drawDrawings
+import com.aandios.nous.feature.chart.tools.DrawingToolType
 import com.aandios.nous.feature.chart.ui.ChartConfig
 import com.aandios.nous.feature.chart.ui.DefaultChartConfig
 import com.aandios.nous.feature.chart.utils.calculateCandleMetrics
@@ -73,6 +76,8 @@ fun CandleStickChartInteraction(
     liquidationOrders: List<LiquidationOrder> = emptyList(),
     indicatorRenderers: List<DrawScope.(Rect, List<Candle>, PriceRange, Float, Float) -> Unit> = emptyList(),
     indicatorHeightDp: Dp = 80.dp,
+    drawingHistory: DrawingHistory? = null,
+    activeDrawingTool: DrawingToolType = DrawingToolType.NONE,
 ) {
     if (candles.isEmpty()) return
 
@@ -111,6 +116,13 @@ fun CandleStickChartInteraction(
                     event.key == Key.AltLeft || event.key == Key.AltRight -> {
                         isAltPressed = event.type == KeyEventType.KeyDown
                         true
+                    }
+                    // Undo/Redo
+                    event.key == Key.Z && isCtrlPressed && event.type == KeyEventType.KeyDown -> {
+                        drawingHistory?.undo(); true
+                    }
+                    event.key == Key.Y && isCtrlPressed && event.type == KeyEventType.KeyDown -> {
+                        drawingHistory?.redo(); true
                     }
                     else -> false
                 }
@@ -411,6 +423,18 @@ fun CandleStickChartInteraction(
                     zoomLevel = zoomLevel,
                 )
             }
+            // Drawings
+            drawingHistory?.let { history ->
+                drawDrawings(
+                    drawings = history.drawings, candles = candles,
+                    priceRange = priceRange,
+                    chartWidth = layout.chartMainArea.width,
+                    chartHeight = layout.chartMainArea.height,
+                    scrollOffset = clampedOffset,
+                    candleWidth = candleMetrics.width,
+                    candleSpacing = candleMetrics.spacing
+                )
+            }
             // Рисуем перекрестие если crosshair включен и есть позиция курсора
             if (crosshairEnabled && isCrosshairVisible && mousePosition != null) {
                 drawCrosshair(
@@ -424,6 +448,20 @@ fun CandleStickChartInteraction(
                     zoomLevel = zoomLevel,
                 )
             }
+        }
+        // Drawing overlay (only when drawing tool active)
+        if (activeDrawingTool != DrawingToolType.NONE) {
+            DrawingOverlay(
+                activeDrawingTool = activeDrawingTool,
+                drawingHistory = drawingHistory,
+                candles = candles,
+                priceRange = priceRange,
+                layout = layout,
+                chartWidthPx = chartWidthPx,
+                scrollOffset = clampedOffset,
+                zoomLevel = zoomLevel,
+                onToolChange = {},
+            )
         }
     }
 }

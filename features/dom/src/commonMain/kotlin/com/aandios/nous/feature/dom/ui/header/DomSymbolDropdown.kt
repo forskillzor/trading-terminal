@@ -10,7 +10,7 @@ import com.aandios.nous.feature.dom.domain.TradingSymbol
  * Dropdown выбора символа для DOM через унифицированный SymbolSearchDropdown.
  */
 @Composable
-fun SymbolDropdown(
+fun DomSymbolDropdown(
     currentSymbol: TradingSymbol,
     provider: TradingProvider,
     availableSymbols: List<TradingSymbol> = emptyList(),

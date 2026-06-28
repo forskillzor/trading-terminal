@@ -10,6 +10,8 @@ import com.aandios.nous.api.market.model.Candle
 import com.aandios.nous.api.market.model.FootprintCandle
 import com.aandios.nous.api.market.model.liquidation.LiquidationOrder
 import com.aandios.nous.feature.chart.model.PriceRange
+import com.aandios.nous.feature.chart.tools.DrawingHistory
+import com.aandios.nous.feature.chart.tools.DrawingToolType
 import com.aandios.nous.feature.chart.ui.ChartConfig
 import com.aandios.nous.feature.chart.ui.DefaultChartConfig
 
@@ -35,6 +37,9 @@ fun CandleStickChart(
     liquidationOrders: List<LiquidationOrder> = emptyList(),
     indicatorRenderers: List<DrawScope.(Rect, List<Candle>, PriceRange, Float, Float) -> Unit> = emptyList(),
     indicatorHeightDp: Dp = 80.dp,
+    drawingHistory: DrawingHistory? = null,
+    activeDrawingTool: DrawingToolType = DrawingToolType.NONE,
+    onActiveDrawingToolChange: (DrawingToolType) -> Unit = {},
 ) {
     CandleStickChartInteraction(
         candles = candles,
@@ -52,5 +57,7 @@ fun CandleStickChart(
         liquidationOrders = liquidationOrders,
         indicatorRenderers = indicatorRenderers,
         indicatorHeightDp = indicatorHeightDp,
+        drawingHistory = drawingHistory,
+        activeDrawingTool = activeDrawingTool,
     )
 }

@@ -132,7 +132,7 @@ private fun ExpandedDomHeader(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Symbol dropdown с label
-                SymbolDropdown(
+                DomSymbolDropdown(
                     currentSymbol = domOptions.symbol,
                     provider = domOptions.provider,
                     availableSymbols = loadedSymbols,
