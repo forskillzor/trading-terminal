@@ -33,16 +33,7 @@ class SymbolFormatter(
     }
 
     fun formatPrice(price: Double): String {
-        val decimals = when {
-            price >= 100_000 -> maxOf(1, priceDecimals - 2)
-            price >= 10_000 -> maxOf(1, priceDecimals - 1)
-            price >= 1_000 -> priceDecimals
-            price >= 100 -> priceDecimals + 1
-            price >= 10 -> priceDecimals + 2
-            price >= 1 -> priceDecimals + 2
-            else -> priceDecimals + 3
-        }
-        return formatNumber(price, decimals)
+        return formatNumber(price, priceDecimals)
     }
 
     fun formatPrice(price: Float): String = formatPrice(price.toDouble())
