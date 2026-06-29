@@ -26,57 +26,44 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.aandios.nous.api.market.model.orderbook.OrderBookLevel
-import com.aandios.nous.feature.dom.domain.model.AggregationLevel
-import kotlin.math.abs
+import com.aandios.nous.core.ui.format.SymbolFormatter
+import com.aandios.nous.feature.dom.ui.model.DomLevel
 
 @Composable
 fun LevelRow(
-    level: OrderBookLevel,
-    maxVolume: Double,
-    selectedPrice: Double?,
-    bestBid: Double?,
-    bestAsk: Double?,
-    aggregationLevel: AggregationLevel,
-    baseTickSize: Double? = null,
-    onPriceClick: (Double) -> Unit
+    level: DomLevel,
+    maxSteps: Long,
+    selectedDisplayTicks: Long?,
+    bestBidDisplayTicks: Long?,
+    bestAskDisplayTicks: Long?,
+    tickSize: Double,
+    stepSize: Double,
+    formatter: SymbolFormatter,
+    onPriceClick: (Long, Double) -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isHovered by interactionSource.collectIsHoveredAsState()
 
-    val price = level.price.toDoubleOrNull() ?: return
-    val bidQty = level.bidQty.toDoubleOrNull() ?: 0.0
-    val askQty = level.askQty.toDoubleOrNull() ?: 0.0
-    // Функция сравнения цен с учетом агрегации
-    fun comparePrices(price1: Double, price2: Double): Boolean {
-        return if (baseTickSize != null) {
-            aggregationLevel.aggregationKey(price1.toString(), baseTickSize) == 
-                aggregationLevel.aggregationKey(price2.toString(), baseTickSize)
-        } else {
-            abs(price1 - price2) < 0.000001
-        }
-    }
-    
-    val isSelected = selectedPrice?.let { comparePrices(it, price) } ?: false
-    val isBestBid = bestBid?.let { comparePrices(it, price) } ?: false
-    val isBestAsk = bestAsk?.let { comparePrices(it, price) } ?: false
+    val isSelected = selectedDisplayTicks?.let { it == level.priceTicks } ?: false
+    val isBestBid = bestBidDisplayTicks?.let { it == level.priceTicks } ?: false
+    val isBestAsk = bestAskDisplayTicks?.let { it == level.priceTicks } ?: false
     val isBestPrice = isBestBid || isBestAsk
 
-    // Цвета
+    val price = level.priceTicks * tickSize
+    val bidQty = level.bidSteps * stepSize
+    val askQty = level.askSteps * stepSize
+
     val backgroundColor = when {
         isSelected -> Color.Yellow.copy(alpha = 0.3f)
         isHovered -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         else -> Color.Transparent
     }
-    // Подсветка лучших цен: тонкая граница
     val borderColor = when {
         isBestBid -> MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
         isBestAsk -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f)
         else -> Color.Transparent
     }
     val borderWidth = if (isBestPrice) 1.dp else 0.dp
-
-    val priceColor = Color.White // Белый цвет для текста цены
 
     Row(
         modifier = Modifier
@@ -85,32 +72,29 @@ fun LevelRow(
             .clickable(
                 interactionSource = interactionSource,
                 indication = null
-            ) { onPriceClick(price) }
+            ) { onPriceClick(level.priceTicks, price) }
             .background(backgroundColor)
             .border(borderWidth, borderColor, shape = RoundedCornerShape(2.dp))
             .padding(horizontal = 8.dp, vertical = 1.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Bid Volume (слева)
+        // Bid Volume
         Box(
-            modifier = Modifier
-                .weight(0.8f)
-                .height(20.dp)
+            modifier = Modifier.weight(0.8f).height(20.dp)
         ) {
-            if (bidQty > 0) {
-                // Горизонтальный объем для Bid
-                val volumeWidth = (bidQty / maxVolume).coerceIn(0.0, 1.0)
+            if (level.bidSteps > 0) {
+                val volumeWidth = if (maxSteps > 0) (level.bidSteps.toFloat() / maxSteps.toFloat()).coerceIn(0f, 1f) else 0f
                 Box(
                     modifier = Modifier
                         .fillMaxHeight()
-                        .fillMaxWidth(volumeWidth.toFloat())
+                        .fillMaxWidth(volumeWidth)
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
                 )
             }
-            if (bidQty > 0) {
+            if (level.bidSteps > 0) {
                 Text(
-                    text = formatVolume(bidQty),
+                    text = formatter.formatVolume(bidQty),
                     color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontFamily = FontFamily.Monospace,
@@ -121,10 +105,10 @@ fun LevelRow(
             }
         }
 
-        // Price (центр)
+        // Price
         Text(
-            text = formatPrice(price),
-            color = priceColor,
+            text = formatter.formatPrice(price),
+            color = Color.White,
             style = MaterialTheme.typography.bodySmall.copy(
                 fontFamily = FontFamily.Monospace,
                 fontSize = 11.sp,
@@ -133,26 +117,23 @@ fun LevelRow(
             modifier = Modifier.weight(0.6f)
         )
 
-        // Ask Volume (справа)
+        // Ask Volume
         Box(
-            modifier = Modifier
-                .weight(0.8f)
-                .height(20.dp)
+            modifier = Modifier.weight(0.8f).height(20.dp)
         ) {
-            if (askQty > 0) {
-                // Горизонтальный объем для Ask
-                val volumeWidth = (askQty / maxVolume).coerceIn(0.0, 1.0)
+            if (level.askSteps > 0) {
+                val volumeWidth = if (maxSteps > 0) (level.askSteps.toFloat() / maxSteps.toFloat()).coerceIn(0f, 1f) else 0f
                 Box(
                     modifier = Modifier
                         .fillMaxHeight()
-                        .fillMaxWidth(volumeWidth.toFloat())
+                        .fillMaxWidth(volumeWidth)
                         .align(Alignment.CenterEnd)
                         .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f))
                 )
             }
-            if (askQty > 0) {
+            if (level.askSteps > 0) {
                 Text(
-                    text = formatVolume(askQty),
+                    text = formatter.formatVolume(askQty),
                     color = MaterialTheme.colorScheme.secondary,
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontFamily = FontFamily.Monospace,
