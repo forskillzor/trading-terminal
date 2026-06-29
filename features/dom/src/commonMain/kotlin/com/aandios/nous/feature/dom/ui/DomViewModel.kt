@@ -9,6 +9,7 @@ import com.aandios.nous.feature.dom.domain.DomOptions
 import com.aandios.nous.feature.dom.domain.TradingProvider
 import com.aandios.nous.feature.dom.domain.TradingSymbol
 import com.aandios.nous.api.market.model.orderbook.DomEvent
+import com.aandios.nous.core.Disposable
 import com.aandios.nous.feature.dom.domain.model.OrderIntent
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +21,7 @@ class DomViewModel(
     private val domRepository: DomRepository,
     private val symbolInfoRepository: SymbolInfoRepository? = null,
     private val coroutineDispatcher: CoroutineDispatcher? = null,
-) {
+) : Disposable {
     private val dispatcher = coroutineDispatcher ?: Dispatchers.Default
     private val viewModelScope = CoroutineScope(dispatcher + SupervisorJob())
     private var subscriptionJob: Job? = null
@@ -68,6 +69,11 @@ class DomViewModel(
 
     private val _incrementalBestAskQuantity = MutableStateFlow<Double?>(null)
     val incrementalBestAskQuantity: StateFlow<Double?> = _incrementalBestAskQuantity.asStateFlow()
+
+    override fun dispose() {
+        subscriptionJob?.cancel()
+        viewModelScope.cancel()
+    }
 
     init {
         // Загружаем список всех символов через symbolInfoRepository (как в ChartViewModel)

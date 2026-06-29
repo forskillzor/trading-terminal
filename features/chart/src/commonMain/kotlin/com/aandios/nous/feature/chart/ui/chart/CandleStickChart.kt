@@ -40,6 +40,8 @@ fun CandleStickChart(
     drawingHistory: DrawingHistory? = null,
     activeDrawingTool: DrawingToolType = DrawingToolType.NONE,
     onActiveDrawingToolChange: (DrawingToolType) -> Unit = {},
+    initialZoomLevel: Float = 1f,
+    onZoomChange: ((Float) -> Unit)? = null,
 ) {
     CandleStickChartInteraction(
         candles = candles,
@@ -59,5 +61,7 @@ fun CandleStickChart(
         indicatorHeightDp = indicatorHeightDp,
         drawingHistory = drawingHistory,
         activeDrawingTool = activeDrawingTool,
+        initialZoomLevel = initialZoomLevel,
+        onZoomChange = onZoomChange,
     )
 }

@@ -42,6 +42,7 @@ fun TradesWidget(
     val loadedSymbols by viewModel.loadedSymbols.collectAsState()
     val currentSymbolInfo by viewModel.currentSymbolInfo.collectAsState()
     val selectedSizeFilter by viewModel.selectedSizeFilter.collectAsState()
+    val customPresets by viewModel.customPresets.collectAsState()
 
     val lazyListState = rememberLazyListState()
     var autoScrollEnabled by remember { mutableStateOf(true) }
@@ -64,8 +65,12 @@ fun TradesWidget(
             availableSymbols = loadedSymbols,
             currentSymbolInfo = currentSymbolInfo,
             selectedSizeFilter = selectedSizeFilter,
+            customPresets = customPresets,
             onSymbolChanged = onSymbolChanged,
-            onSizeFilterChanged = { viewModel.updateSizeFilter(it) },
+            onFilterChanged = { viewModel.updateSizeFilter(it) },
+            onPresetAdd = { viewModel.addPreset(it) },
+            onPresetEdit = { idx, v -> viewModel.editPreset(idx, v) },
+            onPresetDelete = { viewModel.deletePreset(it) },
         )
 
         // Заголовки колонок
@@ -112,7 +117,7 @@ fun TradesWidget(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = if (selectedSizeFilter != SizeFilter.All) "Нет сделок > фильтра" else "Ожидание данных...",
+                            text = if (selectedSizeFilter !is SizeFilter.All) "Нет сделок > фильтра" else "Ожидание данных...",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 13.sp
                         )

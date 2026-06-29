@@ -5,11 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
@@ -39,13 +34,9 @@ fun TradesWindow() {
 fun TradesWindow(
     tradesViewModel: TradesViewModel,
     modifier: Modifier = Modifier,
+    currentSymbol: String = "",
+    onSymbolChanged: (String) -> Unit = {},
 ) {
-    var currentSymbol by remember { mutableStateOf("BTCUSDT") }
-
-    LaunchedEffect(currentSymbol) {
-        tradesViewModel.subscribeToTrades(currentSymbol)
-    }
-
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -54,7 +45,7 @@ fun TradesWindow(
         TradesWidget(
             viewModel = tradesViewModel,
             currentSymbol = currentSymbol,
-            onSymbolChanged = { currentSymbol = it },
+            onSymbolChanged = onSymbolChanged,
             modifier = Modifier.fillMaxSize()
         )
     }

@@ -57,6 +57,7 @@ fun ToolDetailsPanel(
                         ToolPanelType.TIMEFRAMES -> "Timeframes"
                         ToolPanelType.DRAWINGS -> "Drawing Tools"
                         ToolPanelType.STRATEGIES -> "Strategies"
+                        ToolPanelType.WORKSPACES -> "Workspaces"
                     },
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface
@@ -105,6 +106,10 @@ fun ToolDetailsPanel(
 
                 ToolPanelType.STRATEGIES -> {
                     StrategiesPanel(modifier = Modifier.Companion.weight(1f))
+                }
+
+                ToolPanelType.WORKSPACES -> {
+                    // Content rendered directly in TerminalLayout
                 }
             }
         }

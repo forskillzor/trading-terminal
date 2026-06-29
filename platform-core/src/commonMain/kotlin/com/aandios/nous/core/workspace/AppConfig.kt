@@ -1,0 +1,23 @@
+package com.aandios.nous.core.workspace
+
+import kotlinx.serialization.Serializable
+
+/**
+ * Состо��ние приложения между сессиями — какие табы открыты, тема, версия.
+ */
+@Serializable
+data class AppConfig(
+    val openWorkspaceIds: List<String> = emptyList(),
+    val activeWorkspaceId: String? = null,
+    val theme: String = "dark",
+    val lastKnownVersion: String? = null
+)
+
+/** KMP-safe unique ID generator */
+fun generateId(): String {
+    val chars = "abcdefghijklmnopqrstuvwxyz0123456789"
+    return (1..12).map { chars.random() }.joinToString("")
+}
+
+/** KMP-safe current time in millis */
+fun currentTime(): Long = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()

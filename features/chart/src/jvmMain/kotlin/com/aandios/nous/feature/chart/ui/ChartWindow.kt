@@ -53,12 +53,16 @@ fun ChartWindow() {
 fun ChartWindow(
     chartViewModel: ChartViewModel,
     modifier: Modifier = Modifier,
+    initialZoomLevel: Float = 1f,
+    onZoomChange: ((Float) -> Unit)? = null,
 ) {
     val liquidationViewModel: LiquidationViewModel = koinInject()
     ChartWindowContent(
         chartViewModel = chartViewModel,
         modifier = modifier,
-        liquidationViewModel = liquidationViewModel
+        liquidationViewModel = liquidationViewModel,
+        initialZoomLevel = initialZoomLevel,
+        onZoomChange = onZoomChange,
     )
 }
 
@@ -67,6 +71,8 @@ private fun ChartWindowContent(
     chartViewModel: ChartViewModel,
     modifier: Modifier = Modifier,
     liquidationViewModel: LiquidationViewModel,
+    initialZoomLevel: Float = 1f,
+    onZoomChange: ((Float) -> Unit)? = null,
 ) {
     val chartState by chartViewModel.chartState.collectAsState()
     val currentSymbol by chartViewModel.currentSymbol.collectAsState()
@@ -166,7 +172,9 @@ private fun ChartWindowContent(
                                 onNeedMoreHistory = { chartViewModel.loadMoreHistory() },
                                 historyLoadCount = historyLoadCount,
                                 hasMoreHistory = hasMoreHistory,
-                                modifier = Modifier.fillMaxSize()
+                                modifier = Modifier.fillMaxSize(),
+                                initialZoomLevel = initialZoomLevel,
+                                onZoomChange = onZoomChange,
                             )
                         }
                         ChartMode.FOOTPRINT -> {
@@ -203,7 +211,9 @@ private fun ChartWindowContent(
                                     onNeedMoreHistory = { chartViewModel.loadMoreFootprintHistory() },
                                     historyLoadCount = footprintHistoryLoadCount,
                                     hasMoreHistory = hasMoreFootprintHistory,
-                                    modifier = Modifier.fillMaxSize()
+                                    modifier = Modifier.fillMaxSize(),
+                                    initialZoomLevel = initialZoomLevel,
+                                    onZoomChange = onZoomChange,
                                 )
                             }
                         }

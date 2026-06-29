@@ -4,6 +4,7 @@ import com.aandios.nous.api.market.model.SymbolInfo
 import com.aandios.nous.api.market.model.trades.Trade
 import com.aandios.nous.core.domain.repository.SymbolInfoRepository
 import com.aandios.nous.core.domain.repository.TradesRepository
+import com.aandios.nous.core.Disposable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -21,11 +22,18 @@ import kotlinx.coroutines.launch
  * Фильтр размера сделки.
  * Значения генерируются на основе minQty из SymbolInfo.
  */
-enum class SizeFilter(val label: String) {
-    All("All"),
-    MinQty("≥ min"),
-    MinQtyx10("≥ ×10"),
-    MinQtyx100("≥ ×100"),
+sealed class SizeFilter {
+    abstract val label: String
+    data object All : SizeFilter() { override val label = "All" }
+    data object MinQty : SizeFilter() { override val label = "≥ min" }
+    data object MinQtyx10 : SizeFilter() { override val label = "≥ ×10" }
+    data object MinQtyx100 : SizeFilter() { override val label = "≥ ×100" }
+    data class Custom(val value: Double) : SizeFilter() {
+        override val label: String get() {
+            val s = value.toString().trimEnd('0').trimEnd('.')
+            return "≥ $s"
+        }
+    }
 }
 
 sealed class TradesState {
@@ -37,7 +45,7 @@ sealed class TradesState {
 class TradesViewModel(
     private val tradesRepository: TradesRepository,
     private val symbolInfoRepository: SymbolInfoRepository? = null,
-) {
+) : Disposable {
     private val viewModelScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var subscriptionJob: Job? = null
 
@@ -51,6 +59,9 @@ class TradesViewModel(
     val loadedSymbols: StateFlow<List<SymbolInfo>> = _loadedSymbols.asStateFlow()
 
     // Информация о текущем символе (minQty, tickSize и т.д.)
+    private val _currentSymbol = MutableStateFlow("")
+    val currentSymbol: StateFlow<String> = _currentSymbol.asStateFlow()
+
     private val _currentSymbolInfo = MutableStateFlow<SymbolInfo?>(null)
     val currentSymbolInfo: StateFlow<SymbolInfo?> = _currentSymbolInfo.asStateFlow()
 
@@ -58,10 +69,23 @@ class TradesViewModel(
     val minTradeSize: Double? get() = _currentSymbolInfo.value?.minQty
 
     // Выбранный фильтр размера
-    private val _selectedSizeFilter = MutableStateFlow(SizeFilter.All)
+    private val _selectedSizeFilter = MutableStateFlow<SizeFilter>(SizeFilter.All)
     val selectedSizeFilter: StateFlow<SizeFilter> = _selectedSizeFilter.asStateFlow()
 
-    private var currentSymbol: String = ""
+    // Текст в поле кастомного фильтра
+    private val _filterText = MutableStateFlow("")
+    val filterText: StateFlow<String> = _filterText.asStateFlow()
+
+    // Пользовательские пресеты
+    private val _customPresets = MutableStateFlow<List<Double>>(emptyList())
+    val customPresets: StateFlow<List<Double>> = _customPresets.asStateFlow()
+
+    private var subscribedSymbol: String = ""
+
+    override fun dispose() {
+        subscriptionJob?.cancel()
+        viewModelScope.cancel()
+    }
 
     init {
         // Загружаем список символов при старте
@@ -73,18 +97,27 @@ class TradesViewModel(
      */
     private fun filterTrades(trades: List<Trade>): List<Trade> {
         val filter = _selectedSizeFilter.value
-        val minQty = minTradeSize ?: return trades
-
         return when (filter) {
-            SizeFilter.All -> trades
-            SizeFilter.MinQty -> trades.filter { it.quantity >= minQty }
-            SizeFilter.MinQtyx10 -> trades.filter { it.quantity >= minQty * 10 }
-            SizeFilter.MinQtyx100 -> trades.filter { it.quantity >= minQty * 100 }
+            is SizeFilter.All -> trades
+            is SizeFilter.MinQty -> {
+                val mq = minTradeSize ?: return trades
+                trades.filter { it.quantity >= mq }
+            }
+            is SizeFilter.MinQtyx10 -> {
+                val mq = minTradeSize ?: return trades
+                trades.filter { it.quantity >= mq * 10 }
+            }
+            is SizeFilter.MinQtyx100 -> {
+                val mq = minTradeSize ?: return trades
+                trades.filter { it.quantity >= mq * 100 }
+            }
+            is SizeFilter.Custom -> trades.filter { it.quantity >= filter.value }
         }
     }
 
     fun updateSizeFilter(filter: SizeFilter) {
         _selectedSizeFilter.value = filter
+        _filterText.value = ""
         // Переприменяем фильтр к текущему стейту
         val currentState = _state.value
         if (currentState is TradesState.Connected) {
@@ -93,9 +126,44 @@ class TradesViewModel(
         }
     }
 
+    fun setCustomFilterThreshold(value: String) {
+        _filterText.value = value
+        val parsed = value.trim().toDoubleOrNull()
+        if (parsed != null && parsed > 0) {
+            _selectedSizeFilter.value = SizeFilter.Custom(parsed)
+        } else {
+            _selectedSizeFilter.value = SizeFilter.All
+        }
+    }
+
+    fun addPreset(value: Double) {
+        _customPresets.value = (_customPresets.value + value).sorted()
+    }
+
+    fun editPreset(index: Int, value: Double) {
+        val list = _customPresets.value.toMutableList()
+        if (index in list.indices) {
+            list[index] = value
+            _customPresets.value = list.sorted()
+        }
+    }
+
+    fun deletePreset(index: Int) {
+        val list = _customPresets.value.toMutableList()
+        if (index in list.indices) {
+            list.removeAt(index)
+            _customPresets.value = list
+        }
+    }
+
+    fun setPresets(presets: List<Double>) {
+        _customPresets.value = presets.sorted()
+    }
+
     fun subscribeToTrades(symbol: String) {
-        if (symbol == currentSymbol && _state.value is TradesState.Connected) return
-        currentSymbol = symbol
+        if (symbol == subscribedSymbol && _state.value is TradesState.Connected) return
+        subscribedSymbol = symbol
+        _currentSymbol.value = symbol
 
         subscriptionJob?.cancel()
         _state.value = TradesState.Loading

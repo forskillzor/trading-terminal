@@ -43,12 +43,12 @@ fun DomSection(
      *  Используем агрегацию, чтобы скроллить до того же уровня, который подсвечивается
      **/
     val scrollTargetPrice = remember(orderBook, aggregationLevel, baseTickSize) {
-        orderBook?.bestBid?.let { bestBid ->
-            if (baseTickSize != null) {
-                aggregationLevel.roundDown(bestBid, baseTickSize)
-            } else {
-                bestBid // без округления, если tickSize неизвестен
-            }
+        val mid = orderBook?.bestBid?.let { bid ->
+            orderBook.bestAsk?.let { ask -> (bid + ask) / 2.0 }
+        } ?: orderBook?.bestBid
+        mid?.let { price ->
+            if (baseTickSize != null) aggregationLevel.roundDown(price, baseTickSize)
+            else price
         }
     }
 
@@ -99,7 +99,10 @@ fun DomSection(
         }
 
         if (!isTargetVisible) {
-            lazyListState.animateScrollToItem(targetIndex, 0)
+            // Center the target in the viewport: scroll so target is in the middle
+            val visibleCount = lazyListState.layoutInfo.visibleItemsInfo.size
+            val centeredIndex = (targetIndex - visibleCount / 2).coerceAtLeast(0)
+            lazyListState.animateScrollToItem(centeredIndex, 0)
         }
     }
 

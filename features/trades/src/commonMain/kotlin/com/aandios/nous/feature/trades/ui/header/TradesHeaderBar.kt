@@ -1,12 +1,7 @@
 package com.aandios.nous.feature.trades.ui.header
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -17,52 +12,54 @@ import androidx.compose.ui.unit.dp
 import com.aandios.nous.api.market.model.SymbolInfo
 import com.aandios.nous.feature.trades.ui.SizeFilter
 
-/**
- * Верхняя панель с symbol dropdown и size filter dropdown (как в DomHeader).
- */
 @Composable
 fun TradesHeaderBar(
     currentSymbol: String,
     availableSymbols: List<SymbolInfo>,
     currentSymbolInfo: SymbolInfo?,
     selectedSizeFilter: SizeFilter,
+    customPresets: List<Double>,
     onSymbolChanged: (String) -> Unit,
-    onSizeFilterChanged: (SizeFilter) -> Unit,
+    onFilterChanged: (SizeFilter) -> Unit,
+    onPresetAdd: (Double) -> Unit,
+    onPresetEdit: (Int, Double) -> Unit,
+    onPresetDelete: (Int) -> Unit,
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant,
         tonalElevation = 1.dp,
-        modifier = Modifier.Companion.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.Companion
+            modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.Companion.CenterVertically
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Symbol dropdown
             TradesSymbolDropdown(
                 currentSymbol = currentSymbol,
                 availableSymbols = availableSymbols,
                 onSymbolChanged = onSymbolChanged,
-                modifier = Modifier.Companion.weight(1.4f)
+                modifier = Modifier.weight(1.4f)
             )
 
-            // Size filter dropdown
             SizeFilterDropdown(
                 currentFilter = selectedSizeFilter,
                 minQty = currentSymbolInfo?.minQty,
-                onFilterChanged = onSizeFilterChanged,
-                modifier = Modifier.Companion.weight(1f)
+                customPresets = customPresets,
+                onFilterChanged = onFilterChanged,
+                onPresetAdd = onPresetAdd,
+                onPresetEdit = onPresetEdit,
+                onPresetDelete = onPresetDelete,
+                modifier = Modifier.weight(1f)
             )
 
-            // Live индикатор
             Box(
-                modifier = Modifier.Companion
+                modifier = Modifier
                     .size(8.dp)
                     .background(
-                        color = Color.Companion.Green,
+                        color = Color.Green,
                         shape = MaterialTheme.shapes.small
                     )
             )

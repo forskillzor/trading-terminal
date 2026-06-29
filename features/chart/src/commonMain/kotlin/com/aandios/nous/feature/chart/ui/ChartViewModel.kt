@@ -8,6 +8,7 @@ import com.aandios.nous.api.market.model.FootprintLevel
 import com.aandios.nous.api.market.model.MutableFootprintCandle
 import com.aandios.nous.api.market.model.SymbolInfo
 import com.aandios.nous.core.domain.repository.ChartRepository
+import com.aandios.nous.core.Disposable
 import com.aandios.nous.core.storage.StateStore
 import com.aandios.nous.core.ui.format.SymbolFormatter
 import com.aandios.nous.feature.chart.footprint.FootprintApiClient
@@ -22,7 +23,7 @@ class ChartViewModel(
     private val footprintApiClient: FootprintApiClient? = null,
     private val tradesAdapter: TradesAdapter? = null,
     private val stateStore: StateStore? = null,
-) {
+) : Disposable {
     private val viewModelScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var currentJob: Job? = null
     private var footprintJob: Job? = null
@@ -77,6 +78,12 @@ class ChartViewModel(
     private val _footprintHistoryLoadCount = MutableStateFlow(0)
     val footprintHistoryLoadCount: StateFlow<Int> = _footprintHistoryLoadCount
     private var isLoadingMoreFootprint = false
+
+    override fun dispose() {
+        currentJob?.cancel()
+        footprintJob?.cancel()
+        viewModelScope.cancel()
+    }
 
     init {
         loadSymbols()
@@ -439,6 +446,8 @@ class ChartViewModel(
     }
 
     fun loadChart(ticker: String = "BTCUSDT", timeframe: String = "1h") {
+        _currentSymbol.value = ticker
+        _currentTimeframe.value = timeframe
         _hasMoreHistory.value = true
         _historyLoadCount.value = 0
         isLoadingMore = false

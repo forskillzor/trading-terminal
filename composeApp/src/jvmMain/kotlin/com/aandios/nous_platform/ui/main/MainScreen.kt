@@ -28,6 +28,14 @@ fun MainScreen(
 ) {
     var selectedSymbol by remember { mutableStateOf("BTCUSDT") }
     var selectedTimeframe by remember { mutableStateOf("1h") }
+
+    // Sync from ViewModel
+    LaunchedEffect(Unit) {
+        chartViewModel.currentSymbol.collect { selectedSymbol = it }
+    }
+    LaunchedEffect(Unit) {
+        chartViewModel.currentTimeframe.collect { selectedTimeframe = it }
+    }
     var showSettings by remember { mutableStateOf(false) }
     val storage: LocalStorage = koinInject()
 

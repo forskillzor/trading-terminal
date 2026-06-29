@@ -28,6 +28,10 @@ import com.aandios.nous.feature.dom.data.repository.DomRepositoryImpl
 import com.aandios.nous.feature.dom.ui.DomViewModel
 import com.aandios.nous.feature.trades.ui.TradesViewModel
 import com.aandios.nous.provider.binance.BinanceProviderFactory
+import com.aandios.nous.core.workspace.WorkspaceRepository
+import com.aandios.nous.core.workspace.AppStateRepository
+import com.aandios.nous.core.workspace.viewmodel.TabManager
+import org.koin.core.qualifier.named
 import com.aandios.nous_platform.ui.terminalLayout.TerminalStateViewModel
 import org.koin.core.context.startKoin
 import org.koin.dsl.module
@@ -115,6 +119,11 @@ val appModule = module {
     // 4.6 Local storage (SQLite)
     single<LocalStorage> { LocalStorage() }
     single<StateStore> { get<LocalStorage>() }
+
+    // 4.7 Workspace system
+    single<WorkspaceRepository> { WorkspaceRepository(get()) }
+    single<AppStateRepository> { AppStateRepository(get()) }
+    single<TabManager> { TabManager(get(), get()) }
 
     // 5. ViewModels
     factory {

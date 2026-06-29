@@ -78,13 +78,15 @@ fun CandleStickChartInteraction(
     indicatorHeightDp: Dp = 80.dp,
     drawingHistory: DrawingHistory? = null,
     activeDrawingTool: DrawingToolType = DrawingToolType.NONE,
+    initialZoomLevel: Float = 1f,
+    onZoomChange: ((Float) -> Unit)? = null,
 ) {
     if (candles.isEmpty()) return
 
     var mousePosition by remember { mutableStateOf<Offset?>(null) }
     var isCrosshairVisible by remember { mutableStateOf(false) }
     var scrollOffset by remember { mutableFloatStateOf(0f) }
-    var zoomLevel by remember { mutableFloatStateOf(1f) }
+    var zoomLevel by remember { mutableFloatStateOf(initialZoomLevel) }
     var chartWidthPx by remember { mutableFloatStateOf(0f) }
     var maxScroll by remember { mutableFloatStateOf(0f) }
     var isCtrlPressed by remember { mutableStateOf(false) }
@@ -182,6 +184,7 @@ fun CandleStickChartInteraction(
 
                             zoomLevel = newZoom
                             scrollOffset = newScrollOffset
+                            onZoomChange?.invoke(zoomLevel)
 
                             change.consume()
                         }
